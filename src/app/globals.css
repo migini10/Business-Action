@@ -24,6 +24,10 @@
   --radius-2xl: 2rem;
 }
 
+html {
+  font-size: 93%;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

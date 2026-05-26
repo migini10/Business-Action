@@ -15,10 +15,29 @@ export default function Home() {
           </svg>
           Business Action
         </div>
-        <nav>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Link href="/admin" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
             Accès Admin
           </Link>
+          <button style={{ 
+            background: 'var(--color-primary-light)', 
+            border: 'none', 
+            borderRadius: '0.5rem', 
+            width: '40px', 
+            height: '40px', 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            color: 'var(--color-primary)',
+            transition: 'all 0.3s ease'
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
         </nav>
       </header>
       </div>
