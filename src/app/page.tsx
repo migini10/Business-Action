@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   return (
@@ -44,7 +45,7 @@ export default function Home() {
             Envoyez simplement votre carte grise et recevez votre devis personnalisé. Gérez également vos dettes en toute transparence.
           </p>
           
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '4rem' }}>
             <Link href="/demande-devis" className="btn btn-primary">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
               Demander un devis
@@ -53,6 +54,17 @@ export default function Home() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
               Suivre mon dossier
             </Link>
+          </div>
+
+          <div style={{ width: '100%', maxWidth: '1000px', margin: '0 auto', borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <Image 
+              src="/hero-car.png" 
+              alt="Chauffeur souriant dans une voiture sur la route" 
+              width={1024} 
+              height={1024} 
+              style={{ width: '100%', maxHeight: '500px', objectFit: 'cover', display: 'block' }} 
+              priority
+            />
           </div>
         </section>
 
