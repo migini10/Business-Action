@@ -25,7 +25,7 @@ export default function Home() {
 
       <main>
         {/* Hero Section */}
-        <section className="animate-fade-in" style={{ position: 'relative', overflow: 'hidden', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '55vh', marginBottom: '4rem' }}>
+        <section className="animate-fade-in" style={{ position: 'relative', overflow: 'hidden', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '40vh', marginBottom: '4rem' }}>
           <Image 
             src="/hero-car.png" 
             alt="Chauffeur souriant dans une voiture sur la route" 
@@ -43,18 +43,18 @@ export default function Home() {
             borderRadius: '2rem', 
             fontWeight: 600, 
             fontSize: '0.875rem',
-            marginBottom: '1.5rem',
+            marginBottom: '1rem',
             display: 'inline-block',
             border: '1px solid rgba(255, 255, 255, 0.2)'
           }}>
             Rapide, Sécurisé, Transparent
           </span>
           
-          <h1 style={{ fontSize: '3.5rem', fontWeight: 800, color: '#ffffff', marginBottom: '1.5rem', maxWidth: '800px', lineHeight: 1.1, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+          <h1 style={{ fontSize: '3rem', fontWeight: 800, color: '#ffffff', marginBottom: '1rem', maxWidth: '800px', lineHeight: 1.1, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
             Obtenez votre <span style={{ color: 'var(--color-primary-light)' }}>devis assurance automobile</span> rapidement
           </h1>
           
-          <p style={{ fontSize: '1.25rem', color: 'rgba(255, 255, 255, 0.9)', marginBottom: '3rem', maxWidth: '600px', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+          <p style={{ fontSize: '1.25rem', color: 'rgba(255, 255, 255, 0.9)', marginBottom: '1.5rem', maxWidth: '600px', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
             Envoyez simplement votre carte grise et recevez votre devis personnalisé. Gérez également vos dettes en toute transparence.
           </p>
           
