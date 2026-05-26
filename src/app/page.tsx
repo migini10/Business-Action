@@ -5,8 +5,9 @@ import Image from 'next/image';
 export default function Home() {
   return (
     <div>
-      <div className="container">
-        <header className="header animate-fade-in">
+      <div className="topbar">
+        <div className="container">
+          <header className="header animate-fade-in">
         <div className="logo">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="var(--color-primary)"/>
@@ -40,6 +41,7 @@ export default function Home() {
           </button>
         </nav>
       </header>
+        </div>
       </div>
 
       <main>
