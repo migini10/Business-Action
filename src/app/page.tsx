@@ -23,48 +23,48 @@ export default function Home() {
 
       <main>
         {/* Hero Section */}
-        <section className="animate-fade-in" style={{ padding: '6rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        <section className="animate-fade-in" style={{ position: 'relative', overflow: 'hidden', borderRadius: '2rem', padding: '8rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', marginBottom: '4rem' }}>
+          <Image 
+            src="/hero-car.png" 
+            alt="Chauffeur souriant dans une voiture sur la route" 
+            fill
+            style={{ objectFit: 'cover', zIndex: -2 }} 
+            priority
+          />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.65)', zIndex: -1 }}></div>
+
           <span style={{ 
-            background: 'var(--color-primary-light)', 
-            color: 'var(--color-primary-dark)', 
+            background: 'rgba(255, 255, 255, 0.15)', 
+            backdropFilter: 'blur(10px)',
+            color: '#fff', 
             padding: '0.5rem 1rem', 
             borderRadius: '2rem', 
             fontWeight: 600, 
             fontSize: '0.875rem',
             marginBottom: '1.5rem',
-            display: 'inline-block'
+            display: 'inline-block',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
           }}>
             Rapide, Sécurisé, Transparent
           </span>
           
-          <h1 style={{ fontSize: '3.5rem', fontWeight: 800, color: 'var(--color-text-main)', marginBottom: '1.5rem', maxWidth: '800px', lineHeight: 1.1 }}>
-            Obtenez votre <span style={{ color: 'var(--color-primary)' }}>devis assurance automobile</span> rapidement
+          <h1 style={{ fontSize: '3.5rem', fontWeight: 800, color: '#ffffff', marginBottom: '1.5rem', maxWidth: '800px', lineHeight: 1.1, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+            Obtenez votre <span style={{ color: 'var(--color-primary-light)' }}>devis assurance automobile</span> rapidement
           </h1>
           
-          <p style={{ fontSize: '1.25rem', color: 'var(--color-text-muted)', marginBottom: '3rem', maxWidth: '600px' }}>
+          <p style={{ fontSize: '1.25rem', color: 'rgba(255, 255, 255, 0.9)', marginBottom: '3rem', maxWidth: '600px', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
             Envoyez simplement votre carte grise et recevez votre devis personnalisé. Gérez également vos dettes en toute transparence.
           </p>
           
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '4rem' }}>
-            <Link href="/demande-devis" className="btn btn-primary">
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/demande-devis" className="btn btn-primary" style={{ border: 'none', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
               Demander un devis
             </Link>
-            <Link href="/suivi" className="btn btn-secondary">
+            <Link href="/suivi" className="btn btn-secondary" style={{ background: 'rgba(255, 255, 255, 0.15)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.3)', backdropFilter: 'blur(10px)' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
               Suivre mon dossier
             </Link>
-          </div>
-
-          <div style={{ width: '100%', maxWidth: '1000px', margin: '0 auto', borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
-            <Image 
-              src="/hero-car.png" 
-              alt="Chauffeur souriant dans une voiture sur la route" 
-              width={1024} 
-              height={1024} 
-              style={{ width: '100%', maxHeight: '500px', objectFit: 'cover', display: 'block' }} 
-              priority
-            />
           </div>
         </section>
 
