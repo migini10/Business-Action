@@ -4,8 +4,9 @@ import Image from 'next/image';
 
 export default function Home() {
   return (
-    <div className="container">
-      <header className="header animate-fade-in">
+    <div>
+      <div className="container">
+        <header className="header animate-fade-in">
         <div className="logo">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="var(--color-primary)"/>
@@ -20,10 +21,11 @@ export default function Home() {
           </Link>
         </nav>
       </header>
+      </div>
 
       <main>
         {/* Hero Section */}
-        <section className="animate-fade-in" style={{ position: 'relative', overflow: 'hidden', borderRadius: '2rem', padding: '8rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', marginBottom: '4rem' }}>
+        <section className="animate-fade-in" style={{ position: 'relative', overflow: 'hidden', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '55vh', marginBottom: '4rem' }}>
           <Image 
             src="/hero-car.png" 
             alt="Chauffeur souriant dans une voiture sur la route" 
@@ -68,8 +70,9 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Feature Cards Section */}
-        <section style={{ padding: '2rem 0 6rem 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', animationDelay: '0.2s' }} className="animate-fade-in">
+        <div className="container">
+          {/* Feature Cards Section */}
+          <section style={{ padding: '2rem 0 6rem 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', animationDelay: '0.2s' }} className="animate-fade-in">
           
           <div className="card">
             <div style={{ background: 'var(--color-primary-light)', width: '60px', height: '60px', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', color: 'var(--color-primary)' }}>
@@ -104,6 +107,7 @@ export default function Home() {
           </div>
 
         </section>
+        </div>
       </main>
     </div>
   );
