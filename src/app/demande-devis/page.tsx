@@ -7,6 +7,8 @@ export default function DemandeDevis() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [dossierNum, setDossierNum] = useState('');
+  const [rectoFile, setRectoFile] = useState<File | null>(null);
+  const [versoFile, setVersoFile] = useState<File | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,19 +85,43 @@ export default function DemandeDevis() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Carte Grise (Recto)</label>
-              <div style={{ border: '2px dashed var(--color-gray)', borderRadius: 'var(--radius-lg)', padding: '2.5rem 1rem', textAlign: 'center', cursor: 'pointer', backgroundColor: 'var(--color-gray-light)', transition: 'all 0.2s' }}>
+              <span style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Carte Grise (Recto)</span>
+              <label style={{ display: 'block', border: '2px dashed var(--color-gray)', borderRadius: 'var(--radius-lg)', padding: '2.5rem 1rem', textAlign: 'center', cursor: 'pointer', backgroundColor: rectoFile ? 'rgba(59, 130, 246, 0.05)' : 'var(--color-gray-light)', borderColor: rectoFile ? 'var(--color-primary)' : 'var(--color-gray)', transition: 'all 0.2s' }}>
+                <input 
+                  type="file" 
+                  accept=".jpg,.jpeg,.png,.pdf" 
+                  style={{ display: 'none' }} 
+                  onChange={(e) => setRectoFile(e.target.files?.[0] || null)}
+                />
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>Cliquez pour uploader<br/><span style={{ fontSize: '0.75rem' }}>(JPG, PNG, PDF)</span></p>
-              </div>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', margin: 0 }}>
+                  {rectoFile ? (
+                    <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{rectoFile.name}</span>
+                  ) : (
+                    <>Cliquez pour uploader<br/><span style={{ fontSize: '0.75rem' }}>(JPG, PNG, PDF)</span></>
+                  )}
+                </p>
+              </label>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Carte Grise (Verso)</label>
-              <div style={{ border: '2px dashed var(--color-gray)', borderRadius: 'var(--radius-lg)', padding: '2.5rem 1rem', textAlign: 'center', cursor: 'pointer', backgroundColor: 'var(--color-gray-light)', transition: 'all 0.2s' }}>
+              <span style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Carte Grise (Verso)</span>
+              <label style={{ display: 'block', border: '2px dashed var(--color-gray)', borderRadius: 'var(--radius-lg)', padding: '2.5rem 1rem', textAlign: 'center', cursor: 'pointer', backgroundColor: versoFile ? 'rgba(59, 130, 246, 0.05)' : 'var(--color-gray-light)', borderColor: versoFile ? 'var(--color-primary)' : 'var(--color-gray)', transition: 'all 0.2s' }}>
+                <input 
+                  type="file" 
+                  accept=".jpg,.jpeg,.png,.pdf" 
+                  style={{ display: 'none' }} 
+                  onChange={(e) => setVersoFile(e.target.files?.[0] || null)}
+                />
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>Cliquez pour uploader<br/><span style={{ fontSize: '0.75rem' }}>(JPG, PNG, PDF)</span></p>
-              </div>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', margin: 0 }}>
+                  {versoFile ? (
+                    <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{versoFile.name}</span>
+                  ) : (
+                    <>Cliquez pour uploader<br/><span style={{ fontSize: '0.75rem' }}>(JPG, PNG, PDF)</span></>
+                  )}
+                </p>
+              </label>
             </div>
           </div>
 
