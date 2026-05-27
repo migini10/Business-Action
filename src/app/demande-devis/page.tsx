@@ -31,7 +31,7 @@ export default function DemandeDevis() {
           </div>
           <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--color-text-main)' }}>Demande Envoyée !</h1>
           <p style={{ fontSize: '1.125rem', color: 'var(--color-text-muted)', marginBottom: '2rem' }}>
-            Votre demande a été traitée avec succès. Nos agents vont vous contacter très rapidement sur WhatsApp avec une offre personnalisée.
+            Votre demande a été traitée avec succès. Nos agents vont vous contacter très rapidement sur WhatsApp et par Email avec une offre personnalisée.
           </p>
           <div style={{ backgroundColor: 'var(--color-gray-light)', padding: '2rem', borderRadius: 'var(--radius-lg)', marginBottom: '2rem', border: '1px solid rgba(0,0,0,0.05)' }}>
             <p style={{ fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>Votre Numéro de Dossier</p>
@@ -59,14 +59,25 @@ export default function DemandeDevis() {
 
         <form onSubmit={handleSubmit} className="card animate-fade-in" style={{ padding: '3rem', borderRadius: 'var(--radius-2xl)', backgroundColor: '#fff' }}>
           
-          <div style={{ marginBottom: '2rem' }}>
-            <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Numéro de Téléphone (WhatsApp)</label>
-            <input 
-              type="tel" 
-              required
-              placeholder="Ex: +221 77 123 45 67" 
-              style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }} 
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Numéro WhatsApp</label>
+              <input 
+                type="tel" 
+                required
+                placeholder="Ex: +221 77 123 45 67" 
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }} 
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Adresse Email</label>
+              <input 
+                type="email" 
+                required
+                placeholder="Ex: contact@votremail.com" 
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }} 
+              />
+            </div>
           </div>
 
           <div style={{ marginBottom: '2rem' }}>

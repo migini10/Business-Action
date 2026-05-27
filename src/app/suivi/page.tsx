@@ -117,7 +117,7 @@ export default function Suivi() {
 
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: '-2rem', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--color-gray)', border: '4px solid #fff', outline: '2px solid var(--color-gray)', zIndex: 1 }}></div>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--color-text-muted)' }}>Offre envoyée via WhatsApp</h3>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--color-text-muted)' }}>Offre envoyée via WhatsApp & Email</h3>
                 <p style={{ color: 'var(--color-gray)', margin: 0, fontSize: '0.875rem' }}>À venir</p>
               </div>
             </div>
