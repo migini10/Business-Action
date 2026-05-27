@@ -160,6 +160,14 @@ export default function Home() {
             <p style={{ color: 'var(--color-text-muted)' }}>Chaque action est enregistrée. Consultez vos anciennes transactions à tout moment.</p>
           </div>
 
+          <div className="card">
+            <div style={{ background: 'rgba(59, 130, 246, 0.1)', width: '60px', height: '60px', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', color: '#3B82F6' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Gestion des créances</h3>
+            <p style={{ color: 'var(--color-text-muted)' }}>Suivez et relancez vos encaissements en attente facilement pour optimiser votre trésorerie.</p>
+          </div>
+
         </section>
         </div>
 
