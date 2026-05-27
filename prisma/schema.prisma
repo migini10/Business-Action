@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CLIENT
+  ADMIN
+  AGENT
+}
+
+enum StatutDossier {
+  EN_ATTENTE
+  EN_TRAITEMENT
+  OFFRE_ENVOYEE
+  VALIDE
+  REJETE
+}
+
+enum TypeVehicule {
+  PARTICULIER
+  UTILITAIRE
+  POIDS_LOURD
+  DEUX_ROUES
+}
+
+enum StatutPaiement {
+  A_VENIR
+  PAYE
+  EN_RETARD
+}
+
+model User {
+  id        String    @id @default(cuid())
+  phone     String    @unique
+  email     String?   @unique
+  fullName  String?
+  password  String
+  role      Role      @default(CLIENT)
+  dossiers  Dossier[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Dossier {
+  id            String        @id @default(cuid())
+  numeroDossier String        @unique // Ex: DOS-1234-SN
+  phone         String // Utilisé pour le suivi sans compte
+  email         String?
+  typeVehicule  TypeVehicule
+  rectoUrl      String? // URL de la carte grise recto
+  versoUrl      String? // URL de la carte grise verso
+  statut        StatutDossier @default(EN_ATTENTE)
+
+  // Relation optionnelle si l'utilisateur a un compte
+  clientId String?
+  client   User?   @relation(fields: [clientId], references: [id])
+
+  echeances Echeance[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Echeance {
+  id           String         @id @default(cuid())
+  montant      Float
+  dateEcheance DateTime
+  statut       StatutPaiement @default(A_VENIR)
+  description  String?
+
+  dossierId String
+  dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
