@@ -34,7 +34,7 @@ export default function DemandeDevis() {
           <div style={{ backgroundColor: 'var(--color-gray-light)', padding: '2rem', borderRadius: 'var(--radius-lg)', marginBottom: '2rem', border: '1px solid rgba(0,0,0,0.05)' }}>
             <p style={{ fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>Votre Numéro de Dossier</p>
             <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '2px', margin: 0 }}>{dossierNum}</h2>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: '1rem' }}>Conservez ce numéro pour suivre l'état de votre demande.</p>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: '1rem' }}>Conservez ce numéro pour suivre l'état de votre demande. Vous pourrez également faire le suivi avec votre numéro de téléphone.</p>
           </div>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/" className="btn btn-secondary" style={{ padding: '1rem 2rem' }}>Retour à l'accueil</Link>
