@@ -69,8 +69,8 @@ export default function Home() {
         {/* Hero Section */}
         <section className="animate-fade-in" style={{ position: 'relative', overflow: 'hidden', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '60vh', marginBottom: '4rem' }}>
           <Image 
-            src="/hero-car.png" 
-            alt="Chauffeur souriant dans une voiture sur la route" 
+            src="/hero-african-woman.png" 
+            alt="Femme africaine professionnelle conductrice" 
             fill
             style={{ objectFit: 'cover', zIndex: -2 }} 
             priority
