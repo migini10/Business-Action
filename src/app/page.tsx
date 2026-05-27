@@ -97,7 +97,7 @@ export default function Home() {
           </h1>
           
           <p style={{ fontSize: '1.25rem', color: 'rgba(255, 255, 255, 0.9)', marginBottom: '2.5rem', maxWidth: '600px', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
-            Envoyez simplement votre carte grise et recevez votre devis personnalisé. Gérez également vos dettes en toute transparence.
+            Envoyez simplement votre carte grise et recevez votre devis personnalisé. Gérez également vos factures et paiements en toute transparence.
           </p>
           
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -132,7 +132,7 @@ export default function Home() {
             <div style={{ background: 'var(--color-primary-light)', width: '60px', height: '60px', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', color: 'var(--color-primary)' }}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
             </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Gestion des dettes</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Suivi des paiements</h3>
             <p style={{ color: 'var(--color-text-muted)' }}>Suivez vos encours, remboursements et historiques en toute clarté avec un suivi transparent.</p>
           </div>
 
@@ -187,7 +187,7 @@ export default function Home() {
               <div style={{ textAlign: 'center', zIndex: 1 }}>
                 <div style={{ width: '80px', height: '80px', backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800, margin: '0 auto 1.5rem auto' }}>3</div>
                 <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem' }}>Gérez en ligne</h3>
-                <p style={{ color: 'var(--color-text-muted)' }}>Suivez vos dettes, validez vos devis et recevez des alertes avant l'expiration de vos contrats.</p>
+                <p style={{ color: 'var(--color-text-muted)' }}>Suivez vos règlements, validez vos devis et recevez des alertes avant l'expiration de vos contrats.</p>
               </div>
             </div>
           </div>
@@ -219,7 +219,7 @@ export default function Home() {
                 <div style={{ display: 'flex', color: '#F59E0B', marginBottom: '1rem', gap: '0.2rem' }}>
                   ★ ★ ★ ★ ★
                 </div>
-                <p style={{ fontStyle: 'italic', marginBottom: '1.5rem', color: 'var(--color-text-main)' }}>"La gestion des dettes est tellement transparente. Je sais exactement combien il me reste à payer et j'ai l'historique de tous mes paiements."</p>
+                <p style={{ fontStyle: 'italic', marginBottom: '1.5rem', color: 'var(--color-text-main)' }}>"Le suivi des paiements est tellement transparent. Je sais exactement ce qu'il me reste à régler et j'ai l'historique complet."</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>A</div>
                   <div>
@@ -236,7 +236,7 @@ export default function Home() {
         <section style={{ padding: '6rem 0', backgroundColor: 'var(--color-primary)', color: '#fff', textAlign: 'center' }}>
           <div className="container">
             <h2 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1.5rem' }}>Prêt à simplifier votre assurance ?</h2>
-            <p style={{ fontSize: '1.25rem', opacity: 0.9, marginBottom: '2.5rem', maxWidth: '600px', margin: '0 auto 2.5rem auto' }}>Rejoignez des milliers d'utilisateurs qui gèrent déjà leurs devis et dettes avec notre plateforme de classe mondiale.</p>
+            <p style={{ fontSize: '1.25rem', opacity: 0.9, marginBottom: '2.5rem', maxWidth: '600px', margin: '0 auto 2.5rem auto' }}>Rejoignez des milliers d'utilisateurs qui gèrent déjà leurs devis et paiements avec notre plateforme de classe mondiale.</p>
             <Link href="/demande-devis" className="btn btn-secondary" style={{ padding: '1rem 2.5rem', fontSize: '1.125rem', color: 'var(--color-primary)', borderRadius: 'var(--radius-2xl)', display: 'inline-flex' }}>
               Commencer maintenant (Sans compte)
             </Link>
@@ -257,7 +257,7 @@ export default function Home() {
                 </svg>
                 Business Action
               </div>
-              <p style={{ color: '#94A3B8', fontSize: '1rem', lineHeight: 1.6, maxWidth: '400px' }}>La plateforme SaaS de référence pour la gestion de devis d'assurance et de dettes. Rapide, sécurisée et totalement transparente.</p>
+              <p style={{ color: '#94A3B8', fontSize: '1rem', lineHeight: 1.6, maxWidth: '400px' }}>La plateforme SaaS de référence pour la gestion de devis d'assurance et de paiements. Rapide, sécurisée et totalement transparente.</p>
             </div>
             
             <div>
