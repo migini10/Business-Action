@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import { getDossiers } from '@/app/actions/admin';
 import AdminDashboard from './AdminDashboard';
