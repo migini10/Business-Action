@@ -78,7 +78,7 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                   <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
-              <tbody style={{ divideY: '1px solid #E2E8F0' }}>
+              <tbody style={{ borderTop: '1px solid #E2E8F0' }}>
                 {dossiers.map((dossier) => {
                   const statusColor = getStatusColor(dossier.statut);
                   return (
