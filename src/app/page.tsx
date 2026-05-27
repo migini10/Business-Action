@@ -112,6 +112,18 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Social Proof / Trusted By */}
+        <section style={{ padding: '3rem 0', borderTop: '1px solid var(--color-gray-light)', borderBottom: '1px solid var(--color-gray-light)', backgroundColor: '#ffffff', textAlign: 'center', marginBottom: '4rem' }}>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem' }}>Ils nous font confiance</p>
+          <div className="container" style={{ display: 'flex', justifyContent: 'center', gap: '3rem', flexWrap: 'wrap', opacity: 0.6, alignItems: 'center' }}>
+            <h2 style={{ fontFamily: 'serif', fontStyle: 'italic', margin: 0 }}>Allianz</h2>
+            <h2 style={{ fontFamily: 'sans-serif', fontWeight: 800, margin: 0 }}>AXA</h2>
+            <h2 style={{ fontFamily: 'monospace', fontSize: '1.5rem', margin: 0 }}>WafaAssurance</h2>
+            <h2 style={{ fontFamily: 'sans-serif', fontWeight: 300, letterSpacing: '2px', margin: 0 }}>SUNU</h2>
+            <h2 style={{ fontFamily: 'serif', fontWeight: 700, margin: 0 }}>Sanlam</h2>
+          </div>
+        </section>
+
         <div className="container">
           {/* Feature Cards Section */}
           <section style={{ padding: '2rem 0 6rem 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', animationDelay: '0.2s' }} className="animate-fade-in">
@@ -150,7 +162,143 @@ export default function Home() {
 
         </section>
         </div>
+
+        {/* How It Works Section */}
+        <section style={{ padding: '6rem 0', backgroundColor: 'var(--color-white)' }}>
+          <div className="container">
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-main)', marginBottom: '1rem' }}>Comment ça marche ?</h2>
+              <p style={{ fontSize: '1.25rem', color: 'var(--color-text-muted)', maxWidth: '600px', margin: '0 auto' }}>Un processus simple, transparent et 100% digitalisé pour votre confort.</p>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '3rem', position: 'relative' }}>
+              <div style={{ textAlign: 'center', zIndex: 1 }}>
+                <div style={{ width: '80px', height: '80px', backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800, margin: '0 auto 1.5rem auto' }}>1</div>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem' }}>Photographiez</h3>
+                <p style={{ color: 'var(--color-text-muted)' }}>Prenez en photo votre carte grise (recto/verso) avec votre smartphone. Pas besoin de créer de compte.</p>
+              </div>
+
+              <div style={{ textAlign: 'center', zIndex: 1 }}>
+                <div style={{ width: '80px', height: '80px', backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800, margin: '0 auto 1.5rem auto' }}>2</div>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem' }}>Recevez votre devis</h3>
+                <p style={{ color: 'var(--color-text-muted)' }}>Nos agents traitent votre demande en un temps record et vous envoient une offre compétitive sur WhatsApp et Email.</p>
+              </div>
+
+              <div style={{ textAlign: 'center', zIndex: 1 }}>
+                <div style={{ width: '80px', height: '80px', backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800, margin: '0 auto 1.5rem auto' }}>3</div>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem' }}>Gérez en ligne</h3>
+                <p style={{ color: 'var(--color-text-muted)' }}>Suivez vos dettes, validez vos devis et recevez des alertes avant l'expiration de vos contrats.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Testimonials */}
+        <section style={{ padding: '6rem 0', backgroundColor: 'var(--color-gray-light)' }}>
+          <div className="container">
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-main)', marginBottom: '1rem' }}>Ce que disent nos clients</h2>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+              <div className="card" style={{ padding: '2rem', backgroundColor: '#fff', borderRadius: 'var(--radius-xl)' }}>
+                <div style={{ display: 'flex', color: '#F59E0B', marginBottom: '1rem', gap: '0.2rem' }}>
+                  ★ ★ ★ ★ ★
+                </div>
+                <p style={{ fontStyle: 'italic', marginBottom: '1.5rem', color: 'var(--color-text-main)' }}>"Incroyable ! J'ai envoyé ma carte grise et en moins d'une heure j'avais mon devis d'assurance sur WhatsApp. Le suivi est parfait."</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>M</div>
+                  <div>
+                    <h4 style={{ margin: 0, fontWeight: 700 }}>Moussa N.</h4>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>Entrepreneur, Dakar</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '2rem', backgroundColor: '#fff', borderRadius: 'var(--radius-xl)' }}>
+                <div style={{ display: 'flex', color: '#F59E0B', marginBottom: '1rem', gap: '0.2rem' }}>
+                  ★ ★ ★ ★ ★
+                </div>
+                <p style={{ fontStyle: 'italic', marginBottom: '1.5rem', color: 'var(--color-text-main)' }}>"La gestion des dettes est tellement transparente. Je sais exactement combien il me reste à payer et j'ai l'historique de tous mes paiements."</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>A</div>
+                  <div>
+                    <h4 style={{ margin: 0, fontWeight: 700 }}>Aissatou S.</h4>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>Commerçante</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section style={{ padding: '6rem 0', backgroundColor: 'var(--color-primary)', color: '#fff', textAlign: 'center' }}>
+          <div className="container">
+            <h2 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1.5rem' }}>Prêt à simplifier votre assurance ?</h2>
+            <p style={{ fontSize: '1.25rem', opacity: 0.9, marginBottom: '2.5rem', maxWidth: '600px', margin: '0 auto 2.5rem auto' }}>Rejoignez des milliers d'utilisateurs qui gèrent déjà leurs devis et dettes avec notre plateforme de classe mondiale.</p>
+            <Link href="/demande-devis" className="btn btn-secondary" style={{ padding: '1rem 2.5rem', fontSize: '1.125rem', color: 'var(--color-primary)', borderRadius: 'var(--radius-2xl)', display: 'inline-flex' }}>
+              Commencer maintenant (Sans compte)
+            </Link>
+          </div>
+        </section>
       </main>
+
+      {/* Footer */}
+      <footer style={{ backgroundColor: '#0B0F19', color: '#fff', padding: '5rem 0 2rem 0' }}>
+        <div className="container">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '4rem', marginBottom: '4rem' }}>
+            <div style={{ gridColumn: 'span 2' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#fff"/>
+                  <path d="M2 17L12 22L22 17" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2 12L12 17L22 12" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Business Action
+              </div>
+              <p style={{ color: '#94A3B8', fontSize: '1rem', lineHeight: 1.6, maxWidth: '400px' }}>La plateforme SaaS de référence pour la gestion de devis d'assurance et de dettes. Rapide, sécurisée et totalement transparente.</p>
+            </div>
+            
+            <div>
+              <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', color: '#F8FAFC' }}>Produit</h4>
+              <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1rem', color: '#94A3B8' }}>
+                <li><Link href="/demande-devis" style={{ transition: 'color 0.2s' }}>Demander un devis</Link></li>
+                <li><Link href="/suivi" style={{ transition: 'color 0.2s' }}>Suivi de dossier</Link></li>
+                <li><Link href="/espace-client" style={{ transition: 'color 0.2s' }}>Espace Client</Link></li>
+                <li><Link href="/admin" style={{ transition: 'color 0.2s' }}>Espace Admin</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', color: '#F8FAFC' }}>Légal</h4>
+              <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1rem', color: '#94A3B8' }}>
+                <li><Link href="#">Conditions générales</Link></li>
+                <li><Link href="#">Politique de confidentialité</Link></li>
+                <li><Link href="#">Mentions légales</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', color: '#F8FAFC' }}>Contact</h4>
+              <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1rem', color: '#94A3B8' }}>
+                <li>contact@afrodev.com</li>
+                <li>+221 77 123 45 67</li>
+                <li>Dakar, Sénégal</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div style={{ borderTop: '1px solid #1E293B', paddingTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', color: '#64748B', fontSize: '0.875rem' }}>
+            <p>&copy; {new Date().getFullYear()} AFRODEV SaaS. Tous droits réservés.</p>
+            <div style={{ display: 'flex', gap: '1.5rem' }}>
+              <Link href="#" aria-label="Facebook"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg></Link>
+              <Link href="#" aria-label="Twitter"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg></Link>
+              <Link href="#" aria-label="LinkedIn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></Link>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
