@@ -227,7 +227,9 @@ a {
   top: 0;
   right: -320px;
   width: 320px;
+  max-width: 100vw;
   height: 100vh;
+  height: 100dvh; /* Adaptatif pour les navigateurs mobiles modernes */
   background-color: var(--color-white);
   z-index: 2001;
   box-shadow: -10px 0 40px rgba(0, 0, 0, 0.08);
@@ -235,6 +237,7 @@ a {
   display: flex;
   flex-direction: column;
   padding: 2rem;
+  overflow-y: auto; /* Permet le défilement si le contenu dépasse la hauteur de l'écran */
 }
 
 .sidebar.open {
