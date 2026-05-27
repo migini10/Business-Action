@@ -90,8 +90,8 @@ export default function EspaceClient() {
   }
 
   return (
-    <main style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem 1rem' }}>
-      <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '450px', padding: '3rem 2rem', borderRadius: 'var(--radius-2xl)', backgroundColor: '#fff', boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}>
+    <main style={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', padding: '2rem 1rem' }}>
+      <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '450px', padding: '2.5rem 1.5rem', borderRadius: 'var(--radius-xl)', backgroundColor: '#fff', margin: 'auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <div style={{ width: '64px', height: '64px', backgroundColor: 'var(--color-primary-light)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', color: 'var(--color-primary)' }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
