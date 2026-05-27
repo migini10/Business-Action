@@ -2,19 +2,30 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { getDossier } from '@/app/actions/suivi';
 
 export default function Suivi() {
   const [method, setMethod] = useState<'telephone' | 'dossier'>('telephone');
   const [isSearching, setIsSearching] = useState(false);
   const [hasResult, setHasResult] = useState(false);
+  const [dossierData, setDossierData] = useState<any>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSearching(true);
-    setTimeout(() => {
-      setIsSearching(false);
+    
+    const formData = new FormData(e.currentTarget);
+    const identifier = formData.get('identifier') as string;
+    
+    const result = await getDossier(identifier, method);
+    
+    setIsSearching(false);
+    if (result.success && result.dossier) {
+      setDossierData(result.dossier);
       setHasResult(true);
-    }, 1500);
+    } else {
+      alert(result.error || "Une erreur est survenue.");
+    }
   };
 
   return (
@@ -53,6 +64,7 @@ export default function Suivi() {
                   <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Votre numéro WhatsApp</label>
                   <input 
                     type="tel" 
+                    name="identifier"
                     required
                     placeholder="Ex: +221 77 123 45 67" 
                     style={{ width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1.125rem', outline: 'none', backgroundColor: '#fff' }} 
@@ -63,6 +75,7 @@ export default function Suivi() {
                   <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Votre Numéro de Dossier</label>
                   <input 
                     type="text" 
+                    name="identifier"
                     required
                     placeholder="Ex: DOS-1234-SN" 
                     style={{ width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1.125rem', outline: 'none', backgroundColor: '#fff', textTransform: 'uppercase' }} 
@@ -94,10 +107,10 @@ export default function Suivi() {
           <div className="card animate-fade-in" style={{ padding: '3rem', borderRadius: 'var(--radius-2xl)', backgroundColor: '#fff', maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-gray-light)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
               <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>Dossier: DOS-8429-SN</h2>
-                <p style={{ color: 'var(--color-text-muted)', margin: '0.5rem 0 0 0' }}>Véhicule Particulier • Lié au {method === 'telephone' ? '+221 77 *** ** **' : 'Dossier'}</p>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>Dossier: {dossierData?.numeroDossier}</h2>
+                <p style={{ color: 'var(--color-text-muted)', margin: '0.5rem 0 0 0', textTransform: 'capitalize' }}>Véhicule {dossierData?.typeVehicule?.toLowerCase().replace('_', ' ')} • Lié au {dossierData?.phone}</p>
               </div>
-              <span style={{ padding: '0.5rem 1rem', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--color-warning)', borderRadius: '2rem', fontWeight: 600, fontSize: '0.875rem' }}>En traitement</span>
+              <span style={{ padding: '0.5rem 1rem', backgroundColor: dossierData?.statut === 'VALIDE' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: dossierData?.statut === 'VALIDE' ? 'var(--color-success)' : 'var(--color-warning)', borderRadius: '2rem', fontWeight: 600, fontSize: '0.875rem' }}>{dossierData?.statut?.replace('_', ' ')}</span>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: '2rem', margin: '3rem 0' }}>
@@ -106,19 +119,19 @@ export default function Suivi() {
               <div style={{ position: 'relative', marginBottom: '2.5rem' }}>
                 <div style={{ position: 'absolute', left: '-2rem', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--color-success)', border: '4px solid #fff', outline: '2px solid var(--color-success)', zIndex: 1 }}></div>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--color-text-main)' }}>Demande reçue</h3>
-                <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.875rem' }}>Aujourd'hui à 10:30</p>
+                <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.875rem' }}>{dossierData?.createdAt ? new Date(dossierData.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit' }) : "Date inconnue"}</p>
               </div>
 
               <div style={{ position: 'relative', marginBottom: '2.5rem' }}>
-                <div style={{ position: 'absolute', left: '-2rem', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--color-warning)', border: '4px solid #fff', outline: '2px solid var(--color-warning)', zIndex: 1 }}></div>
+                <div style={{ position: 'absolute', left: '-2rem', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: ['EN_TRAITEMENT', 'OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-success)' : 'var(--color-warning)', border: '4px solid #fff', outline: `2px solid ${['EN_TRAITEMENT', 'OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-success)' : 'var(--color-warning)'}`, zIndex: 1 }}></div>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--color-text-main)' }}>Analyse du dossier</h3>
-                <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.875rem' }}>En cours de traitement par nos agents.</p>
+                <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.875rem' }}>{['EN_TRAITEMENT', 'OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'Analyse complétée.' : 'En cours de traitement par nos agents.'}</p>
               </div>
 
               <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '-2rem', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--color-gray)', border: '4px solid #fff', outline: '2px solid var(--color-gray)', zIndex: 1 }}></div>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--color-text-muted)' }}>Offre envoyée via WhatsApp & Email</h3>
-                <p style={{ color: 'var(--color-gray)', margin: 0, fontSize: '0.875rem' }}>À venir</p>
+                <div style={{ position: 'absolute', left: '-2rem', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: ['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-success)' : 'var(--color-gray)', border: '4px solid #fff', outline: `2px solid ${['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-success)' : 'var(--color-gray)'}`, zIndex: 1 }}></div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: ['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-text-main)' : 'var(--color-text-muted)' }}>Offre envoyée via WhatsApp & Email</h3>
+                <p style={{ color: 'var(--color-gray)', margin: 0, fontSize: '0.875rem' }}>{['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'Devis envoyé avec succès.' : 'À venir'}</p>
               </div>
             </div>
 
