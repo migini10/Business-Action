@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { createDossier } from '@/app/actions/dossier';
 
 export default function DemandeDevis() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -10,16 +11,21 @@ export default function DemandeDevis() {
   const [rectoFile, setRectoFile] = useState<File | null>(null);
   const [versoFile, setVersoFile] = useState<File | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulation du traitement (upload, création BDD...)
-    setTimeout(() => {
-      setIsSubmitting(false);
+    
+    const formData = new FormData(e.currentTarget);
+    const result = await createDossier(formData);
+    
+    setIsSubmitting(false);
+    
+    if (result.success && result.numeroDossier) {
       setSuccess(true);
-      // Génération d'un numéro de dossier factice premium
-      setDossierNum('DOS-' + Math.floor(1000 + Math.random() * 9000) + '-SN');
-    }, 2000);
+      setDossierNum(result.numeroDossier);
+    } else {
+      alert(result.error || "Une erreur s'est produite");
+    }
   };
 
   if (success) {
@@ -64,6 +70,7 @@ export default function DemandeDevis() {
               <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Numéro WhatsApp</label>
               <input 
                 type="tel" 
+                name="phone"
                 required
                 placeholder="Ex: +221 77 123 45 67" 
                 style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }} 
@@ -73,6 +80,7 @@ export default function DemandeDevis() {
               <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Adresse Email</label>
               <input 
                 type="email" 
+                name="email"
                 required
                 placeholder="Ex: contact@votremail.com" 
                 style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }} 
@@ -83,6 +91,7 @@ export default function DemandeDevis() {
           <div style={{ marginBottom: '2rem' }}>
             <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Type de Véhicule</label>
             <select 
+              name="typeVehicule"
               required
               style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', cursor: 'pointer' }} 
             >
