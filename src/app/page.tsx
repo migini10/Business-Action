@@ -113,14 +113,28 @@ export default function Home() {
         </section>
 
         {/* Social Proof / Trusted By */}
-        <section style={{ padding: '3rem 0', borderTop: '1px solid var(--color-gray-light)', borderBottom: '1px solid var(--color-gray-light)', backgroundColor: '#ffffff', textAlign: 'center', marginBottom: '4rem' }}>
+        <section style={{ padding: '3rem 0', borderTop: '1px solid var(--color-gray-light)', borderBottom: '1px solid var(--color-gray-light)', backgroundColor: '#ffffff', textAlign: 'center', marginBottom: '4rem', overflow: 'hidden' }}>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem' }}>Ils nous font confiance</p>
-          <div className="container" style={{ display: 'flex', justifyContent: 'center', gap: '3rem', flexWrap: 'wrap', opacity: 0.6, alignItems: 'center' }}>
-            <h2 style={{ fontFamily: 'serif', fontStyle: 'italic', margin: 0 }}>Allianz</h2>
-            <h2 style={{ fontFamily: 'sans-serif', fontWeight: 800, margin: 0 }}>AXA</h2>
-            <h2 style={{ fontFamily: 'monospace', fontSize: '1.5rem', margin: 0 }}>WafaAssurance</h2>
-            <h2 style={{ fontFamily: 'sans-serif', fontWeight: 300, letterSpacing: '2px', margin: 0 }}>SUNU</h2>
-            <h2 style={{ fontFamily: 'serif', fontWeight: 700, margin: 0 }}>Sanlam</h2>
+          
+          <div className="marquee-container" style={{ opacity: 0.6 }}>
+            {/* First Track */}
+            <div className="marquee-content">
+              <h2 style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: '1.5rem', margin: 0, color: 'var(--color-text-main)' }}>SUNU <span style={{ fontWeight: 300 }}>Assurance</span></h2>
+              <h2 style={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: '1.75rem', margin: 0, color: 'var(--color-primary)' }}>Finafrica</h2>
+              <h2 style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: '1.5rem', margin: 0, color: 'var(--color-text-main)' }}>SUNU <span style={{ fontWeight: 300 }}>Assurance</span></h2>
+              <h2 style={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: '1.75rem', margin: 0, color: 'var(--color-primary)' }}>Finafrica</h2>
+              <h2 style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: '1.5rem', margin: 0, color: 'var(--color-text-main)' }}>SUNU <span style={{ fontWeight: 300 }}>Assurance</span></h2>
+              <h2 style={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: '1.75rem', margin: 0, color: 'var(--color-primary)' }}>Finafrica</h2>
+            </div>
+            {/* Second Track (Duplicate for seamless loop) */}
+            <div className="marquee-content">
+              <h2 style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: '1.5rem', margin: 0, color: 'var(--color-text-main)' }}>SUNU <span style={{ fontWeight: 300 }}>Assurance</span></h2>
+              <h2 style={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: '1.75rem', margin: 0, color: 'var(--color-primary)' }}>Finafrica</h2>
+              <h2 style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: '1.5rem', margin: 0, color: 'var(--color-text-main)' }}>SUNU <span style={{ fontWeight: 300 }}>Assurance</span></h2>
+              <h2 style={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: '1.75rem', margin: 0, color: 'var(--color-primary)' }}>Finafrica</h2>
+              <h2 style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: '1.5rem', margin: 0, color: 'var(--color-text-main)' }}>SUNU <span style={{ fontWeight: 300 }}>Assurance</span></h2>
+              <h2 style={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: '1.75rem', margin: 0, color: 'var(--color-primary)' }}>Finafrica</h2>
+            </div>
           </div>
         </section>
 
