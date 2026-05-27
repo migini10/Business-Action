@@ -225,13 +225,13 @@ a {
 .sidebar {
   position: fixed;
   top: 0;
-  right: -300px;
-  width: 300px;
+  right: -320px;
+  width: 320px;
   height: 100vh;
   background-color: var(--color-white);
   z-index: 2001;
-  box-shadow: -5px 0 30px rgba(0, 0, 0, 0.1);
-  transition: right 0.3s ease;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.08);
+  transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
   padding: 2rem;
@@ -241,25 +241,34 @@ a {
   right: 0;
 }
 
-.sidebar-close {
-  align-self: flex-end;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text-main);
-  margin-bottom: 2rem;
+.sidebar-close:hover {
+  background-color: var(--color-gray) !important;
 }
 
 .sidebar-link {
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   color: var(--color-text-main);
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--color-gray-light);
-  transition: color 0.2s ease;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s ease;
+  text-decoration: none;
 }
 
 .sidebar-link:hover {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.sidebar-link svg {
+  color: var(--color-text-muted);
+  transition: color 0.2s ease;
+}
+
+.sidebar-link:hover svg {
   color: var(--color-primary);
 }
 
