@@ -7,7 +7,7 @@ export default function Home() {
     <div>
       <main>
         {/* Hero Section */}
-        <section className="animate-fade-in" style={{ position: 'relative', overflow: 'hidden', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '60vh', marginBottom: '4rem' }}>
+        <section className="animate-fade-in" style={{ position: 'relative', overflow: 'hidden', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '60vh', marginBottom: '4rem', backgroundColor: '#000' }}>
           <Image 
             src="/hero-african-woman.png" 
             alt="Femme africaine professionnelle conductrice" 
