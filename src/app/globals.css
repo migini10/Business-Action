@@ -271,3 +271,42 @@ a {
   align-items: center;
   gap: 0.5rem;
 }
+
+/* Responsive Overrides */
+@media (max-width: 768px) {
+  html {
+    font-size: 85%; /* Échelle globale réduite sur mobile */
+  }
+  .hide-mobile {
+    display: none !important;
+  }
+  .card {
+    padding: 1.5rem !important; /* Réduction des espacements internes sur mobile */
+  }
+  .container {
+    padding: 0 1rem !important;
+  }
+  /* Ajustement dynamique des titres (force le style même si inline) */
+  h1 {
+    font-size: clamp(2rem, 8vw, 3.5rem) !important;
+    line-height: 1.2 !important;
+  }
+  h2 {
+    font-size: clamp(1.5rem, 6vw, 2.5rem) !important;
+  }
+  h3 {
+    font-size: clamp(1.25rem, 5vw, 1.5rem) !important;
+  }
+  .sidebar {
+    width: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo span {
+    font-size: 1.2rem; /* Réduction du logo sur très petit écran */
+  }
+  .btn-primary, .btn-secondary {
+    font-size: 0.875rem !important;
+  }
+}
