@@ -73,8 +73,8 @@ export async function createDossier(formData: FormData) {
     })
     
     return { success: true, numeroDossier: newDossier.numeroDossier }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erreur lors de la création du dossier:", error)
-    return { success: false, error: "Une erreur est survenue lors de l'enregistrement." }
+    return { success: false, error: "Erreur Serveur: " + (error.message || String(error)) }
   }
 }
