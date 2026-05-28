@@ -31,16 +31,16 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   }
 
   return (
-    <div style={{ padding: '2rem' }}>
+    <div className="p-4 md:p-8">
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         
         {/* Header Admin */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#1E293B', margin: 0 }}>Tableau de bord Admin</h1>
-            <p style={{ color: '#64748B', margin: '0.5rem 0 0 0' }}>Gérez les demandes de devis et les dossiers clients.</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-800 m-0">Tableau de bord Admin</h1>
+            <p className="text-slate-500 mt-2 m-0">Gérez les demandes de devis et les dossiers clients.</p>
           </div>
-          <Link href="/" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+          <Link href="/" className="btn btn-secondary self-start md:self-auto py-2 px-4 text-sm">
             Retour au site
           </Link>
         </div>
@@ -71,11 +71,11 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                 <tr>
-                  <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Dossier & Client</th>
-                  <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Véhicule</th>
-                  <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Date de création</th>
-                  <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Statut</th>
-                  <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569', textAlign: 'right' }}>Actions</th>
+                  <th style={{ padding: '1rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Dossier & Client</th>
+                  <th style={{ padding: '1rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Véhicule & Docs</th>
+                  <th style={{ padding: '1rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Date</th>
+                  <th style={{ padding: '1rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Statut</th>
+                  <th style={{ padding: '1rem', fontSize: '0.875rem', fontWeight: 600, color: '#475569', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody style={{ borderTop: '1px solid #E2E8F0' }}>
@@ -83,19 +83,23 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                   const statusColor = getStatusColor(dossier.statut);
                   return (
                     <tr key={dossier.id} style={{ borderBottom: '1px solid #E2E8F0', transition: 'background-color 0.2s' }} className="hover:bg-gray-50">
-                      <td style={{ padding: '1rem 1.5rem' }}>
+                      <td style={{ padding: '1rem', minWidth: '180px' }}>
                         <p style={{ fontWeight: 700, color: '#0F172A', margin: '0 0 0.25rem 0' }}>{dossier.numeroDossier}</p>
                         <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0 }}>{dossier.phone} {dossier.email && `• ${dossier.email}`}</p>
                       </td>
-                      <td style={{ padding: '1rem 1.5rem' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#334155', fontWeight: 500, textTransform: 'capitalize' }}>
+                      <td style={{ padding: '1rem', minWidth: '150px' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#334155', fontWeight: 500, textTransform: 'capitalize', display: 'block', marginBottom: '0.5rem' }}>
                           {dossier.typeVehicule.toLowerCase().replace('_', ' ')}
                         </span>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          {dossier.rectoUrl && <a href={dossier.rectoUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: '#2563EB', textDecoration: 'underline' }}>Recto</a>}
+                          {dossier.versoUrl && <a href={dossier.versoUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: '#2563EB', textDecoration: 'underline' }}>Verso</a>}
+                        </div>
                       </td>
-                      <td style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', color: '#64748B' }}>
+                      <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#64748B', minWidth: '120px' }}>
                         {new Date(dossier.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </td>
-                      <td style={{ padding: '1rem 1.5rem' }}>
+                      <td style={{ padding: '1rem', minWidth: '140px' }}>
                         <span style={{ 
                           backgroundColor: statusColor.bg, 
                           color: statusColor.color, 
@@ -113,7 +117,7 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                           {dossier.statut.replace('_', ' ')}
                         </span>
                       </td>
-                      <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
+                      <td style={{ padding: '1rem', textAlign: 'right', minWidth: '140px' }}>
                         <select 
                           value={dossier.statut}
                           onChange={(e) => handleStatusChange(dossier.id, e.target.value)}
