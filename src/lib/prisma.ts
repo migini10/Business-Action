@@ -3,7 +3,9 @@ import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 
 const prismaClientSingleton = () => {
-  const connectionString = `${process.env.DATABASE_URL}`
+  // Retire les guillemets si l'utilisateur les a copiés par erreur sur Vercel
+  const connectionString = (process.env.DATABASE_URL || '').replace(/^"|"$/g, '').trim()
+  
   const pool = new Pool({ 
     connectionString,
     // Supabase nécessite SSL pour les connexions externes (Vercel)
