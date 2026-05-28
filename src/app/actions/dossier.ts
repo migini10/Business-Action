@@ -40,6 +40,7 @@ export async function createDossier(formData: FormData) {
         rectoUrl = publicUrlData.publicUrl;
       } else {
         console.error("Erreur upload recto:", error);
+        return { success: false, error: "Erreur d'upload de la carte grise (Recto). " + (error?.message || '') };
       }
     }
 
@@ -56,8 +57,11 @@ export async function createDossier(formData: FormData) {
         versoUrl = publicUrlData.publicUrl;
       } else {
         console.error("Erreur upload verso:", error);
+        return { success: false, error: "Erreur d'upload de la carte grise (Verso). " + (error?.message || '') };
       }
     }
+  } else {
+    return { success: false, error: "Configuration Supabase manquante sur le serveur." };
   }
 
   try {
