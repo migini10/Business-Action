@@ -362,25 +362,37 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                   Documents Justificatifs
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   {selectedDossier.rectoUrl ? (
-                    <a href={selectedDossier.rectoUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', backgroundColor: '#F8FAFC', border: '2px dashed #CBD5E1', borderRadius: '1rem', textDecoration: 'none', color: '#475569' }}>
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="1.5" style={{ marginBottom: '1rem' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                      <span style={{ fontWeight: 600 }}>Carte Grise (Recto)</span>
-                    </a>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Recto</span>
+                      <a href={selectedDossier.rectoUrl} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #E2E8F0', height: '200px', backgroundColor: '#F8FAFC', position: 'relative' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={selectedDossier.rectoUrl} alt="Carte Grise Recto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.3)'; e.currentTarget.style.opacity = '1'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0)'; e.currentTarget.style.opacity = '0'; }}>
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </div>
+                      </a>
+                    </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', backgroundColor: '#F1F5F9', border: '2px dashed #E2E8F0', borderRadius: '1rem', color: '#94A3B8' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', backgroundColor: '#F1F5F9', border: '2px dashed #E2E8F0', borderRadius: '1rem', color: '#94A3B8' }}>
                       Aucun recto fourni
                     </div>
                   )}
 
                   {selectedDossier.versoUrl ? (
-                    <a href={selectedDossier.versoUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', backgroundColor: '#F8FAFC', border: '2px dashed #CBD5E1', borderRadius: '1rem', textDecoration: 'none', color: '#475569' }}>
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="1.5" style={{ marginBottom: '1rem' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                      <span style={{ fontWeight: 600 }}>Carte Grise (Verso)</span>
-                    </a>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Verso</span>
+                      <a href={selectedDossier.versoUrl} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #E2E8F0', height: '200px', backgroundColor: '#F8FAFC', position: 'relative' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={selectedDossier.versoUrl} alt="Carte Grise Verso" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.3)'; e.currentTarget.style.opacity = '1'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0)'; e.currentTarget.style.opacity = '0'; }}>
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </div>
+                      </a>
+                    </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', backgroundColor: '#F1F5F9', border: '2px dashed #E2E8F0', borderRadius: '1rem', color: '#94A3B8' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', backgroundColor: '#F1F5F9', border: '2px dashed #E2E8F0', borderRadius: '1rem', color: '#94A3B8' }}>
                       Aucun verso fourni
                     </div>
                   )}
