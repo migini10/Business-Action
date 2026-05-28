@@ -11,6 +11,9 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   const [selectedDossier, setSelectedDossier] = useState<any | null>(null);
 
   const handleStatusChange = async (id: string, newStatut: string) => {
+    const isConfirmed = window.confirm(`Êtes-vous sûr de vouloir changer le statut de ce dossier à "${newStatut.replace('_', ' ')}" ?`);
+    if (!isConfirmed) return;
+
     setIsUpdating(id);
     const result = await updateDossierStatus(id, newStatut);
     if (result.success) {
