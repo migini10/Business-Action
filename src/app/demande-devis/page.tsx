@@ -16,6 +16,9 @@ export default function DemandeDevis() {
     setIsSubmitting(true);
     
     const formData = new FormData(e.currentTarget);
+    if (rectoFile) formData.append('recto', rectoFile);
+    if (versoFile) formData.append('verso', versoFile);
+
     const result = await createDossier(formData);
     
     setIsSubmitting(false);
