@@ -19,15 +19,20 @@ export default function DemandeDevis() {
     if (rectoFile) formData.append('recto', rectoFile);
     if (versoFile) formData.append('verso', versoFile);
 
-    const result = await createDossier(formData);
-    
-    setIsSubmitting(false);
-    
-    if (result.success && result.numeroDossier) {
-      setSuccess(true);
-      setDossierNum(result.numeroDossier);
-    } else {
-      alert(result.error || "Une erreur s'est produite");
+    try {
+      const result = await createDossier(formData);
+      setIsSubmitting(false);
+      
+      if (result.success && result.numeroDossier) {
+        setSuccess(true);
+        setDossierNum(result.numeroDossier);
+      } else {
+        alert(result.error || "Une erreur s'est produite côté serveur.");
+      }
+    } catch (err: any) {
+      setIsSubmitting(false);
+      console.error(err);
+      alert("Erreur de connexion : le fichier est peut-être trop lourd ou le serveur est injoignable.");
     }
   };
 
