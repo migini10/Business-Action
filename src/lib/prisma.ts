@@ -4,7 +4,11 @@ import { PrismaPg } from '@prisma/adapter-pg'
 
 const prismaClientSingleton = () => {
   const connectionString = `${process.env.DATABASE_URL}`
-  const pool = new Pool({ connectionString })
+  const pool = new Pool({ 
+    connectionString,
+    // Supabase nécessite SSL pour les connexions externes (Vercel)
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }
