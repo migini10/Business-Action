@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { updateDossierStatus, uploadAndSendDevis } from '@/app/actions/admin';
 import Link from 'next/link';
 
@@ -11,6 +11,15 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   const [selectedDossier, setSelectedDossier] = useState<any | null>(null);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   
+  useEffect(() => {
+    const savedTab = localStorage.getItem('adminActiveTab');
+    if (savedTab) setActiveTab(savedTab);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('adminActiveTab', activeTab);
+  }, [activeTab]);
+
   const [devisFile, setDevisFile] = useState<File | null>(null);
   const [isUploadingDevis, setIsUploadingDevis] = useState(false);
 
