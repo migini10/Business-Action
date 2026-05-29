@@ -6,7 +6,7 @@ import Link from 'next/link';
 export default function EspaceClient() {
   const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
   const [visibleCount, setVisibleCount] = useState(15);
 
