@@ -142,7 +142,14 @@ export default function EspaceClient() {
                           {item.montant > 0 ? '+' : ''}{item.montant.toLocaleString('fr-FR')} FCFA
                         </td>
                         <td style={{ padding: '1rem' }}>
-                          <span style={{ padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: item.statut === 'Payé' ? '#F0FDF4' : '#FFFBEB', color: item.statut === 'Payé' ? '#16A34A' : '#D97706' }}>
+                          <span style={{ 
+                            padding: '0.25rem 0.75rem', 
+                            borderRadius: '2rem', 
+                            fontSize: '0.75rem', 
+                            fontWeight: 700, 
+                            backgroundColor: item.statut === 'Payé' ? '#F0FDF4' : item.statut === 'À payer' ? '#FEF2F2' : item.statut === 'À recevoir' ? '#EFF6FF' : '#F3F4F6', 
+                            color: item.statut === 'Payé' ? '#16A34A' : item.statut === 'À payer' ? '#DC2626' : item.statut === 'À recevoir' ? '#2563EB' : '#4B5563' 
+                          }}>
                             {item.statut}
                           </span>
                         </td>

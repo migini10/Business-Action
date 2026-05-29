@@ -711,7 +711,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                           if (!transactionAmount) return;
                           
                           const newAmount = parseInt(transactionAmount);
-                          const finalAmount = (transactionType === 'dette' || transactionType === 'créance') ? -Math.abs(newAmount) : Math.abs(newAmount);
+                          const finalAmount = (transactionType === 'dette' || transactionType === 'remboursement') ? -Math.abs(newAmount) : Math.abs(newAmount);
                           
                           let mappedType: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT' = 'PAIEMENT';
                           if (transactionType === 'dette') mappedType = 'DETTE';
@@ -802,7 +802,14 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                               {tx.montant > 0 ? '+' : ''}{tx.montant.toLocaleString('fr-FR')} FCFA
                             </td>
                             <td style={{ padding: '1rem' }}>
-                              <span style={{ padding: '0.25rem 0.5rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: tx.statut === 'Payé' ? '#DCFCE7' : '#FEE2E2', color: tx.statut === 'Payé' ? '#16A34A' : '#DC2626' }}>
+                              <span style={{ 
+                                padding: '0.25rem 0.5rem', 
+                                borderRadius: '1rem', 
+                                fontSize: '0.75rem', 
+                                fontWeight: 700, 
+                                backgroundColor: tx.statut === 'Payé' ? '#DCFCE7' : tx.statut === 'À payer' ? '#FEE2E2' : tx.statut === 'À recevoir' ? '#DBEAFE' : '#F1F5F9', 
+                                color: tx.statut === 'Payé' ? '#16A34A' : tx.statut === 'À payer' ? '#DC2626' : tx.statut === 'À recevoir' ? '#2563EB' : '#475569' 
+                              }}>
                                 {tx.statut}
                               </span>
                             </td>
