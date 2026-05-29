@@ -56,6 +56,7 @@ model Dossier {
   typeVehicule  TypeVehicule
   rectoUrl      String? // URL de la carte grise recto
   versoUrl      String? // URL de la carte grise verso
+  devisUrl      String? // URL du devis envoyé au client
   statut        StatutDossier @default(EN_ATTENTE)
 
   // Relation optionnelle si l'utilisateur a un compte

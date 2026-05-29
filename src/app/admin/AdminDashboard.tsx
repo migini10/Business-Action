@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { updateDossierStatus } from '@/app/actions/admin';
+import { updateDossierStatus, uploadAndSendDevis } from '@/app/actions/admin';
 import Link from 'next/link';
 
 export default function AdminDashboard({ initialDossiers }: { initialDossiers: any[] }) {
@@ -9,6 +9,32 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedDossier, setSelectedDossier] = useState<any | null>(null);
+  
+  const [devisFile, setDevisFile] = useState<File | null>(null);
+  const [isUploadingDevis, setIsUploadingDevis] = useState(false);
+
+  const handleDevisSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!devisFile || !selectedDossier) return;
+    
+    setIsUploadingDevis(true);
+    const formData = new FormData();
+    formData.append('dossierId', selectedDossier.id);
+    formData.append('devis', devisFile);
+
+    const result = await uploadAndSendDevis(formData);
+    setIsUploadingDevis(false);
+    
+    if (result.success) {
+      alert(result.message);
+      setDevisFile(null);
+      // Update local state to reflect the new status
+      setDossiers(dossiers.map(d => d.id === selectedDossier.id ? { ...d, statut: 'OFFRE_ENVOYEE', devisUrl: 'uploaded' } : d));
+      setSelectedDossier({ ...selectedDossier, statut: 'OFFRE_ENVOYEE', devisUrl: 'uploaded' });
+    } else {
+      alert(result.error || "Erreur lors de l'upload du devis.");
+    }
+  };
 
   const handleStatusChange = async (id: string, newStatut: string) => {
     const isConfirmed = window.confirm(`Êtes-vous sûr de vouloir changer le statut de ce dossier à "${newStatut.replace('_', ' ')}" ?`);
@@ -404,6 +430,71 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                     );
                   })()}
                 </div>
+
+                {/* Devis Upload Section */}
+                <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #E2E8F0' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2"><path d="M22 2L11 13"></path><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    Envoyer une Offre (Devis)
+                  </h3>
+                  
+                  {selectedDossier.devisUrl ? (
+                    <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1.5rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ backgroundColor: '#22C55E', color: 'white', padding: '0.5rem', borderRadius: '50%' }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 700, color: '#166534', margin: 0 }}>Devis envoyé au client</p>
+                          <p style={{ fontSize: '0.875rem', color: '#15803D', margin: 0 }}>Statut mis à jour automatiquement en "Offre Envoyée"</p>
+                        </div>
+                      </div>
+                      <a href={selectedDossier.devisUrl === 'uploaded' ? '#' : selectedDossier.devisUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: 'white', color: '#166534', border: '1px solid #BBF7D0' }}>
+                        Voir le devis
+                      </a>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleDevisSubmit} style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '1.5rem', borderRadius: '1rem' }}>
+                      <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '1rem' }}>
+                        Uploadez le PDF du devis. Le client recevra automatiquement un Email et un message WhatsApp avec le lien pour le consulter.
+                      </p>
+                      
+                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: 'block', border: '2px dashed #CBD5E1', borderRadius: '0.75rem', padding: '1rem', textAlign: 'center', cursor: 'pointer', backgroundColor: devisFile ? '#EFF6FF' : 'white', borderColor: devisFile ? 'var(--color-primary)' : '#CBD5E1', transition: 'all 0.2s' }}>
+                            <input 
+                              type="file" 
+                              accept=".pdf,.png,.jpg,.jpeg" 
+                              style={{ display: 'none' }} 
+                              onChange={(e) => setDevisFile(e.target.files?.[0] || null)}
+                              required
+                            />
+                            {devisFile ? (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                {devisFile.name}
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#64748B' }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                Choisir un fichier PDF
+                              </div>
+                            )}
+                          </label>
+                        </div>
+                        <button 
+                          type="submit" 
+                          disabled={!devisFile || isUploadingDevis}
+                          className="btn btn-primary"
+                          style={{ padding: '1rem 1.5rem', whiteSpace: 'nowrap', opacity: (!devisFile || isUploadingDevis) ? 0.6 : 1, cursor: (!devisFile || isUploadingDevis) ? 'not-allowed' : 'pointer', border: 'none', borderRadius: '0.75rem', backgroundColor: 'var(--color-primary)', color: 'white', fontWeight: 600 }}
+                        >
+                          {isUploadingDevis ? 'Envoi en cours...' : 'Envoyer au client'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+
               </div>
             </div>
           </div>
