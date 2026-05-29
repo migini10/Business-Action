@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { loginClient, registerClient } from '@/app/actions/auth';
 
 export default function EspaceClient() {
   const [isLogin, setIsLogin] = useState(true);
@@ -33,14 +34,28 @@ export default function EspaceClient() {
 
   const currentItems = financesData.slice(0, visibleCount);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+
+    const result = isLogin 
+      ? await loginClient(formData)
+      : await registerClient(formData);
+
+    setIsSubmitting(false);
+
+    if (result.success) {
       setIsLoggedIn(true);
-      if (typeof window !== 'undefined') localStorage.setItem('client_is_logged_in', 'true');
-    }, 1500);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('client_is_logged_in', 'true');
+        localStorage.setItem('client_data', JSON.stringify(result.user));
+      }
+    } else {
+      alert(result.error);
+    }
   };
 
   if (isLoggedIn) {
@@ -233,6 +248,7 @@ export default function EspaceClient() {
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Nom Complet</label>
               <input 
                 type="text" 
+                name="name"
                 required
                 placeholder="Ex: Amadou Diallo" 
                 style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
@@ -244,6 +260,7 @@ export default function EspaceClient() {
             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Numéro de Téléphone (WhatsApp)</label>
             <input 
               type="tel" 
+              name="phone"
               required
               placeholder="Ex: +221 77 123 45 67" 
               style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
@@ -259,6 +276,7 @@ export default function EspaceClient() {
             </div>
             <input 
               type="password" 
+              name="password"
               required
               placeholder="••••••••" 
               style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
