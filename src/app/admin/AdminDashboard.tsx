@@ -94,16 +94,12 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   const rejectedDossiers = dossiers.filter(d => d.statut === 'REJETE').length;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--color-gray-light)' }}>
+    <div className="admin-container" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--color-gray-light)' }}>
       {/* Sidebar */}
-      <aside style={{
-        width: '260px',
+      <aside className="admin-sidebar" style={{
         backgroundColor: '#ffffff',
-        borderRight: '1px solid #E2E8F0',
         display: 'flex',
         flexDirection: 'column',
-        position: 'fixed',
-        height: '100vh',
         zIndex: 40
       }}>
         <div style={{ padding: '2rem 1.5rem', borderBottom: '1px solid #E2E8F0' }}>
@@ -134,10 +130,10 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, marginLeft: '260px', display: 'flex', flexDirection: 'column' }}>
+      <main className="admin-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
         {/* Topbar */}
         <header style={{ height: '70px', backgroundColor: '#ffffff', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', position: 'sticky', top: 0, zIndex: 30 }}>
-          <div style={{ position: 'relative', width: '300px' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input type="text" placeholder="Rechercher un dossier..." style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', borderRadius: '999px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.875rem', backgroundColor: '#F8FAFC' }} />
           </div>

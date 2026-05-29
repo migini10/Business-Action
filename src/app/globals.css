@@ -322,3 +322,34 @@ a {
     font-size: 0.875rem !important;
   }
 }
+
+/* Admin Dashboard Layout */
+.admin-sidebar {
+  width: 260px;
+  border-right: 1px solid #E2E8F0;
+  position: fixed;
+  height: 100vh;
+}
+
+.admin-main {
+  margin-left: 260px;
+}
+
+@media (max-width: 768px) {
+  .admin-container {
+    flex-direction: column;
+  }
+  
+  .admin-sidebar {
+    width: 100%;
+    position: relative;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #E2E8F0;
+    z-index: 10;
+  }
+  
+  .admin-main {
+    margin-left: 0;
+  }
+}
