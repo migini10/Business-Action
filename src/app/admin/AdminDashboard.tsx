@@ -330,16 +330,16 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
             )}
 
             {activeTab === 'utilisateurs' && (
-              <div style={{ backgroundColor: '#fff', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', overflow: 'hidden', border: '1px solid #E2E8F0', padding: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <div style={{ backgroundColor: '#fff', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', overflow: 'hidden', border: '1px solid #E2E8F0', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Gestion des Clients</h2>
-                  <button className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: 600, border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer' }}>
+                  <button className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: 600, border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                     + Ajouter un client
                   </button>
                 </div>
 
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <div style={{ overflowX: 'auto', width: '100%' }}>
+                  <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                       <tr>
                         <th style={thStyle}>Client</th>
@@ -612,7 +612,7 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
                   <div style={{ backgroundColor: '#F1F5F9', padding: '1.5rem', borderRadius: '1rem' }}>
                     <p style={{ margin: '0 0 0.5rem 0', color: '#64748B', fontSize: '0.875rem', fontWeight: 600 }}>Dossiers Actifs</p>
                     <p style={{ margin: 0, fontSize: '2rem', fontWeight: 800, color: '#0F172A' }}>{selectedClient.dossiers}</p>
@@ -625,11 +625,11 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                   </div>
                 </div>
 
-                <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-                  <button className="btn btn-primary" style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 600, border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer' }}>
+                <div style={{ marginTop: '2rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                  <button className="btn btn-primary" style={{ flex: '1 1 auto', minWidth: '200px', padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 600, border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer' }}>
                     Voir ses dossiers
                   </button>
-                  <button className="btn btn-secondary" style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 600, border: '1px solid #E2E8F0', backgroundColor: '#fff', color: '#475569', cursor: 'pointer' }}>
+                  <button className="btn btn-secondary" style={{ flex: '1 1 auto', minWidth: '200px', padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 600, border: '1px solid #E2E8F0', backgroundColor: '#fff', color: '#475569', cursor: 'pointer' }}>
                     Ajouter une transaction
                   </button>
                 </div>
@@ -639,8 +639,8 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                     Historique des transactions
                   </h3>
-                  <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '1rem' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '1rem', width: '100%' }}>
+                    <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
                       <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                         <tr>
                           <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Date</th>
