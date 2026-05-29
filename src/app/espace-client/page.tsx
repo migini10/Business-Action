@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { loginClient, registerClient } from '@/app/actions/auth';
+import { getClientDashboardData } from '@/app/actions/client';
 
 export default function EspaceClient() {
   const [isLogin, setIsLogin] = useState(true);
@@ -11,26 +12,32 @@ export default function EspaceClient() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
   const [visibleCount, setVisibleCount] = useState(15);
 
+  const [financesData, setFinancesData] = useState<any[]>([]);
+  const [dossiers, setDossiers] = useState<any[]>([]);
+  const [clientData, setClientData] = useState<any>(null);
+
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const auth = localStorage.getItem('client_is_logged_in');
-      if (auth === 'true') setIsLoggedIn(true);
+      const dataStr = localStorage.getItem('client_data');
+      if (auth === 'true' && dataStr) {
+        setIsLoggedIn(true);
+        const data = JSON.parse(dataStr);
+        setClientData(data);
+        
+        getClientDashboardData(data.id).then(res => {
+          if (res.success) {
+            setDossiers(res.dossiers || []);
+            setFinancesData(res.transactions || []);
+          }
+        });
+      }
     }
   }, []);
 
-  const financesData = Array.from({ length: 22 }).map((_, i) => ({
-    id: `F-00${i + 1}`,
-    date: new Date(2026, 4, 28 - i).toISOString(),
-    description: i % 2 === 0 ? 'Facture Assurance (DOS-8429)' : 'Remboursement Sinistre',
-    commentaire: i % 3 === 0 ? 'Prime annuelle multirisque' : (i % 2 === 0 ? 'Frais de dossier inclus' : 'Suite à l\'accident du 01/05'),
-    type: i % 4 === 0 ? 'creance' : 'dette',
-    montant: 25000 + (i * 5000),
-    statut: i < 3 ? (i === 1 ? 'À recevoir' : 'À payer') : 'Payé'
-  }));
-
-  const totalDettes = financesData.filter(d => d.type === 'dette' && d.statut === 'À payer').reduce((sum, item) => sum + item.montant, 0);
-  const totalCreances = financesData.filter(d => d.type === 'creance' && d.statut === 'À recevoir').reduce((sum, item) => sum + item.montant, 0);
-  const soldeActuel = totalCreances - totalDettes;
+  const totalDettes = Math.abs(financesData.filter(d => d.montant < 0).reduce((sum, item) => sum + item.montant, 0));
+  const totalCreances = financesData.filter(d => d.montant > 0).reduce((sum, item) => sum + item.montant, 0);
+  const soldeActuel = financesData.reduce((sum, item) => sum + item.montant, 0);
 
   const currentItems = financesData.slice(0, visibleCount);
 
@@ -47,11 +54,18 @@ export default function EspaceClient() {
 
     setIsSubmitting(false);
 
-    if (result.success) {
+    if (result.success && result.user) {
       setIsLoggedIn(true);
+      setClientData(result.user);
       if (typeof window !== 'undefined') {
         localStorage.setItem('client_is_logged_in', 'true');
         localStorage.setItem('client_data', JSON.stringify(result.user));
+      }
+      
+      const dashRes = await getClientDashboardData(result.user.id);
+      if (dashRes.success) {
+        setDossiers(dashRes.dossiers || []);
+        setFinancesData(dashRes.transactions || []);
       }
     } else {
       alert(result.error);
@@ -112,18 +126,15 @@ export default function EspaceClient() {
                         <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>{new Date(item.date).toLocaleDateString('fr-FR')}</td>
                         <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>
                           <div style={{ fontWeight: 600 }}>{item.description}</div>
-                          {item.commentaire && (
-                            <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>
-                              {item.commentaire}
-                            </div>
-                          )}
                         </td>
                         <td style={{ padding: '1rem' }}>
-                          <span style={{ padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: item.type === 'dette' ? '#FEF2F2' : '#F0FDF4', color: item.type === 'dette' ? '#DC2626' : '#16A34A', textTransform: 'uppercase' }}>
+                          <span style={{ padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: item.montant < 0 ? '#FEF2F2' : '#F0FDF4', color: item.montant < 0 ? '#DC2626' : '#16A34A', textTransform: 'uppercase' }}>
                             {item.type}
                           </span>
                         </td>
-                        <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem', fontWeight: 700 }}>{item.montant.toLocaleString('fr-FR')} FCFA</td>
+                        <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem', fontWeight: 700 }}>
+                          {item.montant > 0 ? '+' : ''}{item.montant.toLocaleString('fr-FR')} FCFA
+                        </td>
                         <td style={{ padding: '1rem' }}>
                           <span style={{ padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: item.statut === 'Payé' ? '#F0FDF4' : '#FFFBEB', color: item.statut === 'Payé' ? '#16A34A' : '#D97706' }}>
                             {item.statut}
@@ -172,7 +183,7 @@ export default function EspaceClient() {
                 </div>
                 <h3 style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', margin: 0 }}>Dossiers en cours</h3>
               </div>
-              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>1</p>
+              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>{dossiers.length}</p>
             </div>
 
             <div className="card" style={{ padding: '2rem', borderLeft: '4px solid var(--color-warning)' }}>
@@ -180,9 +191,9 @@ export default function EspaceClient() {
                 <div style={{ padding: '0.75rem', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--color-warning)', borderRadius: '0.5rem' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 </div>
-                <h3 style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', margin: 0 }}>Échéances à venir</h3>
+                <h3 style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', margin: 0 }}>Transactions</h3>
               </div>
-              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>0</p>
+              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>{financesData.length}</p>
             </div>
 
             <div className="card" style={{ padding: '2rem', borderLeft: '4px solid var(--color-success)' }}>
@@ -190,36 +201,33 @@ export default function EspaceClient() {
                 <div style={{ padding: '0.75rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--color-success)', borderRadius: '0.5rem' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 </div>
-                <h3 style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', margin: 0 }}>Paiements effectués</h3>
+                <h3 style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', margin: 0 }}>Solde Actuel</h3>
               </div>
-              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>3</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>{soldeActuel.toLocaleString('fr-FR')} FCFA</p>
             </div>
           </div>
 
           <div className="card" style={{ padding: '2rem', borderRadius: 'var(--radius-xl)' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '2rem', color: 'var(--color-text-main)' }}>Mes Dernières Demandes</h2>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', border: '1px solid var(--color-gray)', borderRadius: 'var(--radius-lg)', marginBottom: '1rem', backgroundColor: 'var(--color-gray-light)' }}>
-              <div>
-                <p style={{ fontWeight: 800, color: 'var(--color-text-main)', margin: '0 0 0.5rem 0', fontSize: '1.125rem' }}>DOS-8429-SN</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Demande de devis • Véhicule Particulier</p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <span style={{ padding: '0.5rem 1rem', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--color-warning)', borderRadius: '2rem', fontWeight: 600, fontSize: '0.875rem' }}>En traitement</span>
-                <Link href="/suivi" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none' }}>Voir &rarr;</Link>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', border: '1px solid var(--color-gray)', borderRadius: 'var(--radius-lg)' }}>
-              <div>
-                <p style={{ fontWeight: 800, color: 'var(--color-text-main)', margin: '0 0 0.5rem 0', fontSize: '1.125rem' }}>DOS-1204-SN</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Demande de devis • Poids Lourd</p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <span style={{ padding: '0.5rem 1rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--color-success)', borderRadius: '2rem', fontWeight: 600, fontSize: '0.875rem' }}>Terminé</span>
-                <span style={{ color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none', cursor: 'pointer' }}>Voir &rarr;</span>
-              </div>
-            </div>
+            {dossiers.length === 0 ? (
+              <p style={{ color: 'var(--color-text-muted)' }}>Aucune demande pour le moment.</p>
+            ) : (
+              dossiers.map(dossier => (
+                <div key={dossier.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', border: '1px solid var(--color-gray)', borderRadius: 'var(--radius-lg)', marginBottom: '1rem', backgroundColor: 'var(--color-gray-light)' }}>
+                  <div>
+                    <p style={{ fontWeight: 800, color: 'var(--color-text-main)', margin: '0 0 0.5rem 0', fontSize: '1.125rem' }}>{dossier.numeroDossier}</p>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Demande de devis • {dossier.typeVehicule.replace('_', ' ')}</p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <span style={{ padding: '0.5rem 1rem', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--color-warning)', borderRadius: '2rem', fontWeight: 600, fontSize: '0.875rem' }}>{dossier.statut}</span>
+                    {dossier.devisUrl && (
+                      <a href={dossier.devisUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none' }}>Voir Devis &rarr;</a>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
 
           </div>
             </>

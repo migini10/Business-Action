@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import React from 'react';
-import { getDossiers } from '@/app/actions/admin';
+import { getDossiers, getClients } from '@/app/actions/admin';
 import AdminDashboard from './AdminDashboard';
 
 export const metadata = {
@@ -10,11 +10,17 @@ export const metadata = {
 };
 
 export default async function AdminPage() {
-  const result = await getDossiers();
+  const [dossiersResult, clientsResult] = await Promise.all([
+    getDossiers(),
+    getClients()
+  ]);
   
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#F8FAFC' }}>
-      <AdminDashboard initialDossiers={result.dossiers || []} />
+      <AdminDashboard 
+        initialDossiers={dossiersResult.dossiers || []} 
+        initialClients={clientsResult.clients || []} 
+      />
     </main>
   );
 }

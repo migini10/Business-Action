@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { updateDossierStatus, uploadAndSendDevis } from '@/app/actions/admin';
+import { updateDossierStatus, uploadAndSendDevis, addTransaction, getClientTransactions } from '@/app/actions/admin';
+import { registerClient } from '@/app/actions/auth';
 import Link from 'next/link';
 
-export default function AdminDashboard({ initialDossiers }: { initialDossiers: any[] }) {
+export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
   const [dossiers, setDossiers] = useState(initialDossiers);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -14,22 +15,16 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionType, setTransactionType] = useState('paiement');
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
-  const [clients, setClients] = useState([
-    { id: 1, name: 'Abdoulaye Ndiaye', phone: '77 123 45 67', email: 'abdoulaye@example.com', dossiers: 2, solde: -120000 },
-    { id: 2, name: 'Fatou Sow', phone: '78 987 65 43', email: 'fatou.sow@example.com', dossiers: 1, solde: 50000 },
-    { id: 3, name: 'Moussa Diop', phone: '76 543 21 09', email: 'm.diop@example.com', dossiers: 0, solde: 0 },
-  ]);
+  const [clients, setClients] = useState(initialClients);
   const [showAddClientForm, setShowAddClientForm] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', phone: '', email: '' });
 
   useEffect(() => {
-    if (selectedClient && clientTransactions.length === 0) {
-      setClientTransactions([
-        { id: 'T1', date: '2026-05-25', desc: 'Facture Assurance (DOS-8429)', amount: -150000, status: 'À payer' },
-        { id: 'T2', date: '2026-05-10', desc: 'Paiement Carte Grise', amount: -25000, status: 'Payé' },
-        { id: 'T3', date: '2026-04-15', desc: 'Remboursement Trop-perçu', amount: 30000, status: 'Payé' },
-      ]);
-    } else if (!selectedClient) {
+    if (selectedClient) {
+      getClientTransactions(selectedClient.id).then(res => {
+        if (res.success) setClientTransactions(res.transactions || []);
+      });
+    } else {
       setClientTransactions([]);
     }
   }, [selectedClient]);
@@ -373,11 +368,22 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                       <input type="text" placeholder="Nom complet" value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
                       <input type="text" placeholder="Téléphone (ex: 77 000 00 00)" value={newClient.phone} onChange={(e) => setNewClient({...newClient, phone: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
                       <input type="email" placeholder="Email" value={newClient.email} onChange={(e) => setNewClient({...newClient, email: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
-                      <button onClick={() => {
+                      <button onClick={async () => {
                         if (!newClient.name || !newClient.phone) return alert("Le nom et le téléphone sont obligatoires.");
-                        setClients([{ id: Date.now(), name: newClient.name, phone: newClient.phone, email: newClient.email || 'Non renseigné', dossiers: 0, solde: 0 }, ...clients]);
-                        setNewClient({ name: '', phone: '', email: '' });
-                        setShowAddClientForm(false);
+                        const formData = new FormData();
+                        formData.append('name', newClient.name);
+                        formData.append('phone', newClient.phone);
+                        formData.append('password', 'Pass1234'); // Mot de passe par défaut
+                        if (newClient.email) formData.append('email', newClient.email);
+
+                        const res = await registerClient(formData);
+                        if (res.success && res.user) {
+                           setClients([{ id: res.user.id, name: res.user.name, phone: res.user.phone, email: newClient.email || 'Non renseigné', dossiers: 0, solde: 0 }, ...clients]);
+                           setNewClient({ name: '', phone: '', email: '' });
+                           setShowAddClientForm(false);
+                        } else {
+                           alert(res.error || 'Erreur');
+                        }
                       }} className="btn btn-primary" style={{ border: 'none' }}>
                         Enregistrer
                       </button>
@@ -690,33 +696,51 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                         style={{ flex: '2 1 200px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
                       />
                       <button 
-                        onClick={() => {
+                        onClick={async () => {
                           if (!transactionAmount) return;
                           
                           const newAmount = parseInt(transactionAmount);
                           const finalAmount = (transactionType === 'dette' || transactionType === 'créance') ? -Math.abs(newAmount) : Math.abs(newAmount);
                           
-                          setClientTransactions([
-                            {
-                              id: `T${Date.now()}`,
-                              date: new Date().toISOString().split('T')[0],
-                              desc: `Nouvelle transaction (${transactionType})`,
-                              amount: finalAmount,
-                              status: 'Payé'
-                            },
-                            ...clientTransactions
-                          ]);
+                          let mappedType: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT' = 'PAIEMENT';
+                          if (transactionType === 'dette') mappedType = 'DETTE';
+                          if (transactionType === 'créance') mappedType = 'CREANCE';
+                          if (transactionType === 'remboursement') mappedType = 'REMBOURSEMENT';
 
-                          setSelectedClient({
-                            ...selectedClient,
-                            solde: selectedClient.solde + finalAmount
+                          const desc = `Nouvelle transaction (${transactionType})`;
+
+                          const res = await addTransaction({
+                            clientId: selectedClient.id,
+                            amount: finalAmount,
+                            type: mappedType,
+                            desc
                           });
-                          
-                          setClients(clients.map(c => c.id === selectedClient.id ? { ...c, solde: c.solde + finalAmount } : c));
 
-                          setShowTransactionForm(false);
-                          setTransactionAmount('');
-                          setTransactionType('paiement');
+                          if (res.success) {
+                            setClientTransactions([
+                              {
+                                id: `T${Date.now()}`,
+                                date: new Date().toISOString(),
+                                description: desc,
+                                montant: finalAmount,
+                                statut: 'Payé'
+                              },
+                              ...clientTransactions
+                            ]);
+
+                            setSelectedClient({
+                              ...selectedClient,
+                              solde: selectedClient.solde + finalAmount
+                            });
+                            
+                            setClients(clients.map(c => c.id === selectedClient.id ? { ...c, solde: c.solde + finalAmount } : c));
+
+                            setShowTransactionForm(false);
+                            setTransactionAmount('');
+                            setTransactionType('paiement');
+                          } else {
+                            alert("Erreur lors de l'ajout de la transaction.");
+                          }
                         }}
                         style={{ padding: '0.75rem 1.5rem', borderRadius: '0.5rem', backgroundColor: '#10B981', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
                       >
@@ -760,13 +784,13 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                         {clientTransactions.map(tx => (
                           <tr key={tx.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
                             <td style={{ padding: '1rem', color: '#475569', fontSize: '0.875rem' }}>{new Date(tx.date).toLocaleDateString('fr-FR')}</td>
-                            <td style={{ padding: '1rem', color: '#0F172A', fontSize: '0.875rem', fontWeight: 600 }}>{tx.desc}</td>
-                            <td style={{ padding: '1rem', color: tx.amount < 0 ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
-                              {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString('fr-FR')} FCFA
+                            <td style={{ padding: '1rem', color: '#0F172A', fontSize: '0.875rem', fontWeight: 600 }}>{tx.description}</td>
+                            <td style={{ padding: '1rem', color: tx.montant < 0 ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
+                              {tx.montant > 0 ? '+' : ''}{tx.montant.toLocaleString('fr-FR')} FCFA
                             </td>
                             <td style={{ padding: '1rem' }}>
-                              <span style={{ padding: '0.25rem 0.5rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: tx.status === 'Payé' ? '#DCFCE7' : '#FEE2E2', color: tx.status === 'Payé' ? '#16A34A' : '#DC2626' }}>
-                                {tx.status}
+                              <span style={{ padding: '0.25rem 0.5rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: tx.statut === 'Payé' ? '#DCFCE7' : '#FEE2E2', color: tx.statut === 'Payé' ? '#16A34A' : '#DC2626' }}>
+                                {tx.statut}
                               </span>
                             </td>
                           </tr>
