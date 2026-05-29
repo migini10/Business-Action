@@ -12,6 +12,7 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState('');
+  const [transactionType, setTransactionType] = useState('paiement');
   
   useEffect(() => {
     const savedTab = localStorage.getItem('adminActiveTab');
@@ -640,19 +641,30 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                   <div style={{ marginTop: '2rem', padding: '1.5rem', backgroundColor: '#F8FAFC', borderRadius: '1rem', border: '1px solid #E2E8F0' }}>
                     <h4 style={{ margin: '0 0 1rem 0', color: '#0F172A', fontSize: '1rem', fontWeight: 600 }}>Ajouter une transaction</h4>
                     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <select
+                        value={transactionType}
+                        onChange={(e) => setTransactionType(e.target.value)}
+                        style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem', backgroundColor: '#fff', flex: '1 1 150px' }}
+                      >
+                        <option value="paiement">Paiement</option>
+                        <option value="dette">Dette</option>
+                        <option value="créance">Créance</option>
+                        <option value="remboursement">Remboursement</option>
+                      </select>
                       <input 
                         type="number" 
                         placeholder="Montant (FCFA)" 
                         value={transactionAmount}
                         onChange={(e) => setTransactionAmount(e.target.value)}
-                        style={{ flex: '1 1 200px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
+                        style={{ flex: '2 1 200px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
                       />
                       <button 
                         onClick={() => {
                           if (!transactionAmount) return;
-                          alert(`Transaction de ${transactionAmount} FCFA simulée avec succès !`);
+                          alert(`Transaction de type "${transactionType}" pour un montant de ${transactionAmount} FCFA simulée avec succès !`);
                           setShowTransactionForm(false);
                           setTransactionAmount('');
+                          setTransactionType('paiement');
                         }}
                         style={{ padding: '0.75rem 1.5rem', borderRadius: '0.5rem', backgroundColor: '#10B981', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
                       >
