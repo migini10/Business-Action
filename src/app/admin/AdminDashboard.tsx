@@ -29,8 +29,8 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
       alert(result.message);
       setDevisFile(null);
       // Update local state to reflect the new status
-      setDossiers(dossiers.map(d => d.id === selectedDossier.id ? { ...d, statut: 'OFFRE_ENVOYEE', devisUrl: 'uploaded' } : d));
-      setSelectedDossier({ ...selectedDossier, statut: 'OFFRE_ENVOYEE', devisUrl: 'uploaded' });
+      setDossiers(dossiers.map(d => d.id === selectedDossier.id ? { ...d, statut: 'OFFRE_ENVOYEE', devisUrl: result.devisUrl } : d));
+      setSelectedDossier({ ...selectedDossier, statut: 'OFFRE_ENVOYEE', devisUrl: result.devisUrl });
     } else {
       alert(result.error || "Erreur lors de l'upload du devis.");
     }

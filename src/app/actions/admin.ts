@@ -90,7 +90,7 @@ export async function uploadAndSendDevis(formData: FormData) {
     console.log(`[SYSTEME] 💬 Envoi du message WhatsApp au ${dossier.phone} avec le lien du devis: ${devisUrl}`);
 
     revalidatePath('/admin');
-    return { success: true, message: "Devis uploadé et envoyé au client avec succès !" };
+    return { success: true, message: "Devis uploadé et envoyé au client avec succès !", devisUrl };
   } catch (error) {
     console.error("Erreur globale upload devis:", error);
     return { success: false, error: "Une erreur inattendue s'est produite." };
