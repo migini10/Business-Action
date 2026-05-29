@@ -134,3 +134,63 @@ export async function uploadAndSendDevis(formData: FormData) {
     return { success: false, error: "Une erreur inattendue s'est produite." };
   }
 }
+
+export async function getClients() {
+  try {
+    const users = await prisma.user.findMany({
+      where: { role: 'CLIENT' },
+      include: {
+        _count: { select: { dossiers: true } },
+        transactions: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    const formattedClients = users.map(user => {
+      const solde = user.transactions.reduce((sum, tx) => sum + tx.montant, 0);
+      return {
+        id: user.id,
+        name: user.fullName,
+        phone: user.phone,
+        email: user.email,
+        dossiers: user._count.dossiers,
+        solde
+      };
+    });
+
+    return { success: true, clients: formattedClients };
+  } catch (error) {
+    console.error("Erreur récupération clients:", error);
+    return { success: false, error: "Erreur lors de la récupération." };
+  }
+}
+
+export async function getClientTransactions(clientId: string) {
+  try {
+    const transactions = await prisma.transaction.findMany({
+      where: { clientId },
+      orderBy: { date: 'desc' }
+    });
+    return { success: true, transactions };
+  } catch (error) {
+    console.error("Erreur récupération transactions:", error);
+    return { success: false, error: "Erreur lors de la récupération." };
+  }
+}
+
+export async function addTransaction(data: { clientId: string, amount: number, type: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT', desc: string }) {
+  try {
+    await prisma.transaction.create({
+      data: {
+        clientId: data.clientId,
+        montant: data.amount,
+        type: data.type,
+        description: data.desc
+      }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Erreur ajout transaction:", error);
+    return { success: false, error: "Erreur lors de l'ajout." };
+  }
+}
