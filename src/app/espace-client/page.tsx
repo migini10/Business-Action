@@ -8,17 +8,27 @@ export default function EspaceClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
-  const financesData = [
-    { id: 'F-001', date: '2026-05-25', description: 'Facture Assurance (DOS-8429)', commentaire: 'Prime annuelle multirisque', type: 'dette', montant: 150000, statut: 'À payer' },
-    { id: 'F-002', date: '2026-05-10', description: 'Remboursement Sinistre', commentaire: 'Suite à l\'accident du 01/05', type: 'creance', montant: 50000, statut: 'Payé' },
-    { id: 'F-003', date: '2026-04-15', description: 'Paiement Carte Grise', commentaire: 'Frais de dossier inclus', type: 'dette', montant: 25000, statut: 'Payé' },
-    { id: 'F-004', date: '2026-05-28', description: 'Remboursement Trop-perçu', commentaire: 'Régularisation du mois dernier', type: 'creance', montant: 30000, statut: 'À recevoir' },
-  ];
+  const financesData = Array.from({ length: 22 }).map((_, i) => ({
+    id: `F-00${i + 1}`,
+    date: new Date(2026, 4, 28 - i).toISOString(),
+    description: i % 2 === 0 ? 'Facture Assurance (DOS-8429)' : 'Remboursement Sinistre',
+    commentaire: i % 3 === 0 ? 'Prime annuelle multirisque' : (i % 2 === 0 ? 'Frais de dossier inclus' : 'Suite à l\'accident du 01/05'),
+    type: i % 4 === 0 ? 'creance' : 'dette',
+    montant: 25000 + (i * 5000),
+    statut: i < 3 ? (i === 1 ? 'À recevoir' : 'À payer') : 'Payé'
+  }));
 
   const totalDettes = financesData.filter(d => d.type === 'dette' && d.statut === 'À payer').reduce((sum, item) => sum + item.montant, 0);
   const totalCreances = financesData.filter(d => d.type === 'creance' && d.statut === 'À recevoir').reduce((sum, item) => sum + item.montant, 0);
   const soldeActuel = totalCreances - totalDettes;
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = financesData.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(financesData.length / itemsPerPage);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +88,7 @@ export default function EspaceClient() {
                     </tr>
                   </thead>
                   <tbody>
-                    {financesData.map((item) => (
+                    {currentItems.map((item) => (
                       <tr key={item.id} style={{ borderBottom: '1px solid var(--color-gray-light)' }}>
                         <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>{new Date(item.date).toLocaleDateString('fr-FR')}</td>
                         <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>
@@ -105,6 +115,30 @@ export default function EspaceClient() {
                   </tbody>
                 </table>
               </div>
+
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1rem', marginBottom: '1.5rem' }}>
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="btn btn-secondary"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                  >
+                    Précédent
+                  </button>
+                  <span style={{ padding: '0.5rem 1rem', fontWeight: 600, color: 'var(--color-text-main)' }}>
+                    Page {currentPage} sur {totalPages}
+                  </span>
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="btn btn-secondary"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                  >
+                    Suivant
+                  </button>
+                </div>
+              )}
 
               <div style={{ backgroundColor: soldeActuel >= 0 ? '#F0FDF4' : '#FEF2F2', border: `2px solid ${soldeActuel >= 0 ? '#22C55E' : '#EF4444'}`, padding: '1.5rem', borderRadius: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
