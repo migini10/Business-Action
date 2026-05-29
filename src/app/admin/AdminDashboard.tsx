@@ -9,6 +9,7 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedDossier, setSelectedDossier] = useState<any | null>(null);
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
   
   const [devisFile, setDevisFile] = useState<File | null>(null);
   const [isUploadingDevis, setIsUploadingDevis] = useState(false);
@@ -379,7 +380,10 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                             </span>
                           </td>
                           <td style={{ ...tdStyle, textAlign: 'right' }}>
-                            <button style={{ padding: '0.5rem 1rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s' }}>
+                            <button 
+                              onClick={() => setSelectedClient(client)}
+                              style={{ padding: '0.5rem 1rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s' }}
+                            >
                               Voir Détails
                             </button>
                           </td>
@@ -574,6 +578,61 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                   )}
                 </div>
 
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Détails Client */}
+        {selectedClient && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setSelectedClient(null)}>
+            <div style={{ backgroundColor: '#fff', borderRadius: '1.5rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative' }} onClick={e => e.stopPropagation()}>
+              <div style={{ padding: '2rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(8px)', zIndex: 10 }}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: '0 0 0.25rem 0' }}>Détails Client</h2>
+                  <p style={{ margin: 0, color: '#64748B', fontSize: '0.875rem' }}>ID Client: CL-{selectedClient.id}</p>
+                </div>
+                <button onClick={() => setSelectedClient(null)} style={{ background: '#F1F5F9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+              
+              <div style={{ padding: '2rem' }}>
+                <div style={{ backgroundColor: '#F8FAFC', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #E2E8F0', marginBottom: '2rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', margin: '0 0 1rem 0' }}>{selectedClient.name}</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem' }}>
+                      <span style={{ color: '#64748B', width: '80px' }}>Téléphone :</span>
+                      <strong style={{ color: '#0F172A' }}>{selectedClient.phone}</strong>
+                    </p>
+                    <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem' }}>
+                      <span style={{ color: '#64748B', width: '80px' }}>Email :</span>
+                      <strong style={{ color: '#0F172A' }}>{selectedClient.email}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                  <div style={{ backgroundColor: '#F1F5F9', padding: '1.5rem', borderRadius: '1rem' }}>
+                    <p style={{ margin: '0 0 0.5rem 0', color: '#64748B', fontSize: '0.875rem', fontWeight: 600 }}>Dossiers Actifs</p>
+                    <p style={{ margin: 0, fontSize: '2rem', fontWeight: 800, color: '#0F172A' }}>{selectedClient.dossiers}</p>
+                  </div>
+                  <div style={{ backgroundColor: selectedClient.solde < 0 ? '#FEE2E2' : (selectedClient.solde > 0 ? '#DCFCE7' : '#F1F5F9'), padding: '1.5rem', borderRadius: '1rem' }}>
+                    <p style={{ margin: '0 0 0.5rem 0', color: selectedClient.solde < 0 ? '#991B1B' : (selectedClient.solde > 0 ? '#166534' : '#64748B'), fontSize: '0.875rem', fontWeight: 600 }}>Solde Global</p>
+                    <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: selectedClient.solde < 0 ? '#DC2626' : (selectedClient.solde > 0 ? '#16A34A' : '#0F172A') }}>
+                      {selectedClient.solde === 0 ? 'À jour' : `${selectedClient.solde > 0 ? '+' : ''}${selectedClient.solde.toLocaleString('fr-FR')} FCFA`}
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+                  <button className="btn btn-primary" style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 600, border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer' }}>
+                    Voir ses dossiers
+                  </button>
+                  <button className="btn btn-secondary" style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 600, border: '1px solid #E2E8F0', backgroundColor: '#fff', color: '#475569', cursor: 'pointer' }}>
+                    Ajouter une transaction
+                  </button>
+                </div>
               </div>
             </div>
           </div>
