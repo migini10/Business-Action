@@ -14,6 +14,13 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionType, setTransactionType] = useState('paiement');
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
+  const [clients, setClients] = useState([
+    { id: 1, name: 'Abdoulaye Ndiaye', phone: '77 123 45 67', email: 'abdoulaye@example.com', dossiers: 2, solde: -120000 },
+    { id: 2, name: 'Fatou Sow', phone: '78 987 65 43', email: 'fatou.sow@example.com', dossiers: 1, solde: 50000 },
+    { id: 3, name: 'Moussa Diop', phone: '76 543 21 09', email: 'm.diop@example.com', dossiers: 0, solde: 0 },
+  ]);
+  const [showAddClientForm, setShowAddClientForm] = useState(false);
+  const [newClient, setNewClient] = useState({ name: '', phone: '', email: '' });
 
   useEffect(() => {
     if (selectedClient && clientTransactions.length === 0) {
@@ -354,10 +361,29 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
               <div style={{ backgroundColor: '#fff', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', overflow: 'hidden', border: '1px solid #E2E8F0', padding: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Gestion des Clients</h2>
-                  <button className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: 600, border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    + Ajouter un client
+                  <button onClick={() => setShowAddClientForm(!showAddClientForm)} className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: 600, border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    {showAddClientForm ? 'Annuler' : '+ Ajouter un client'}
                   </button>
                 </div>
+
+                {showAddClientForm && (
+                  <div style={{ backgroundColor: '#F8FAFC', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #E2E8F0', marginBottom: '2rem' }}>
+                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', marginBottom: '1rem' }}>Nouveau Client</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                      <input type="text" placeholder="Nom complet" value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
+                      <input type="text" placeholder="Téléphone (ex: 77 000 00 00)" value={newClient.phone} onChange={(e) => setNewClient({...newClient, phone: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
+                      <input type="email" placeholder="Email" value={newClient.email} onChange={(e) => setNewClient({...newClient, email: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
+                      <button onClick={() => {
+                        if (!newClient.name || !newClient.phone) return alert("Le nom et le téléphone sont obligatoires.");
+                        setClients([{ id: Date.now(), name: newClient.name, phone: newClient.phone, email: newClient.email || 'Non renseigné', dossiers: 0, solde: 0 }, ...clients]);
+                        setNewClient({ name: '', phone: '', email: '' });
+                        setShowAddClientForm(false);
+                      }} className="btn btn-primary" style={{ border: 'none' }}>
+                        Enregistrer
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ overflowX: 'auto', width: '100%' }}>
                   <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -371,11 +397,7 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                       </tr>
                     </thead>
                     <tbody>
-                      {[
-                        { id: 1, name: 'Abdoulaye Ndiaye', phone: '77 123 45 67', email: 'abdoulaye@example.com', dossiers: 2, solde: -120000 },
-                        { id: 2, name: 'Fatou Sow', phone: '78 987 65 43', email: 'fatou.sow@example.com', dossiers: 1, solde: 50000 },
-                        { id: 3, name: 'Moussa Diop', phone: '76 543 21 09', email: 'm.diop@example.com', dossiers: 0, solde: 0 },
-                      ].map((client) => (
+                      {clients.map((client) => (
                         <tr key={client.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
                           <td style={tdStyle}>
                             <p style={{ fontWeight: 700, color: '#0F172A', margin: '0 0 0.25rem 0' }}>{client.name}</p>
@@ -689,6 +711,8 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                             ...selectedClient,
                             solde: selectedClient.solde + finalAmount
                           });
+                          
+                          setClients(clients.map(c => c.id === selectedClient.id ? { ...c, solde: c.solde + finalAmount } : c));
 
                           setShowTransactionForm(false);
                           setTransactionAmount('');
