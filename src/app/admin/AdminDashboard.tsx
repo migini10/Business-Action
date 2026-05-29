@@ -145,7 +145,9 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
             </div>
 
             {/* KPI Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            {(activeTab === 'dashboard' || activeTab === 'demandes') && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
               <div style={{ ...kpiCardStyle, borderBottom: '4px solid var(--color-primary)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
@@ -323,6 +325,71 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                 </table>
               </div>
             </div>
+              </>
+            )}
+
+            {activeTab === 'utilisateurs' && (
+              <div style={{ backgroundColor: '#fff', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', overflow: 'hidden', border: '1px solid #E2E8F0', padding: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Gestion des Clients</h2>
+                  <button className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: 600, border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer' }}>
+                    + Ajouter un client
+                  </button>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                      <tr>
+                        <th style={thStyle}>Client</th>
+                        <th style={thStyle}>Contact</th>
+                        <th style={thStyle}>Dossiers Actifs</th>
+                        <th style={thStyle}>Solde Global</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { id: 1, name: 'Abdoulaye Ndiaye', phone: '77 123 45 67', email: 'abdoulaye@example.com', dossiers: 2, solde: -120000 },
+                        { id: 2, name: 'Fatou Sow', phone: '78 987 65 43', email: 'fatou.sow@example.com', dossiers: 1, solde: 50000 },
+                        { id: 3, name: 'Moussa Diop', phone: '76 543 21 09', email: 'm.diop@example.com', dossiers: 0, solde: 0 },
+                      ].map((client) => (
+                        <tr key={client.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                          <td style={tdStyle}>
+                            <p style={{ fontWeight: 700, color: '#0F172A', margin: '0 0 0.25rem 0' }}>{client.name}</p>
+                            <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', backgroundColor: '#E2E8F0', color: '#475569', borderRadius: '4px' }}>Client Régulier</span>
+                          </td>
+                          <td style={tdStyle}>
+                            <p style={{ fontSize: '0.875rem', color: '#334155', margin: '0 0 0.25rem 0', fontWeight: 600 }}>{client.phone}</p>
+                            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0 }}>{client.email}</p>
+                          </td>
+                          <td style={tdStyle}>
+                            <span style={{ fontWeight: 700, color: '#0F172A', backgroundColor: '#F1F5F9', padding: '0.2rem 0.6rem', borderRadius: '1rem' }}>{client.dossiers}</span>
+                          </td>
+                          <td style={tdStyle}>
+                            <span style={{ 
+                              padding: '0.375rem 0.75rem', 
+                              borderRadius: '2rem', 
+                              fontSize: '0.875rem', 
+                              fontWeight: 700, 
+                              backgroundColor: client.solde === 0 ? '#F1F5F9' : (client.solde < 0 ? '#FEE2E2' : '#DCFCE7'), 
+                              color: client.solde === 0 ? '#475569' : (client.solde < 0 ? '#DC2626' : '#16A34A') 
+                            }}>
+                              {client.solde === 0 ? 'À jour' : `${client.solde > 0 ? '+' : ''}${client.solde.toLocaleString('fr-FR')} FCFA`}
+                            </span>
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'right' }}>
+                            <button style={{ padding: '0.5rem 1rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s' }}>
+                              Voir Détails
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
           </div>
         </div>
