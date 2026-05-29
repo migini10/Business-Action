@@ -7,6 +7,13 @@ export default function EspaceClient() {
   const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
+
+  const financesData = [
+    { id: 'F-001', date: '2026-05-25', description: 'Facture Assurance (DOS-8429)', type: 'dette', montant: 150000, statut: 'À payer' },
+    { id: 'F-002', date: '2026-05-10', description: 'Remboursement Sinistre', type: 'creance', montant: 50000, statut: 'Payé' },
+    { id: 'F-003', date: '2026-04-15', description: 'Paiement Carte Grise', type: 'dette', montant: 25000, statut: 'Payé' },
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,15 +31,72 @@ export default function EspaceClient() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem' }}>
             <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>Tableau de Bord</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <button className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#10B981', borderColor: '#10B981' }}>
+              <button onClick={() => setActiveTab('finances')} className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#10B981', borderColor: '#10B981' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 Créances et Dettes
               </button>
               <button onClick={() => setIsLoggedIn(false)} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem' }}>Déconnexion</button>
             </div>
           </div>
+          {activeTab === 'finances' ? (
+            <div className="card animate-fade-in" style={{ padding: '2rem', borderRadius: 'var(--radius-xl)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <button onClick={() => setActiveTab('dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Retour
+                  </button>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>Historique des Créances et Dettes</h2>
+                </div>
+              </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1.5rem', borderRadius: '1rem' }}>
+                  <p style={{ color: '#166534', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Total des Créances (À recevoir)</p>
+                  <p style={{ color: '#15803D', fontSize: '2rem', fontWeight: 800, margin: 0 }}>0 FCFA</p>
+                </div>
+                <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', padding: '1.5rem', borderRadius: '1rem' }}>
+                  <p style={{ color: '#991B1B', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Total des Dettes (À payer)</p>
+                  <p style={{ color: '#B91C1C', fontSize: '2rem', fontWeight: 800, margin: 0 }}>150 000 FCFA</p>
+                </div>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--color-gray-light)' }}>
+                      <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>Date</th>
+                      <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>Description</th>
+                      <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>Type</th>
+                      <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>Montant</th>
+                      <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {financesData.map((item) => (
+                      <tr key={item.id} style={{ borderBottom: '1px solid var(--color-gray-light)' }}>
+                        <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>{new Date(item.date).toLocaleDateString('fr-FR')}</td>
+                        <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem', fontWeight: 600 }}>{item.description}</td>
+                        <td style={{ padding: '1rem' }}>
+                          <span style={{ padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: item.type === 'dette' ? '#FEF2F2' : '#F0FDF4', color: item.type === 'dette' ? '#DC2626' : '#16A34A', textTransform: 'uppercase' }}>
+                            {item.type}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem', fontWeight: 700 }}>{item.montant.toLocaleString('fr-FR')} FCFA</td>
+                        <td style={{ padding: '1rem' }}>
+                          <span style={{ padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: item.statut === 'Payé' ? '#F0FDF4' : '#FFFBEB', color: item.statut === 'Payé' ? '#16A34A' : '#D97706' }}>
+                            {item.statut}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
             <div className="card" style={{ padding: '2rem', borderLeft: '4px solid var(--color-primary)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
                 <div style={{ padding: '0.75rem', backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: '0.5rem' }}>
@@ -90,6 +154,8 @@ export default function EspaceClient() {
             </div>
 
           </div>
+            </>
+          )}
         </div>
       </main>
     );
