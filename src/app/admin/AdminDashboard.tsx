@@ -14,6 +14,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionType, setTransactionType] = useState('paiement');
+  const [transactionStatus, setTransactionStatus] = useState('Payé');
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
   const [clients, setClients] = useState(initialClients);
   const [showAddClientForm, setShowAddClientForm] = useState(false);
@@ -688,6 +689,16 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                         <option value="créance">Créance</option>
                         <option value="remboursement">Remboursement</option>
                       </select>
+                      <select
+                        value={transactionStatus}
+                        onChange={(e) => setTransactionStatus(e.target.value)}
+                        style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem', backgroundColor: '#fff', flex: '1 1 150px' }}
+                      >
+                        <option value="Payé">Payé</option>
+                        <option value="À payer">À payer</option>
+                        <option value="À recevoir">À recevoir</option>
+                        <option value="Annulé">Annulé</option>
+                      </select>
                       <input 
                         type="number" 
                         placeholder="Montant (FCFA)" 
@@ -713,7 +724,8 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             clientId: selectedClient.id,
                             amount: finalAmount,
                             type: mappedType,
-                            desc
+                            desc,
+                            statut: transactionStatus
                           });
 
                           if (res.success) {
@@ -723,7 +735,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                 date: new Date().toISOString(),
                                 description: desc,
                                 montant: finalAmount,
-                                statut: 'Payé'
+                                statut: transactionStatus
                               },
                               ...clientTransactions
                             ]);
@@ -738,6 +750,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             setShowTransactionForm(false);
                             setTransactionAmount('');
                             setTransactionType('paiement');
+                            setTransactionStatus('Payé');
                           } else {
                             alert("Erreur lors de l'ajout de la transaction.");
                           }

@@ -178,14 +178,15 @@ export async function getClientTransactions(clientId: string) {
   }
 }
 
-export async function addTransaction(data: { clientId: string, amount: number, type: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT', desc: string }) {
+export async function addTransaction(data: { clientId: string, amount: number, type: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT', desc: string, statut?: string }) {
   try {
     await prisma.transaction.create({
       data: {
         clientId: data.clientId,
         montant: data.amount,
         type: data.type,
-        description: data.desc
+        description: data.desc,
+        statut: data.statut || "Payé"
       }
     });
     return { success: true };
