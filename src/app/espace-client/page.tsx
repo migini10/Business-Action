@@ -13,7 +13,12 @@ export default function EspaceClient() {
     { id: 'F-001', date: '2026-05-25', description: 'Facture Assurance (DOS-8429)', type: 'dette', montant: 150000, statut: 'À payer' },
     { id: 'F-002', date: '2026-05-10', description: 'Remboursement Sinistre', type: 'creance', montant: 50000, statut: 'Payé' },
     { id: 'F-003', date: '2026-04-15', description: 'Paiement Carte Grise', type: 'dette', montant: 25000, statut: 'Payé' },
+    { id: 'F-004', date: '2026-05-28', description: 'Remboursement Trop-perçu', type: 'creance', montant: 30000, statut: 'À recevoir' },
   ];
+
+  const totalDettes = financesData.filter(d => d.type === 'dette' && d.statut === 'À payer').reduce((sum, item) => sum + item.montant, 0);
+  const totalCreances = financesData.filter(d => d.type === 'creance' && d.statut === 'À recevoir').reduce((sum, item) => sum + item.montant, 0);
+  const soldeActuel = totalCreances - totalDettes;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,14 +55,28 @@ export default function EspaceClient() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
                 <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1.5rem', borderRadius: '1rem' }}>
                   <p style={{ color: '#166534', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Total des Créances (À recevoir)</p>
-                  <p style={{ color: '#15803D', fontSize: '2rem', fontWeight: 800, margin: 0 }}>0 FCFA</p>
+                  <p style={{ color: '#15803D', fontSize: '2rem', fontWeight: 800, margin: 0 }}>{totalCreances.toLocaleString('fr-FR')} FCFA</p>
                 </div>
                 <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', padding: '1.5rem', borderRadius: '1rem' }}>
                   <p style={{ color: '#991B1B', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Total des Dettes (À payer)</p>
-                  <p style={{ color: '#B91C1C', fontSize: '2rem', fontWeight: 800, margin: 0 }}>150 000 FCFA</p>
+                  <p style={{ color: '#B91C1C', fontSize: '2rem', fontWeight: 800, margin: 0 }}>{totalDettes.toLocaleString('fr-FR')} FCFA</p>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: soldeActuel >= 0 ? '#F0FDF4' : '#FEF2F2', border: `2px solid ${soldeActuel >= 0 ? '#22C55E' : '#EF4444'}`, padding: '1.5rem', borderRadius: '1rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <p style={{ color: soldeActuel >= 0 ? '#166534' : '#991B1B', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Solde Actuel</p>
+                  <p style={{ color: soldeActuel >= 0 ? '#15803D' : '#B91C1C', fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>
+                    {soldeActuel >= 0 ? '+' : ''}{soldeActuel.toLocaleString('fr-FR')} FCFA
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', fontWeight: 700, backgroundColor: soldeActuel >= 0 ? '#DCFCE7' : '#FEE2E2', color: soldeActuel >= 0 ? '#16A34A' : '#DC2626' }}>
+                    {soldeActuel > 0 ? "L'entreprise vous doit de l'argent" : soldeActuel < 0 ? "Vous devez de l'argent" : "Solde équilibré"}
+                  </span>
                 </div>
               </div>
 
