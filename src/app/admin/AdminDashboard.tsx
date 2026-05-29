@@ -439,19 +439,31 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                   </h3>
                   
                   {selectedDossier.devisUrl ? (
-                    <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1.5rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1.5rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div style={{ backgroundColor: '#22C55E', color: 'white', padding: '0.5rem', borderRadius: '50%' }}>
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
                         <div>
                           <p style={{ fontWeight: 700, color: '#166534', margin: 0 }}>Devis envoyé au client</p>
-                          <p style={{ fontSize: '0.875rem', color: '#15803D', margin: 0 }}>Statut mis à jour automatiquement en "Offre Envoyée"</p>
+                          <p style={{ fontSize: '0.875rem', color: '#15803D', margin: 0 }}>L'email a été envoyé avec succès.</p>
                         </div>
                       </div>
-                      <a href={selectedDossier.devisUrl === 'uploaded' ? '#' : selectedDossier.devisUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: 'white', color: '#166534', border: '1px solid #BBF7D0' }}>
-                        Voir le devis
-                      </a>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <a 
+                          href={`https://wa.me/${selectedDossier.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour, suite à votre demande sur Bizness Action, voici le lien vers votre devis personnalisé: ${selectedDossier.devisUrl === 'uploaded' ? '' : selectedDossier.devisUrl}`)}`}
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="btn btn-primary" 
+                          style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: '#25D366', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                          WhatsApp
+                        </a>
+                        <a href={selectedDossier.devisUrl === 'uploaded' ? '#' : selectedDossier.devisUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: 'white', color: '#166534', border: '1px solid #BBF7D0' }}>
+                          Voir le devis
+                        </a>
+                      </div>
                     </div>
                   ) : (
                     <form onSubmit={handleDevisSubmit} style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '1.5rem', borderRadius: '1rem' }}>
