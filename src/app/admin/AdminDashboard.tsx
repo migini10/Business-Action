@@ -10,6 +10,8 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedDossier, setSelectedDossier] = useState<any | null>(null);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [transactionAmount, setTransactionAmount] = useState('');
   
   useEffect(() => {
     const savedTab = localStorage.getItem('adminActiveTab');
@@ -594,14 +596,14 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
 
         {/* Modal Détails Client */}
         {selectedClient && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', zIndex: 100, padding: '6rem 1rem 2rem 1rem', overflowY: 'auto' }} onClick={() => setSelectedClient(null)}>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', zIndex: 100, padding: '6rem 1rem 2rem 1rem', overflowY: 'auto' }} onClick={() => { setSelectedClient(null); setShowTransactionForm(false); }}>
             <div style={{ backgroundColor: '#fff', borderRadius: '1.5rem', width: '100%', maxWidth: '850px', margin: '0 auto', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative' }} onClick={e => e.stopPropagation()}>
               <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: '0 0 0.25rem 0' }}>Détails Client</h2>
                   <p style={{ margin: 0, color: '#64748B', fontSize: '0.875rem' }}>ID Client: CL-{selectedClient.id}</p>
                 </div>
-                <button onClick={() => setSelectedClient(null)} style={{ background: '#F1F5F9', border: 'none', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
+                <button onClick={() => { setSelectedClient(null); setShowTransactionForm(false); }} style={{ background: '#F1F5F9', border: 'none', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
               </div>
@@ -634,14 +636,46 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                   </div>
                 </div>
 
-                <div style={{ marginTop: '2rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                  <button className="btn btn-primary" style={{ flex: '1 1 auto', minWidth: '200px', padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 600, border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer' }}>
-                    Voir ses dossiers
-                  </button>
-                  <button className="btn btn-secondary" style={{ flex: '1 1 auto', minWidth: '200px', padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 600, border: '1px solid #E2E8F0', backgroundColor: '#fff', color: '#475569', cursor: 'pointer' }}>
-                    Ajouter une transaction
-                  </button>
-                </div>
+                {showTransactionForm ? (
+                  <div style={{ marginTop: '2rem', padding: '1.5rem', backgroundColor: '#F8FAFC', borderRadius: '1rem', border: '1px solid #E2E8F0' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#0F172A', fontSize: '1rem', fontWeight: 600 }}>Ajouter une transaction</h4>
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <input 
+                        type="number" 
+                        placeholder="Montant (FCFA)" 
+                        value={transactionAmount}
+                        onChange={(e) => setTransactionAmount(e.target.value)}
+                        style={{ flex: '1 1 200px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
+                      />
+                      <button 
+                        onClick={() => {
+                          if (!transactionAmount) return;
+                          alert(`Transaction de ${transactionAmount} FCFA simulée avec succès !`);
+                          setShowTransactionForm(false);
+                          setTransactionAmount('');
+                        }}
+                        style={{ padding: '0.75rem 1.5rem', borderRadius: '0.5rem', backgroundColor: '#10B981', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Valider
+                      </button>
+                      <button 
+                        onClick={() => setShowTransactionForm(false)}
+                        style={{ padding: '0.75rem 1.5rem', borderRadius: '0.5rem', backgroundColor: '#EF4444', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '2rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                    <button onClick={() => { setActiveTab('demandes'); setSelectedClient(null); setShowTransactionForm(false); }} className="btn btn-primary" style={{ flex: '1 1 auto', minWidth: '200px', padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 600, border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer' }}>
+                      Voir ses dossiers
+                    </button>
+                    <button onClick={() => setShowTransactionForm(true)} className="btn btn-secondary" style={{ flex: '1 1 auto', minWidth: '200px', padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 600, border: '1px solid #E2E8F0', backgroundColor: '#fff', color: '#475569', cursor: 'pointer' }}>
+                      Ajouter une transaction
+                    </button>
+                  </div>
+                )}
 
                 <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #E2E8F0' }}>
                   <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
