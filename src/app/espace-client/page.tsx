@@ -4,11 +4,18 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 
 export default function EspaceClient() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
   const [visibleCount, setVisibleCount] = useState(15);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const auth = localStorage.getItem('client_is_logged_in');
+      if (auth === 'true') setIsLoggedIn(true);
+    }
+  }, []);
 
   const financesData = Array.from({ length: 22 }).map((_, i) => ({
     id: `F-00${i + 1}`,
@@ -32,6 +39,7 @@ export default function EspaceClient() {
     setTimeout(() => {
       setIsSubmitting(false);
       setIsLoggedIn(true);
+      if (typeof window !== 'undefined') localStorage.setItem('client_is_logged_in', 'true');
     }, 1500);
   };
 
@@ -46,7 +54,7 @@ export default function EspaceClient() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 Créances et Dettes
               </button>
-              <button onClick={() => setIsLoggedIn(false)} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem' }}>Déconnexion</button>
+              <button onClick={() => { setIsLoggedIn(false); if (typeof window !== 'undefined') localStorage.removeItem('client_is_logged_in'); }} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem' }}>Déconnexion</button>
             </div>
           </div>
           {activeTab === 'finances' ? (
