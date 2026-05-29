@@ -13,6 +13,19 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionType, setTransactionType] = useState('paiement');
+  const [clientTransactions, setClientTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (selectedClient && clientTransactions.length === 0) {
+      setClientTransactions([
+        { id: 'T1', date: '2026-05-25', desc: 'Facture Assurance (DOS-8429)', amount: -150000, status: 'À payer' },
+        { id: 'T2', date: '2026-05-10', desc: 'Paiement Carte Grise', amount: -25000, status: 'Payé' },
+        { id: 'T3', date: '2026-04-15', desc: 'Remboursement Trop-perçu', amount: 30000, status: 'Payé' },
+      ]);
+    } else if (!selectedClient) {
+      setClientTransactions([]);
+    }
+  }, [selectedClient]);
   
   useEffect(() => {
     const savedTab = localStorage.getItem('adminActiveTab');
@@ -661,7 +674,26 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                       <button 
                         onClick={() => {
                           if (!transactionAmount) return;
-                          alert(`Transaction de type "${transactionType}" pour un montant de ${transactionAmount} FCFA simulée avec succès !`);
+                          
+                          const newAmount = parseInt(transactionAmount);
+                          const finalAmount = (transactionType === 'dette' || transactionType === 'créance') ? -Math.abs(newAmount) : Math.abs(newAmount);
+                          
+                          setClientTransactions([
+                            {
+                              id: `T${Date.now()}`,
+                              date: new Date().toISOString().split('T')[0],
+                              desc: `Nouvelle transaction (${transactionType})`,
+                              amount: finalAmount,
+                              status: 'Payé'
+                            },
+                            ...clientTransactions
+                          ]);
+
+                          setSelectedClient({
+                            ...selectedClient,
+                            solde: selectedClient.solde + finalAmount
+                          });
+
                           setShowTransactionForm(false);
                           setTransactionAmount('');
                           setTransactionType('paiement');
@@ -705,11 +737,7 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                         </tr>
                       </thead>
                       <tbody>
-                        {[
-                          { id: 'T1', date: '2026-05-25', desc: 'Facture Assurance (DOS-8429)', amount: -150000, status: 'À payer' },
-                          { id: 'T2', date: '2026-05-10', desc: 'Paiement Carte Grise', amount: -25000, status: 'Payé' },
-                          { id: 'T3', date: '2026-04-15', desc: 'Remboursement Trop-perçu', amount: 30000, status: 'Payé' },
-                        ].map(tx => (
+                        {clientTransactions.map(tx => (
                           <tr key={tx.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
                             <td style={{ padding: '1rem', color: '#475569', fontSize: '0.875rem' }}>{new Date(tx.date).toLocaleDateString('fr-FR')}</td>
                             <td style={{ padding: '1rem', color: '#0F172A', fontSize: '0.875rem', fontWeight: 600 }}>{tx.desc}</td>
