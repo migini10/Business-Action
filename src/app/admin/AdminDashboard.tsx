@@ -13,6 +13,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState('');
+  const [transactionDesc, setTransactionDesc] = useState('');
   const [transactionType, setTransactionType] = useState('paiement');
   const [transactionStatus, setTransactionStatus] = useState('Payé');
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
@@ -704,6 +705,13 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                         placeholder="Montant (FCFA)" 
                         value={transactionAmount}
                         onChange={(e) => setTransactionAmount(e.target.value)}
+                        style={{ flex: '1 1 150px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Commentaire / Description (optionnel)" 
+                        value={transactionDesc}
+                        onChange={(e) => setTransactionDesc(e.target.value)}
                         style={{ flex: '2 1 200px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
                       />
                       <button 
@@ -718,7 +726,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                           if (transactionType === 'créance') mappedType = 'CREANCE';
                           if (transactionType === 'remboursement') mappedType = 'REMBOURSEMENT';
 
-                          const desc = `Nouvelle transaction (${transactionType})`;
+                          const desc = transactionDesc.trim() || `Nouvelle transaction (${transactionType})`;
 
                           const res = await addTransaction({
                             clientId: selectedClient.id,
@@ -749,6 +757,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
 
                             setShowTransactionForm(false);
                             setTransactionAmount('');
+                            setTransactionDesc('');
                             setTransactionType('paiement');
                             setTransactionStatus('Payé');
                           } else {
