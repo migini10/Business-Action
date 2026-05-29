@@ -8,8 +8,7 @@ export default function EspaceClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
+  const [visibleCount, setVisibleCount] = useState(15);
 
   const financesData = Array.from({ length: 22 }).map((_, i) => ({
     id: `F-00${i + 1}`,
@@ -25,10 +24,7 @@ export default function EspaceClient() {
   const totalCreances = financesData.filter(d => d.type === 'creance' && d.statut === 'À recevoir').reduce((sum, item) => sum + item.montant, 0);
   const soldeActuel = totalCreances - totalDettes;
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = financesData.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(financesData.length / itemsPerPage);
+  const currentItems = financesData.slice(0, visibleCount);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,26 +112,15 @@ export default function EspaceClient() {
                 </table>
               </div>
 
-              {totalPages > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1rem', marginBottom: '1.5rem' }}>
+              {visibleCount < financesData.length && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', marginBottom: '1.5rem' }}>
                   <button 
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
+                    onClick={() => setVisibleCount(prev => prev + 15)}
                     className="btn btn-secondary"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                    style={{ padding: '0.75rem 2rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#F3F4F6', color: '#4B5563', border: '1px solid #D1D5DB' }}
                   >
-                    Précédent
-                  </button>
-                  <span style={{ padding: '0.5rem 1rem', fontWeight: 600, color: 'var(--color-text-main)' }}>
-                    Page {currentPage} sur {totalPages}
-                  </span>
-                  <button 
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="btn btn-secondary"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
-                  >
-                    Suivant
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    Voir les transactions plus anciennes
                   </button>
                 </div>
               )}
