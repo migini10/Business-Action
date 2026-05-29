@@ -197,23 +197,76 @@ export default function DemandeDevis() {
             </div>
           </div>
 
+          <style>{`
+            .btn-submit {
+              overflow: hidden;
+              transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+              background: var(--color-primary);
+            }
+            .btn-submit:hover:not(:disabled) .hover-plane {
+              transform: translate(4px, -4px);
+            }
+            .btn-submit:hover:not(:disabled) {
+              box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+            }
+            .btn-submit.loading {
+              background: linear-gradient(135deg, var(--color-primary), #1e40af);
+              box-shadow: 0 10px 30px rgba(37, 99, 235, 0.6);
+              animation: pulse-glow 1.5s infinite alternate;
+            }
+            @keyframes pulse-glow {
+              from { transform: scale(1); box-shadow: 0 10px 20px rgba(37, 99, 235, 0.5); }
+              to { transform: scale(1.02); box-shadow: 0 15px 35px rgba(37, 99, 235, 0.7); }
+            }
+            .fly-plane {
+              animation: fly-away 0.6s forwards cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            @keyframes fly-away {
+              0% { transform: translate(0, 0) scale(1); opacity: 1; }
+              100% { transform: translate(50px, -50px) scale(0.5); opacity: 0; }
+            }
+            .hover-plane {
+              transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .dots-loader span {
+              animation: dots 1.4s infinite ease-in-out both;
+              display: inline-block;
+              width: 6px;
+              height: 6px;
+              background-color: white;
+              border-radius: 50%;
+              margin: 0 3px;
+            }
+            .dots-loader span:nth-child(1) { animation-delay: -0.32s; }
+            .dots-loader span:nth-child(2) { animation-delay: -0.16s; }
+            @keyframes dots {
+              0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
+              40% { transform: scale(1); opacity: 1; }
+            }
+          `}</style>
+          
           <button 
             type="submit" 
             disabled={isSubmitting}
-            className="btn btn-primary" 
-            style={{ width: '100%', padding: '1.25rem', fontSize: '1.125rem', borderRadius: 'var(--radius-lg)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+            className={`btn btn-primary btn-submit ${isSubmitting ? 'loading' : ''}`}
+            style={{ width: '100%', height: '64px', padding: '0', borderRadius: 'var(--radius-lg)', position: 'relative', border: 'none', color: 'white', cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
           >
-            {isSubmitting ? (
-              <>
-                <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
-                Traitement en cours...
-              </>
-            ) : (
-              <>
-                Envoyer la demande
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-              </>
-            )}
+            {/* Loading State */}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', opacity: isSubmitting ? 1 : 0, transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', transform: isSubmitting ? 'translateY(0)' : 'translateY(20px)', pointerEvents: 'none' }}>
+              <span style={{ fontWeight: 600, fontSize: '1.125rem', letterSpacing: '0.5px' }}>Préparation du dossier</span>
+              <div className="dots-loader" style={{ display: 'flex', alignItems: 'center', marginTop: '4px' }}>
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+
+            {/* Default State */}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', opacity: isSubmitting ? 0 : 1, transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', transform: isSubmitting ? 'translateY(-20px)' : 'translateY(0)', pointerEvents: 'none' }}>
+              <span style={{ fontWeight: 600, fontSize: '1.125rem', letterSpacing: '0.5px' }}>Envoyer la demande</span>
+              <svg className={isSubmitting ? 'fly-plane' : 'hover-plane'} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </div>
           </button>
         </form>
       </div>
