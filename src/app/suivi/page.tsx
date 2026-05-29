@@ -130,8 +130,17 @@ export default function Suivi() {
 
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: '-2rem', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: ['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-success)' : 'var(--color-gray)', border: '4px solid #fff', outline: `2px solid ${['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-success)' : 'var(--color-gray)'}`, zIndex: 1 }}></div>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: ['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-text-main)' : 'var(--color-text-muted)' }}>Offre envoyée via WhatsApp & Email</h3>
-                <p style={{ color: 'var(--color-gray)', margin: 0, fontSize: '0.875rem' }}>{['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'Devis envoyé avec succès.' : 'À venir'}</p>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: ['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-text-main)' : 'var(--color-text-muted)' }}>Offre prête</h3>
+                <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.875rem', marginBottom: dossierData?.devisUrl ? '1rem' : '0' }}>{['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'Votre devis est prêt. Vous pouvez le consulter ci-dessous.' : 'À venir'}</p>
+                
+                {dossierData?.devisUrl && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <a href={dossierData.devisUrl} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', fontSize: '1rem', backgroundColor: 'var(--color-primary)', color: 'white', borderRadius: '0.5rem', textDecoration: 'none', fontWeight: 600 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                      Voir / Télécharger mon Devis
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
 
