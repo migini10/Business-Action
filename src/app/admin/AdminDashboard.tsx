@@ -633,6 +633,45 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                     Ajouter une transaction
                   </button>
                 </div>
+
+                <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #E2E8F0' }}>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    Historique des transactions
+                  </h3>
+                  <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '1rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                        <tr>
+                          <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Date</th>
+                          <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Description</th>
+                          <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Montant</th>
+                          <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { id: 'T1', date: '2026-05-25', desc: 'Facture Assurance (DOS-8429)', amount: -150000, status: 'À payer' },
+                          { id: 'T2', date: '2026-05-10', desc: 'Paiement Carte Grise', amount: -25000, status: 'Payé' },
+                          { id: 'T3', date: '2026-04-15', desc: 'Remboursement Trop-perçu', amount: 30000, status: 'Payé' },
+                        ].map(tx => (
+                          <tr key={tx.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                            <td style={{ padding: '1rem', color: '#475569', fontSize: '0.875rem' }}>{new Date(tx.date).toLocaleDateString('fr-FR')}</td>
+                            <td style={{ padding: '1rem', color: '#0F172A', fontSize: '0.875rem', fontWeight: 600 }}>{tx.desc}</td>
+                            <td style={{ padding: '1rem', color: tx.amount < 0 ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
+                              {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString('fr-FR')} FCFA
+                            </td>
+                            <td style={{ padding: '1rem' }}>
+                              <span style={{ padding: '0.25rem 0.5rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: tx.status === 'Payé' ? '#DCFCE7' : '#FEE2E2', color: tx.status === 'Payé' ? '#16A34A' : '#DC2626' }}>
+                                {tx.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
