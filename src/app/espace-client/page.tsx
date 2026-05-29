@@ -10,10 +10,10 @@ export default function EspaceClient() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
 
   const financesData = [
-    { id: 'F-001', date: '2026-05-25', description: 'Facture Assurance (DOS-8429)', type: 'dette', montant: 150000, statut: 'À payer' },
-    { id: 'F-002', date: '2026-05-10', description: 'Remboursement Sinistre', type: 'creance', montant: 50000, statut: 'Payé' },
-    { id: 'F-003', date: '2026-04-15', description: 'Paiement Carte Grise', type: 'dette', montant: 25000, statut: 'Payé' },
-    { id: 'F-004', date: '2026-05-28', description: 'Remboursement Trop-perçu', type: 'creance', montant: 30000, statut: 'À recevoir' },
+    { id: 'F-001', date: '2026-05-25', description: 'Facture Assurance (DOS-8429)', commentaire: 'Prime annuelle multirisque', type: 'dette', montant: 150000, statut: 'À payer' },
+    { id: 'F-002', date: '2026-05-10', description: 'Remboursement Sinistre', commentaire: 'Suite à l\'accident du 01/05', type: 'creance', montant: 50000, statut: 'Payé' },
+    { id: 'F-003', date: '2026-04-15', description: 'Paiement Carte Grise', commentaire: 'Frais de dossier inclus', type: 'dette', montant: 25000, statut: 'Payé' },
+    { id: 'F-004', date: '2026-05-28', description: 'Remboursement Trop-perçu', commentaire: 'Régularisation du mois dernier', type: 'creance', montant: 30000, statut: 'À recevoir' },
   ];
 
   const totalDettes = financesData.filter(d => d.type === 'dette' && d.statut === 'À payer').reduce((sum, item) => sum + item.montant, 0);
@@ -81,7 +81,14 @@ export default function EspaceClient() {
                     {financesData.map((item) => (
                       <tr key={item.id} style={{ borderBottom: '1px solid var(--color-gray-light)' }}>
                         <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>{new Date(item.date).toLocaleDateString('fr-FR')}</td>
-                        <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem', fontWeight: 600 }}>{item.description}</td>
+                        <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>
+                          <div style={{ fontWeight: 600 }}>{item.description}</div>
+                          {item.commentaire && (
+                            <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>
+                              {item.commentaire}
+                            </div>
+                          )}
+                        </td>
                         <td style={{ padding: '1rem' }}>
                           <span style={{ padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: item.type === 'dette' ? '#FEF2F2' : '#F0FDF4', color: item.type === 'dette' ? '#DC2626' : '#16A34A', textTransform: 'uppercase' }}>
                             {item.type}
