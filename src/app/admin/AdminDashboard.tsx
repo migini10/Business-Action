@@ -15,7 +15,6 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionDesc, setTransactionDesc] = useState('');
   const [transactionType, setTransactionType] = useState('paiement');
-  const [transactionStatus, setTransactionStatus] = useState('Payé');
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
   const [clients, setClients] = useState(initialClients);
   const [showAddClientForm, setShowAddClientForm] = useState(false);
@@ -690,16 +689,6 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                         <option value="créance">Créance</option>
                         <option value="remboursement">Remboursement</option>
                       </select>
-                      <select
-                        value={transactionStatus}
-                        onChange={(e) => setTransactionStatus(e.target.value)}
-                        style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem', backgroundColor: '#fff', flex: '1 1 150px' }}
-                      >
-                        <option value="Payé">Payé</option>
-                        <option value="À payer">À payer</option>
-                        <option value="À recevoir">À recevoir</option>
-                        <option value="Annulé">Annulé</option>
-                      </select>
                       <input 
                         type="number" 
                         placeholder="Montant (FCFA)" 
@@ -732,8 +721,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             clientId: selectedClient.id,
                             amount: finalAmount,
                             type: mappedType,
-                            desc,
-                            statut: transactionStatus
+                            desc
                           });
 
                           if (res.success) {
@@ -742,8 +730,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                 id: `T${Date.now()}`,
                                 date: new Date().toISOString(),
                                 description: desc,
-                                montant: finalAmount,
-                                statut: transactionStatus
+                                montant: finalAmount
                               },
                               ...clientTransactions
                             ]);
@@ -759,7 +746,6 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             setTransactionAmount('');
                             setTransactionDesc('');
                             setTransactionType('paiement');
-                            setTransactionStatus('Payé');
                           } else {
                             alert("Erreur lors de l'ajout de la transaction.");
                           }
@@ -799,7 +785,6 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                           <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Date</th>
                           <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Description</th>
                           <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Montant</th>
-                          <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Statut</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -809,18 +794,6 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             <td style={{ padding: '1rem', color: '#0F172A', fontSize: '0.875rem', fontWeight: 600 }}>{tx.description}</td>
                             <td style={{ padding: '1rem', color: tx.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
                               {tx.montant > 0 ? '+' : ''}{tx.montant.toLocaleString('fr-FR')} FCFA
-                            </td>
-                            <td style={{ padding: '1rem' }}>
-                              <span style={{ 
-                                padding: '0.25rem 0.5rem', 
-                                borderRadius: '1rem', 
-                                fontSize: '0.75rem', 
-                                fontWeight: 700, 
-                                backgroundColor: tx.statut === 'Payé' ? '#DCFCE7' : tx.statut === 'À payer' ? '#FEE2E2' : tx.statut === 'À recevoir' ? '#DBEAFE' : '#F1F5F9', 
-                                color: tx.statut === 'Payé' ? '#16A34A' : tx.statut === 'À payer' ? '#DC2626' : tx.statut === 'À recevoir' ? '#2563EB' : '#475569' 
-                              }}>
-                                {tx.statut}
-                              </span>
                             </td>
                           </tr>
                         ))}

@@ -123,7 +123,6 @@ export default function EspaceClient() {
                       <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>Description</th>
                       <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>Type</th>
                       <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>Montant</th>
-                      <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>Statut</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -148,18 +147,6 @@ export default function EspaceClient() {
                         </td>
                         <td style={{ padding: '1rem', color: item.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.95rem', fontWeight: 700 }}>
                           {item.montant > 0 ? '+' : ''}{item.montant.toLocaleString('fr-FR')} FCFA
-                        </td>
-                        <td style={{ padding: '1rem' }}>
-                          <span style={{ 
-                            padding: '0.25rem 0.75rem', 
-                            borderRadius: '2rem', 
-                            fontSize: '0.75rem', 
-                            fontWeight: 700, 
-                            backgroundColor: item.statut === 'Payé' ? '#F0FDF4' : item.statut === 'À payer' ? '#FEF2F2' : item.statut === 'À recevoir' ? '#EFF6FF' : '#F3F4F6', 
-                            color: item.statut === 'Payé' ? '#16A34A' : item.statut === 'À payer' ? '#DC2626' : item.statut === 'À recevoir' ? '#2563EB' : '#4B5563' 
-                          }}>
-                            {item.statut}
-                          </span>
                         </td>
                       </tr>
                     ))}
