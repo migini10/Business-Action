@@ -11,6 +11,7 @@ export default function EspaceClient() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
   const [visibleCount, setVisibleCount] = useState(15);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [financesData, setFinancesData] = useState<any[]>([]);
   const [dossiers, setDossiers] = useState<any[]>([]);
@@ -48,6 +49,7 @@ export default function EspaceClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setErrorMessage('');
     
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
@@ -72,7 +74,7 @@ export default function EspaceClient() {
         setFinancesData(dashRes.transactions || []);
       }
     } else {
-      alert(result.error);
+      setErrorMessage(result.error || 'Une erreur est survenue.');
     }
   };
 
@@ -253,6 +255,13 @@ export default function EspaceClient() {
             {isLogin ? 'Connectez-vous à votre compte' : 'Créez votre compte client'}
           </p>
         </div>
+
+        {errorMessage && (
+          <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', padding: '1rem', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            {errorMessage}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           {!isLogin && (
