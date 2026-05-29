@@ -4,6 +4,14 @@ import prisma from '@/lib/prisma'
 
 export async function getClientDashboardData(clientId: string) {
   try {
+    const user = await prisma.user.findUnique({
+      where: { id: clientId }
+    });
+
+    if (!user) {
+      return { success: false, error: "Utilisateur introuvable." };
+    }
+
     const dossiers = await prisma.dossier.findMany({
       where: { clientId },
       orderBy: { createdAt: 'desc' }

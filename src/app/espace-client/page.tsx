@@ -29,6 +29,10 @@ export default function EspaceClient() {
           if (res.success) {
             setDossiers(res.dossiers || []);
             setFinancesData(res.transactions || []);
+          } else {
+            setIsLoggedIn(false);
+            localStorage.removeItem('client_is_logged_in');
+            localStorage.removeItem('client_data');
           }
         });
       }
@@ -313,6 +317,7 @@ export default function EspaceClient() {
             {isLogin ? "Vous n'avez pas de compte ?" : "Vous avez déjà un compte ?"}
             <br />
             <button 
+              type="button"
               onClick={() => setIsLogin(!isLogin)}
               style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer', marginTop: '0.5rem', fontSize: '0.875rem', transition: 'color 0.2s' }}
             >
