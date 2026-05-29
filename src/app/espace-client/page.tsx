@@ -66,21 +66,7 @@ export default function EspaceClient() {
                 </div>
               </div>
 
-              <div style={{ backgroundColor: soldeActuel >= 0 ? '#F0FDF4' : '#FEF2F2', border: `2px solid ${soldeActuel >= 0 ? '#22C55E' : '#EF4444'}`, padding: '1.5rem', borderRadius: '1rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                  <p style={{ color: soldeActuel >= 0 ? '#166534' : '#991B1B', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Solde Actuel</p>
-                  <p style={{ color: soldeActuel >= 0 ? '#15803D' : '#B91C1C', fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>
-                    {soldeActuel >= 0 ? '+' : ''}{soldeActuel.toLocaleString('fr-FR')} FCFA
-                  </p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', fontWeight: 700, backgroundColor: soldeActuel >= 0 ? '#DCFCE7' : '#FEE2E2', color: soldeActuel >= 0 ? '#16A34A' : '#DC2626' }}>
-                    {soldeActuel > 0 ? "L'entreprise vous doit de l'argent" : soldeActuel < 0 ? "Vous devez de l'argent" : "Solde équilibré"}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ overflowX: 'auto' }}>
+              <div style={{ overflowX: 'auto', marginBottom: '2rem' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--color-gray-light)' }}>
@@ -111,6 +97,20 @@ export default function EspaceClient() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              <div style={{ backgroundColor: soldeActuel >= 0 ? '#F0FDF4' : '#FEF2F2', border: `2px solid ${soldeActuel >= 0 ? '#22C55E' : '#EF4444'}`, padding: '1.5rem', borderRadius: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <p style={{ color: soldeActuel >= 0 ? '#166534' : '#991B1B', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Solde Actuel</p>
+                  <p style={{ color: soldeActuel >= 0 ? '#15803D' : '#B91C1C', fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>
+                    {soldeActuel >= 0 ? '+' : ''}{soldeActuel.toLocaleString('fr-FR')} FCFA
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', fontWeight: 700, backgroundColor: soldeActuel >= 0 ? '#DCFCE7' : '#FEE2E2', color: soldeActuel >= 0 ? '#16A34A' : '#DC2626' }}>
+                    {soldeActuel > 0 ? "L'entreprise vous doit de l'argent" : soldeActuel < 0 ? "Vous devez de l'argent" : "Solde équilibré"}
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
