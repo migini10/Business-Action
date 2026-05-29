@@ -195,3 +195,42 @@ export async function addTransaction(data: { clientId: string, amount: number, t
     return { success: false, error: "Erreur lors de l'ajout." };
   }
 }
+
+export async function updateTransaction(id: string, data: { amount: number, type: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT', desc: string }) {
+  try {
+    const transaction = await prisma.transaction.findUnique({ where: { id } });
+    if (!transaction) return { success: false, error: "Transaction introuvable." };
+
+    const minutesElapsed = (Date.now() - new Date(transaction.date).getTime()) / (1000 * 60);
+
+    if (minutesElapsed < 5) {
+      // Modification directe
+      await prisma.transaction.update({
+        where: { id },
+        data: {
+          montant: data.amount,
+          type: data.type,
+          description: data.desc
+        }
+      });
+      return { success: true, message: "Transaction modifiée avec succès." };
+    } else {
+      // Demande de modification
+      await prisma.transaction.update({
+        where: { id },
+        data: {
+          isModificationPending: true,
+          pendingModification: {
+            montant: data.amount,
+            type: data.type,
+            description: data.desc
+          }
+        }
+      });
+      return { success: true, message: "Le délai de 5 minutes est dépassé. Une demande de validation a été envoyée au client." };
+    }
+  } catch (error) {
+    console.error("Erreur modification transaction:", error);
+    return { success: false, error: "Erreur lors de la modification." };
+  }
+}

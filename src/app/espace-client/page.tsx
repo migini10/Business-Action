@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { loginClient, registerClient } from '@/app/actions/auth';
-import { getClientDashboardData } from '@/app/actions/client';
+import { getClientDashboardData, respondToTransactionModification } from '@/app/actions/client';
 
 export default function EspaceClient() {
   const [isLogin, setIsLogin] = useState(true);
@@ -45,6 +45,24 @@ export default function EspaceClient() {
   const soldeActuel = financesData.reduce((sum, item) => sum + item.montant, 0);
 
   const currentItems = financesData.slice(0, visibleCount);
+
+  const handleModificationResponse = async (transactionId: string, accept: boolean) => {
+    setIsSubmitting(true);
+    const res = await respondToTransactionModification(transactionId, accept);
+    if (res.success) {
+      alert(res.message);
+      // Refresh
+      if (clientData) {
+        const dashRes = await getClientDashboardData(clientData.id);
+        if (dashRes.success) {
+          setFinancesData(dashRes.transactions || []);
+        }
+      }
+    } else {
+      alert(res.error);
+    }
+    setIsSubmitting(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,28 +145,47 @@ export default function EspaceClient() {
                   </thead>
                   <tbody>
                     {currentItems.map((item) => (
-                      <tr key={item.id} style={{ borderBottom: '1px solid var(--color-gray-light)' }}>
-                        <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>{new Date(item.date).toLocaleDateString('fr-FR')}</td>
-                        <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>
-                          <div style={{ fontWeight: 600 }}>{item.description}</div>
-                        </td>
-                        <td style={{ padding: '1rem' }}>
-                          <span style={{ 
-                            padding: '0.25rem 0.75rem', 
-                            borderRadius: '2rem', 
-                            fontSize: '0.75rem', 
-                            fontWeight: 700, 
-                            backgroundColor: item.type === 'DETTE' ? '#FEF2F2' : '#F0FDF4', 
-                            color: item.type === 'DETTE' ? '#DC2626' : '#16A34A', 
-                            textTransform: 'uppercase' 
-                          }}>
-                            {item.type}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem', color: item.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.95rem', fontWeight: 700 }}>
-                          {item.montant > 0 ? '+' : ''}{item.montant.toLocaleString('fr-FR')} FCFA
-                        </td>
-                      </tr>
+                      <React.Fragment key={item.id}>
+                        <tr style={{ borderBottom: item.isModificationPending ? 'none' : '1px solid var(--color-gray-light)' }}>
+                          <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>{new Date(item.date).toLocaleDateString('fr-FR')}</td>
+                          <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>
+                            <div style={{ fontWeight: 600 }}>{item.description}</div>
+                          </td>
+                          <td style={{ padding: '1rem' }}>
+                            <span style={{ 
+                              padding: '0.25rem 0.75rem', 
+                              borderRadius: '2rem', 
+                              fontSize: '0.75rem', 
+                              fontWeight: 700, 
+                              backgroundColor: item.type === 'DETTE' ? '#FEF2F2' : '#F0FDF4', 
+                              color: item.type === 'DETTE' ? '#DC2626' : '#16A34A', 
+                              textTransform: 'uppercase' 
+                            }}>
+                              {item.type}
+                            </span>
+                          </td>
+                          <td style={{ padding: '1rem', color: item.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.95rem', fontWeight: 700 }}>
+                            {item.montant > 0 ? '+' : ''}{item.montant.toLocaleString('fr-FR')} FCFA
+                          </td>
+                        </tr>
+                        {item.isModificationPending && item.pendingModification && (
+                          <tr style={{ borderBottom: '1px solid var(--color-gray-light)', backgroundColor: '#FFFBEB' }}>
+                            <td colSpan={4} style={{ padding: '1rem', fontSize: '0.875rem', color: '#D97706' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                                <div>
+                                  <strong>⚠️ Modification proposée par l'Admin :</strong><br />
+                                  Nouveau montant : {item.pendingModification.montant > 0 ? '+' : ''}{item.pendingModification.montant.toLocaleString('fr-FR')} FCFA<br />
+                                  Description : {item.pendingModification.description}
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  <button onClick={() => handleModificationResponse(item.id, true)} disabled={isSubmitting} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#10B981', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Accepter</button>
+                                  <button onClick={() => handleModificationResponse(item.id, false)} disabled={isSubmitting} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#EF4444', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Refuser</button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>

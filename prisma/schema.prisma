@@ -95,8 +95,10 @@ model Transaction {
   montant     Float
   type        TypeTransaction
   description String
-  statut      String          @default("Payé")
-  date        DateTime        @default(now())
+  statut                String          @default("Payé")
+  date                  DateTime        @default(now())
+  isModificationPending Boolean         @default(false)
+  pendingModification   Json?
 
   clientId    String
   client      User            @relation(fields: [clientId], references: [id], onDelete: Cascade)

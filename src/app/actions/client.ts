@@ -28,3 +28,39 @@ export async function getClientDashboardData(clientId: string) {
     return { success: false, error: "Impossible de récupérer les données." };
   }
 }
+
+export async function respondToTransactionModification(transactionId: string, accept: boolean) {
+  try {
+    const transaction = await prisma.transaction.findUnique({ where: { id: transactionId } });
+    if (!transaction || !transaction.isModificationPending || !transaction.pendingModification) {
+      return { success: false, error: "Aucune modification en attente." };
+    }
+
+    if (accept) {
+      const pending = transaction.pendingModification as any;
+      await prisma.transaction.update({
+        where: { id: transactionId },
+        data: {
+          montant: pending.montant,
+          type: pending.type,
+          description: pending.description,
+          isModificationPending: false,
+          pendingModification: null
+        }
+      });
+      return { success: true, message: "Modification acceptée." };
+    } else {
+      await prisma.transaction.update({
+        where: { id: transactionId },
+        data: {
+          isModificationPending: false,
+          pendingModification: null
+        }
+      });
+      return { success: true, message: "Modification refusée." };
+    }
+  } catch (error) {
+    console.error("Erreur réponse modification:", error);
+    return { success: false, error: "Erreur lors du traitement." };
+  }
+}

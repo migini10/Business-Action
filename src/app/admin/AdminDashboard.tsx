@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { updateDossierStatus, uploadAndSendDevis, addTransaction, getClientTransactions } from '@/app/actions/admin';
+import { updateDossierStatus, uploadAndSendDevis, addTransaction, getClientTransactions, updateTransaction } from '@/app/actions/admin';
 import { registerClient } from '@/app/actions/auth';
 import Link from 'next/link';
 
@@ -15,6 +15,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionDesc, setTransactionDesc] = useState('');
   const [transactionType, setTransactionType] = useState('paiement');
+  const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
   const [clients, setClients] = useState(initialClients);
   const [showAddClientForm, setShowAddClientForm] = useState(false);
@@ -785,17 +786,78 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                           <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Date</th>
                           <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Description</th>
                           <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Montant</th>
+                          <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
                         {clientTransactions.map(tx => (
-                          <tr key={tx.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                            <td style={{ padding: '1rem', color: '#475569', fontSize: '0.875rem' }}>{new Date(tx.date).toLocaleDateString('fr-FR')}</td>
-                            <td style={{ padding: '1rem', color: '#0F172A', fontSize: '0.875rem', fontWeight: 600 }}>{tx.description}</td>
-                            <td style={{ padding: '1rem', color: tx.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
-                              {tx.montant > 0 ? '+' : ''}{tx.montant.toLocaleString('fr-FR')} FCFA
-                            </td>
-                          </tr>
+                          <React.Fragment key={tx.id}>
+                            <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+                              <td style={{ padding: '1rem', color: '#475569', fontSize: '0.875rem' }}>
+                                {new Date(tx.date).toLocaleDateString('fr-FR')}
+                                {tx.isModificationPending && <span style={{display: 'block', color: '#D97706', fontSize: '0.75rem'}}>⏳ En attente de validation</span>}
+                              </td>
+                              <td style={{ padding: '1rem', color: '#0F172A', fontSize: '0.875rem', fontWeight: 600 }}>{tx.description}</td>
+                              <td style={{ padding: '1rem', color: tx.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
+                                {tx.montant > 0 ? '+' : ''}{tx.montant.toLocaleString('fr-FR')} FCFA
+                              </td>
+                              <td style={{ padding: '1rem' }}>
+                                <button onClick={() => {
+                                  setEditingTransaction(tx);
+                                  setTransactionAmount(Math.abs(tx.montant).toString());
+                                  setTransactionDesc(tx.description);
+                                  setTransactionType(tx.type.toLowerCase());
+                                }} style={{ padding: '0.5rem', backgroundColor: '#F1F5F9', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: '#475569' }}>
+                                  Modifier
+                                </button>
+                              </td>
+                            </tr>
+                            {editingTransaction?.id === tx.id && (
+                              <tr style={{ backgroundColor: '#F8FAFC' }}>
+                                <td colSpan={4} style={{ padding: '1rem' }}>
+                                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                    <select value={transactionType} onChange={e => setTransactionType(e.target.value)} style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1' }}>
+                                      <option value="paiement">Paiement</option>
+                                      <option value="dette">Dette</option>
+                                      <option value="créance">Créance</option>
+                                      <option value="remboursement">Remboursement</option>
+                                    </select>
+                                    <input type="number" placeholder="Montant" value={transactionAmount} onChange={e => setTransactionAmount(e.target.value)} style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', width: '150px' }} />
+                                    <input type="text" placeholder="Description" value={transactionDesc} onChange={e => setTransactionDesc(e.target.value)} style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', flex: '1 1 auto' }} />
+                                    <button onClick={async () => {
+                                      const newAmount = parseInt(transactionAmount);
+                                      if (isNaN(newAmount)) return;
+                                      const finalAmount = (transactionType === 'dette' || transactionType === 'remboursement') ? -Math.abs(newAmount) : Math.abs(newAmount);
+                                      let mappedType: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT' = 'PAIEMENT';
+                                      if (transactionType === 'dette') mappedType = 'DETTE';
+                                      if (transactionType === 'créance') mappedType = 'CREANCE';
+                                      if (transactionType === 'remboursement') mappedType = 'REMBOURSEMENT';
+                                      
+                                      const res = await updateTransaction(tx.id, {
+                                        amount: finalAmount,
+                                        type: mappedType,
+                                        desc: transactionDesc.trim() || tx.description
+                                      });
+                                      if (res.success) {
+                                        alert(res.message);
+                                        setEditingTransaction(null);
+                                        // Refresh transactions
+                                        const fetchRes = await getClientTransactions(selectedClient.id);
+                                        if (fetchRes.success) setClientTransactions(fetchRes.transactions);
+                                      } else {
+                                        alert(res.error);
+                                      }
+                                    }} style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>
+                                      Sauvegarder
+                                    </button>
+                                    <button onClick={() => setEditingTransaction(null)} style={{ padding: '0.5rem 1rem', backgroundColor: '#E2E8F0', color: '#475569', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>
+                                      Annuler
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>
