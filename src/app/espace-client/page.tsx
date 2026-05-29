@@ -134,11 +134,19 @@ export default function EspaceClient() {
                           <div style={{ fontWeight: 600 }}>{item.description}</div>
                         </td>
                         <td style={{ padding: '1rem' }}>
-                          <span style={{ padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.75rem', fontWeight: 700, backgroundColor: item.montant < 0 ? '#FEF2F2' : '#F0FDF4', color: item.montant < 0 ? '#DC2626' : '#16A34A', textTransform: 'uppercase' }}>
+                          <span style={{ 
+                            padding: '0.25rem 0.75rem', 
+                            borderRadius: '2rem', 
+                            fontSize: '0.75rem', 
+                            fontWeight: 700, 
+                            backgroundColor: item.type === 'DETTE' ? '#FEF2F2' : '#F0FDF4', 
+                            color: item.type === 'DETTE' ? '#DC2626' : '#16A34A', 
+                            textTransform: 'uppercase' 
+                          }}>
                             {item.type}
                           </span>
                         </td>
-                        <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem', fontWeight: 700 }}>
+                        <td style={{ padding: '1rem', color: item.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.95rem', fontWeight: 700 }}>
                           {item.montant > 0 ? '+' : ''}{item.montant.toLocaleString('fr-FR')} FCFA
                         </td>
                         <td style={{ padding: '1rem' }}>

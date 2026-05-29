@@ -798,7 +798,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                           <tr key={tx.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
                             <td style={{ padding: '1rem', color: '#475569', fontSize: '0.875rem' }}>{new Date(tx.date).toLocaleDateString('fr-FR')}</td>
                             <td style={{ padding: '1rem', color: '#0F172A', fontSize: '0.875rem', fontWeight: 600 }}>{tx.description}</td>
-                            <td style={{ padding: '1rem', color: tx.montant < 0 ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
+                            <td style={{ padding: '1rem', color: tx.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
                               {tx.montant > 0 ? '+' : ''}{tx.montant.toLocaleString('fr-FR')} FCFA
                             </td>
                             <td style={{ padding: '1rem' }}>
