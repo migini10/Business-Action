@@ -39,6 +39,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
+import { Resend } from 'resend';
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 export async function uploadAndSendDevis(formData: FormData) {
   const dossierId = formData.get('dossierId') as string;
   const devisFile = formData.get('devis') as File | null;
@@ -84,10 +87,45 @@ export async function uploadAndSendDevis(formData: FormData) {
       }
     });
 
-    // 3. Envoi Automatique (Simulation)
-    // Ici, vous devrez intégrer une API comme Resend (pour l'email) et Twilio ou WhatsApp Cloud API (pour WhatsApp)
-    console.log(`[SYSTEME] 📧 Envoi de l'email à ${dossier.email} avec le lien du devis: ${devisUrl}`);
-    console.log(`[SYSTEME] 💬 Envoi du message WhatsApp au ${dossier.phone} avec le lien du devis: ${devisUrl}`);
+    // 3. Envoi Automatique (Email via Resend)
+    if (dossier.email && process.env.RESEND_API_KEY) {
+      try {
+        const { data, error } = await resend.emails.send({
+          // Utilisez 'onboarding@resend.dev' pour les tests si votre domaine n'est pas encore vérifié
+          from: 'Bizness Action <onboarding@resend.dev>',
+          to: [dossier.email],
+          subject: `Votre devis pour ${dossier.typeVehicule.replace('_', ' ').toLowerCase()} est prêt !`,
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto;">
+              <h1 style="color: #2563EB;">Bonjour,</h1>
+              <p>Suite à votre demande sur <strong>Bizness Action</strong>, nous avons le plaisir de vous transmettre votre devis personnalisé.</p>
+              <p>Votre numéro de suivi : <strong>${dossier.numeroDossier}</strong></p>
+              <div style="margin: 30px 0;">
+                <a href="${devisUrl}" style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                  Consulter mon Devis
+                </a>
+              </div>
+              <p>Vous pouvez consulter ou télécharger le document officiel en cliquant sur le bouton ci-dessus.</p>
+              <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+              <p>Cordialement,<br><strong>L'équipe Bizness Action</strong></p>
+            </div>
+          `
+        });
+        
+        if (error) {
+          console.error("Erreur API Resend:", error);
+        } else {
+          console.log(`[SYSTEME] 📧 Email envoyé avec succès à ${dossier.email}`);
+        }
+      } catch (emailError) {
+        console.error("Exception lors de l'envoi d'email:", emailError);
+      }
+    } else {
+      console.log(`[SYSTEME] ⚠️ Email non envoyé: pas d'adresse email ou clé RESEND manquante.`);
+    }
+
+    // 4. Envoi WhatsApp (Simulation / À connecter avec Twilio ou API Meta)
+    console.log(`[SYSTEME] 💬 Simulation d'envoi WhatsApp au ${dossier.phone} avec le lien: ${devisUrl}`);
 
     revalidatePath('/admin');
     return { success: true, message: "Devis uploadé et envoyé au client avec succès !", devisUrl };
