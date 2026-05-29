@@ -401,8 +401,8 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
         {/* Modal Détails Dossier */}
         {selectedDossier && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setSelectedDossier(null)}>
-            <div style={{ backgroundColor: '#fff', borderRadius: '1.5rem', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative' }} onClick={e => e.stopPropagation()}>
-              <div style={{ padding: '2rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(8px)', zIndex: 10 }}>
+            <div style={{ backgroundColor: '#fff', borderRadius: '1.5rem', width: '100%', maxWidth: '700px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', flexShrink: 0, zIndex: 10 }}>
                 <div>
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: '0 0 0.25rem 0' }}>Détails du Dossier</h2>
                   <p style={{ margin: 0, color: '#64748B', fontSize: '0.875rem' }}>{selectedDossier.numeroDossier}</p>
@@ -412,7 +412,7 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                 </button>
               </div>
               
-              <div style={{ padding: '2rem' }}>
+              <div style={{ padding: '2rem', flex: 1, overflowY: 'auto' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
                   
                   {/* Informations Client */}
@@ -586,8 +586,8 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
         {/* Modal Détails Client */}
         {selectedClient && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setSelectedClient(null)}>
-            <div style={{ backgroundColor: '#fff', borderRadius: '1.5rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative' }} onClick={e => e.stopPropagation()}>
-              <div style={{ padding: '2rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(8px)', zIndex: 10 }}>
+            <div style={{ backgroundColor: '#fff', borderRadius: '1.5rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', flexShrink: 0, zIndex: 10 }}>
                 <div>
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: '0 0 0.25rem 0' }}>Détails Client</h2>
                   <p style={{ margin: 0, color: '#64748B', fontSize: '0.875rem' }}>ID Client: CL-{selectedClient.id}</p>
@@ -597,7 +597,7 @@ export default function AdminDashboard({ initialDossiers }: { initialDossiers: a
                 </button>
               </div>
               
-              <div style={{ padding: '2rem' }}>
+              <div style={{ padding: '2rem', flex: 1, overflowY: 'auto' }}>
                 <div style={{ backgroundColor: '#F8FAFC', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #E2E8F0', marginBottom: '2rem' }}>
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', margin: '0 0 1rem 0' }}>{selectedClient.name}</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
