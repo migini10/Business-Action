@@ -44,6 +44,7 @@ export async function respondToTransactionModification(transactionId: string, ac
           montant: pending.montant,
           type: pending.type,
           description: pending.description,
+          commentaire: pending.commentaire,
           isModificationPending: false,
           pendingModification: null
         }

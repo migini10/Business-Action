@@ -150,6 +150,7 @@ export default function EspaceClient() {
                           <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>{new Date(item.date).toLocaleDateString('fr-FR')}</td>
                           <td style={{ padding: '1rem', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>
                             <div style={{ fontWeight: 600 }}>{item.description}</div>
+                            {item.commentaire && <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>{item.commentaire}</div>}
                           </td>
                           <td style={{ padding: '1rem' }}>
                             <span style={{ 
@@ -176,6 +177,7 @@ export default function EspaceClient() {
                                   <strong>⚠️ Modification proposée par l'Admin :</strong><br />
                                   Nouveau montant : {item.pendingModification.montant > 0 ? '+' : ''}{item.pendingModification.montant.toLocaleString('fr-FR')} FCFA<br />
                                   Description : {item.pendingModification.description}
+                                  {item.pendingModification.commentaire && <><br />Commentaire : {item.pendingModification.commentaire}</>}
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                   <button onClick={() => handleModificationResponse(item.id, true)} disabled={isSubmitting} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#10B981', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Accepter</button>

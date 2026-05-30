@@ -178,7 +178,7 @@ export async function getClientTransactions(clientId: string) {
   }
 }
 
-export async function addTransaction(data: { clientId: string, amount: number, type: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT', desc: string, statut?: string }) {
+export async function addTransaction(data: { clientId: string, amount: number, type: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT', desc: string, commentaire?: string, statut?: string }) {
   try {
     await prisma.transaction.create({
       data: {
@@ -186,6 +186,7 @@ export async function addTransaction(data: { clientId: string, amount: number, t
         montant: data.amount,
         type: data.type,
         description: data.desc,
+        commentaire: data.commentaire,
         statut: data.statut || "Payé"
       }
     });
@@ -196,7 +197,7 @@ export async function addTransaction(data: { clientId: string, amount: number, t
   }
 }
 
-export async function updateTransaction(id: string, data: { amount: number, type: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT', desc: string }) {
+export async function updateTransaction(id: string, data: { amount: number, type: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT', desc: string, commentaire?: string }) {
   try {
     const transaction = await prisma.transaction.findUnique({ where: { id } });
     if (!transaction) return { success: false, error: "Transaction introuvable." };
@@ -210,7 +211,8 @@ export async function updateTransaction(id: string, data: { amount: number, type
         data: {
           montant: data.amount,
           type: data.type,
-          description: data.desc
+          description: data.desc,
+          commentaire: data.commentaire
         }
       });
       return { success: true, message: "Transaction modifiée avec succès." };
@@ -223,7 +225,8 @@ export async function updateTransaction(id: string, data: { amount: number, type
           pendingModification: {
             montant: data.amount,
             type: data.type,
-            description: data.desc
+            description: data.desc,
+            commentaire: data.commentaire
           }
         }
       });

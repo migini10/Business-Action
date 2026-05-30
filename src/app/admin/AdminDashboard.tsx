@@ -14,6 +14,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionDesc, setTransactionDesc] = useState('');
+  const [transactionCommentaire, setTransactionCommentaire] = useState('');
   const [transactionType, setTransactionType] = useState('paiement');
   const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
@@ -699,9 +700,16 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       />
                       <input 
                         type="text" 
-                        placeholder="Commentaire / Description (optionnel)" 
+                        placeholder="Description (ex: Acompte)" 
                         value={transactionDesc}
                         onChange={(e) => setTransactionDesc(e.target.value)}
+                        style={{ flex: '2 1 200px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Commentaire (optionnel)" 
+                        value={transactionCommentaire}
+                        onChange={(e) => setTransactionCommentaire(e.target.value)}
                         style={{ flex: '2 1 200px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
                       />
                       <button 
@@ -722,7 +730,8 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             clientId: selectedClient.id,
                             amount: finalAmount,
                             type: mappedType,
-                            desc
+                            desc,
+                            commentaire: transactionCommentaire.trim() || undefined
                           });
 
                           if (res.success) {
@@ -746,6 +755,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             setShowTransactionForm(false);
                             setTransactionAmount('');
                             setTransactionDesc('');
+                            setTransactionCommentaire('');
                             setTransactionType('paiement');
                           } else {
                             alert("Erreur lors de l'ajout de la transaction.");
@@ -797,7 +807,10 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                 {new Date(tx.date).toLocaleDateString('fr-FR')}
                                 {tx.isModificationPending && <span style={{display: 'block', color: '#D97706', fontSize: '0.75rem'}}>⏳ En attente de validation</span>}
                               </td>
-                              <td style={{ padding: '1rem', color: '#0F172A', fontSize: '0.875rem', fontWeight: 600 }}>{tx.description}</td>
+                              <td style={{ padding: '1rem', color: '#0F172A', fontSize: '0.875rem' }}>
+                                <div style={{ fontWeight: 600 }}>{tx.description}</div>
+                                {tx.commentaire && <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>{tx.commentaire}</div>}
+                              </td>
                               <td style={{ padding: '1rem', color: tx.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
                                 {tx.montant > 0 ? '+' : ''}{tx.montant.toLocaleString('fr-FR')} FCFA
                               </td>
@@ -806,6 +819,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                   setEditingTransaction(tx);
                                   setTransactionAmount(Math.abs(tx.montant).toString());
                                   setTransactionDesc(tx.description);
+                                  setTransactionCommentaire(tx.commentaire || '');
                                   setTransactionType(tx.type.toLowerCase());
                                 }} style={{ padding: '0.5rem', backgroundColor: '#F1F5F9', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: '#475569' }}>
                                   Modifier
@@ -824,6 +838,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                     </select>
                                     <input type="number" placeholder="Montant" value={transactionAmount} onChange={e => setTransactionAmount(e.target.value)} style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', width: '150px' }} />
                                     <input type="text" placeholder="Description" value={transactionDesc} onChange={e => setTransactionDesc(e.target.value)} style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', flex: '1 1 auto' }} />
+                                    <input type="text" placeholder="Commentaire" value={transactionCommentaire} onChange={e => setTransactionCommentaire(e.target.value)} style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', flex: '1 1 auto' }} />
                                     <button onClick={async () => {
                                       const newAmount = parseInt(transactionAmount);
                                       if (isNaN(newAmount)) return;
@@ -836,7 +851,8 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                       const res = await updateTransaction(tx.id, {
                                         amount: finalAmount,
                                         type: mappedType,
-                                        desc: transactionDesc.trim() || tx.description
+                                        desc: transactionDesc.trim() || tx.description,
+                                        commentaire: transactionCommentaire.trim() || undefined
                                       });
                                       if (res.success) {
                                         alert(res.message);

@@ -95,6 +95,7 @@ model Transaction {
   montant     Float
   type        TypeTransaction
   description String
+  commentaire String?
   statut                String          @default("Payé")
   date                  DateTime        @default(now())
   isModificationPending Boolean         @default(false)
