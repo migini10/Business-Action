@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { loginClient, registerClient } from '@/app/actions/auth';
 import { getClientDashboardData, respondToTransactionModification } from '@/app/actions/client';
@@ -12,6 +12,10 @@ export default function EspaceClient() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
   const [visibleCount, setVisibleCount] = useState(15);
   const [errorMessage, setErrorMessage] = useState('');
+  
+  const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'month' | 'year' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const [financesData, setFinancesData] = useState<any[]>([]);
   const [dossiers, setDossiers] = useState<any[]>([]);
@@ -40,11 +44,41 @@ export default function EspaceClient() {
     }
   }, []);
 
-  const totalDettes = Math.abs(financesData.filter(d => d.montant < 0).reduce((sum, item) => sum + item.montant, 0));
-  const totalCreances = financesData.filter(d => d.montant > 0).reduce((sum, item) => sum + item.montant, 0);
-  const soldeActuel = financesData.reduce((sum, item) => sum + item.montant, 0);
+  const filteredFinancesData = useMemo(() => {
+    return financesData.filter(item => {
+      if (filterPeriod === 'all') return true;
+      const date = new Date(item.date);
+      const today = new Date();
+      if (filterPeriod === 'today') {
+        return date.toDateString() === today.toDateString();
+      }
+      if (filterPeriod === 'month') {
+        return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+      }
+      if (filterPeriod === 'year') {
+        return date.getFullYear() === today.getFullYear();
+      }
+      if (filterPeriod === 'custom') {
+        if (!customStartDate && !customEndDate) return true;
+        const itemTime = date.getTime();
+        if (customStartDate && customEndDate) {
+          return itemTime >= new Date(customStartDate).getTime() && itemTime <= new Date(customEndDate).setHours(23,59,59,999);
+        }
+        if (customStartDate) {
+          return itemTime >= new Date(customStartDate).getTime();
+        }
+        if (customEndDate) {
+          return itemTime <= new Date(customEndDate).setHours(23,59,59,999);
+        }
+      }
+      return true;
+    });
+  }, [financesData, filterPeriod, customStartDate, customEndDate]);
 
-  const currentItems = financesData.slice(0, visibleCount);
+  const totalDettes = Math.abs(filteredFinancesData.filter(d => d.montant < 0).reduce((sum, item) => sum + item.montant, 0));
+  const totalCreances = filteredFinancesData.filter(d => d.montant > 0).reduce((sum, item) => sum + item.montant, 0);
+
+  const currentItems = filteredFinancesData.slice(0, visibleCount);
 
   const handleModificationResponse = async (transactionId: string, accept: boolean) => {
     setIsSubmitting(true);
@@ -119,6 +153,38 @@ export default function EspaceClient() {
                     Retour
                   </button>
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>Historique des Créances et Dettes</h2>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <select 
+                    value={filterPeriod} 
+                    onChange={e => setFilterPeriod(e.target.value as any)}
+                    style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC' }}
+                  >
+                    <option value="all">Toutes les dates</option>
+                    <option value="today">Aujourd'hui</option>
+                    <option value="month">Ce mois</option>
+                    <option value="year">Cette année</option>
+                    <option value="custom">Date personnalisée</option>
+                  </select>
+
+                  {filterPeriod === 'custom' && (
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <input 
+                        type="date" 
+                        value={customStartDate} 
+                        onChange={e => setCustomStartDate(e.target.value)}
+                        style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1' }}
+                      />
+                      <span style={{ color: 'var(--color-text-muted)' }}>au</span>
+                      <input 
+                        type="date" 
+                        value={customEndDate} 
+                        onChange={e => setCustomEndDate(e.target.value)}
+                        style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1' }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

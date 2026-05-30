@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { updateDossierStatus, uploadAndSendDevis, addTransaction, getClientTransactions, updateTransaction } from '@/app/actions/admin';
 import { registerClient } from '@/app/actions/auth';
 import Link from 'next/link';
@@ -18,6 +18,11 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [transactionType, setTransactionType] = useState('paiement');
   const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
+  
+  const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'month' | 'year' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+
   const [clients, setClients] = useState(initialClients);
   const [showAddClientForm, setShowAddClientForm] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', phone: '', email: '' });
@@ -40,6 +45,37 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   useEffect(() => {
     localStorage.setItem('adminActiveTab', activeTab);
   }, [activeTab]);
+
+  const filteredClientTransactions = useMemo(() => {
+    return clientTransactions.filter(item => {
+      if (filterPeriod === 'all') return true;
+      const date = new Date(item.date);
+      const today = new Date();
+      if (filterPeriod === 'today') {
+        return date.toDateString() === today.toDateString();
+      }
+      if (filterPeriod === 'month') {
+        return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+      }
+      if (filterPeriod === 'year') {
+        return date.getFullYear() === today.getFullYear();
+      }
+      if (filterPeriod === 'custom') {
+        if (!customStartDate && !customEndDate) return true;
+        const itemTime = date.getTime();
+        if (customStartDate && customEndDate) {
+          return itemTime >= new Date(customStartDate).getTime() && itemTime <= new Date(customEndDate).setHours(23,59,59,999);
+        }
+        if (customStartDate) {
+          return itemTime >= new Date(customStartDate).getTime();
+        }
+        if (customEndDate) {
+          return itemTime <= new Date(customEndDate).setHours(23,59,59,999);
+        }
+      }
+      return true;
+    });
+  }, [clientTransactions, filterPeriod, customStartDate, customEndDate]);
 
   const [devisFile, setDevisFile] = useState<File | null>(null);
   const [isUploadingDevis, setIsUploadingDevis] = useState(false);
@@ -785,10 +821,44 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                 )}
 
                 <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #E2E8F0' }}>
-                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    Historique des transactions
-                  </h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      Historique des transactions
+                    </h3>
+                    
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <select 
+                        value={filterPeriod} 
+                        onChange={e => setFilterPeriod(e.target.value as any)}
+                        style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC', fontSize: '0.875rem' }}
+                      >
+                        <option value="all">Toutes les dates</option>
+                        <option value="today">Aujourd'hui</option>
+                        <option value="month">Ce mois</option>
+                        <option value="year">Cette année</option>
+                        <option value="custom">Date personnalisée</option>
+                      </select>
+
+                      {filterPeriod === 'custom' && (
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <input 
+                            type="date" 
+                            value={customStartDate} 
+                            onChange={e => setCustomStartDate(e.target.value)}
+                            style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                          />
+                          <span style={{ color: '#64748B', fontSize: '0.875rem' }}>au</span>
+                          <input 
+                            type="date" 
+                            value={customEndDate} 
+                            onChange={e => setCustomEndDate(e.target.value)}
+                            style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '1rem', width: '100%' }}>
                     <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
                       <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
@@ -800,7 +870,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                         </tr>
                       </thead>
                       <tbody>
-                        {clientTransactions.map(tx => (
+                        {filteredClientTransactions.map(tx => (
                           <React.Fragment key={tx.id}>
                             <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
                               <td style={{ padding: '1rem', color: '#475569', fontSize: '0.875rem' }}>
