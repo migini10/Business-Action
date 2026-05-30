@@ -26,6 +26,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [clients, setClients] = useState(initialClients);
   const [showAddClientForm, setShowAddClientForm] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', phone: '', email: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (selectedClient) {
@@ -751,6 +752,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       <button 
                         onClick={async () => {
                           if (!transactionAmount) return;
+                          setIsSubmitting(true);
                           
                           const newAmount = parseInt(transactionAmount);
                           const finalAmount = (transactionType === 'dette' || transactionType === 'remboursement') ? -Math.abs(newAmount) : Math.abs(newAmount);
@@ -796,10 +798,12 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                           } else {
                             alert("Erreur lors de l'ajout de la transaction.");
                           }
+                          setIsSubmitting(false);
                         }}
-                        style={{ padding: '0.75rem 1.5rem', borderRadius: '0.5rem', backgroundColor: '#10B981', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+                        disabled={isSubmitting}
+                        style={{ padding: '0.75rem 1.5rem', borderRadius: '0.5rem', backgroundColor: isSubmitting ? '#94A3B8' : '#10B981', color: 'white', border: 'none', fontWeight: 600, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
                       >
-                        Valider
+                        {isSubmitting ? 'En cours...' : 'Valider'}
                       </button>
                       <button 
                         onClick={() => setShowTransactionForm(false)}
@@ -912,6 +916,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                     <button onClick={async () => {
                                       const newAmount = parseInt(transactionAmount);
                                       if (isNaN(newAmount)) return;
+                                      setIsSubmitting(true);
                                       const finalAmount = (transactionType === 'dette' || transactionType === 'remboursement') ? -Math.abs(newAmount) : Math.abs(newAmount);
                                       let mappedType: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT' = 'PAIEMENT';
                                       if (transactionType === 'dette') mappedType = 'DETTE';

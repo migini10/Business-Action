@@ -8,6 +8,7 @@ import { getClientDashboardData, respondToTransactionModification } from '@/app/
 export default function EspaceClient() {
   const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
   const [visibleCount, setVisibleCount] = useState(15);
@@ -83,11 +84,10 @@ export default function EspaceClient() {
   const currentItems = filteredFinancesData.slice(0, visibleCount);
 
   const handleModificationResponse = async (transactionId: string, accept: boolean) => {
-    setIsSubmitting(true);
+    setSubmittingId(transactionId);
     const res = await respondToTransactionModification(transactionId, accept);
     if (res.success) {
       alert(res.message);
-      // Refresh
       if (clientData) {
         const dashRes = await getClientDashboardData(clientData.id);
         if (dashRes.success) {
@@ -97,7 +97,7 @@ export default function EspaceClient() {
     } else {
       alert(res.error);
     }
-    setIsSubmitting(false);
+    setSubmittingId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -248,8 +248,12 @@ export default function EspaceClient() {
                                   {item.pendingModification.commentaire && <><br />Commentaire : {item.pendingModification.commentaire}</>}
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                  <button onClick={() => handleModificationResponse(item.id, true)} disabled={isSubmitting} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#10B981', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Accepter</button>
-                                  <button onClick={() => handleModificationResponse(item.id, false)} disabled={isSubmitting} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#EF4444', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Refuser</button>
+                                  <button onClick={() => handleModificationResponse(item.id, true)} disabled={submittingId === item.id} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: submittingId === item.id ? '#94A3B8' : '#10B981', color: 'white', fontWeight: 600, cursor: submittingId === item.id ? 'not-allowed' : 'pointer' }}>
+                                    {submittingId === item.id ? '...' : 'Accepter'}
+                                  </button>
+                                  <button onClick={() => handleModificationResponse(item.id, false)} disabled={submittingId === item.id} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: submittingId === item.id ? '#94A3B8' : '#EF4444', color: 'white', fontWeight: 600, cursor: submittingId === item.id ? 'not-allowed' : 'pointer' }}>
+                                    {submittingId === item.id ? '...' : 'Refuser'}
+                                  </button>
                                 </div>
                               </div>
                             </td>
