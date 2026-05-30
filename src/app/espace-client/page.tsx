@@ -322,7 +322,13 @@ export default function EspaceClient() {
           </div>
 
           <div className="card" style={{ padding: '2rem', borderRadius: 'var(--radius-xl)' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '2rem', color: 'var(--color-text-main)' }}>Mes Dernières Demandes</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>Mes Dernières Demandes</h2>
+              <Link href="/demande-devis" className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: 600, textDecoration: 'none', color: '#fff', backgroundColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Nouvelle Demande
+              </Link>
+            </div>
             
             {dossiers.length === 0 ? (
               <p style={{ color: 'var(--color-text-muted)' }}>Aucune demande pour le moment.</p>

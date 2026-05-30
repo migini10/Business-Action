@@ -11,6 +11,23 @@ export default function DemandeDevis() {
   const [rectoFile, setRectoFile] = useState<File | null>(null);
   const [versoFile, setVersoFile] = useState<File | null>(null);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const dataStr = localStorage.getItem('client_data');
+      if (dataStr) {
+        try {
+          const clientData = JSON.parse(dataStr);
+          const phoneInput = document.querySelector('input[name="phone"]') as HTMLInputElement;
+          const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
+          if (phoneInput && clientData.phone) phoneInput.value = clientData.phone;
+          if (emailInput && clientData.email) emailInput.value = clientData.email;
+        } catch (e) {
+          console.error("Erreur de lecture des données client", e);
+        }
+      }
+    }
+  }, []);
+
   const compressImage = async (file: File): Promise<File> => {
     if (!file.type.startsWith('image/')) return file;
     return new Promise((resolve) => {
