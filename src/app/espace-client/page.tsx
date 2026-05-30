@@ -20,6 +20,7 @@ export default function EspaceClient() {
   const [financesData, setFinancesData] = useState<any[]>([]);
   const [dossiers, setDossiers] = useState<any[]>([]);
   const [clientData, setClientData] = useState<any>(null);
+  const [selectedDossier, setSelectedDossier] = useState<any | null>(null);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -337,10 +338,19 @@ export default function EspaceClient() {
                 <div key={dossier.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', border: '1px solid var(--color-gray)', borderRadius: 'var(--radius-lg)', marginBottom: '1rem', backgroundColor: 'var(--color-gray-light)' }}>
                   <div>
                     <p style={{ fontWeight: 800, color: 'var(--color-text-main)', margin: '0 0 0.5rem 0', fontSize: '1.125rem' }}>{dossier.numeroDossier}</p>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Demande de devis • {dossier.typeVehicule.replace('_', ' ')}</p>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>
+                      {new Date(dossier.createdAt).toLocaleDateString('fr-FR')} • {dossier.typeVehicule.replace('_', ' ')}
+                    </p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <span style={{ padding: '0.5rem 1rem', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--color-warning)', borderRadius: '2rem', fontWeight: 600, fontSize: '0.875rem' }}>{dossier.statut}</span>
+                    <button 
+                      onClick={() => setSelectedDossier(dossier)}
+                      style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: '#fff', border: '1px solid #E2E8F0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+                      title="Voir les détails"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
                     {dossier.devisUrl && (
                       <a href={dossier.devisUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none' }}>Voir Devis &rarr;</a>
                     )}
@@ -350,6 +360,52 @@ export default function EspaceClient() {
             )}
 
           </div>
+
+          {selectedDossier && (
+            <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+              <div className="animate-fade-in" style={{ backgroundColor: '#fff', borderRadius: '1rem', padding: '2rem', maxWidth: '500px', width: '100%', position: 'relative' }}>
+                <button onClick={() => setSelectedDossier(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', color: '#0F172A' }}>Détails de la demande</h3>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                    <span style={{ color: '#64748B', fontWeight: 600 }}>N° de Dossier</span>
+                    <span style={{ fontWeight: 800, color: '#0F172A' }}>{selectedDossier.numeroDossier}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                    <span style={{ color: '#64748B', fontWeight: 600 }}>Date de création</span>
+                    <span style={{ fontWeight: 600, color: '#0F172A' }}>{new Date(selectedDossier.createdAt).toLocaleDateString('fr-FR')} à {new Date(selectedDossier.createdAt).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                    <span style={{ color: '#64748B', fontWeight: 600 }}>Type de Véhicule</span>
+                    <span style={{ fontWeight: 600, color: '#0F172A' }}>{selectedDossier.typeVehicule.replace('_', ' ')}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                    <span style={{ color: '#64748B', fontWeight: 600 }}>Statut actuel</span>
+                    <span style={{ fontWeight: 800, color: '#D97706' }}>{selectedDossier.statut}</span>
+                  </div>
+                </div>
+
+                {selectedDossier.devisUrl && (
+                  <a href={selectedDossier.devisUrl} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ display: 'block', textAlign: 'center', padding: '1rem', borderRadius: '0.75rem', textDecoration: 'none', marginBottom: '1rem' }}>
+                    Télécharger mon devis
+                  </a>
+                )}
+                
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  {selectedDossier.rectoUrl && (
+                    <a href={selectedDossier.rectoUrl} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>Carte Grise (Recto)</a>
+                  )}
+                  {selectedDossier.versoUrl && (
+                    <a href={selectedDossier.versoUrl} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>Carte Grise (Verso)</a>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
             </>
           )}
         </div>
