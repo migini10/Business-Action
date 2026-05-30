@@ -77,6 +77,7 @@ export default function EspaceClient() {
 
   const totalDettes = Math.abs(filteredFinancesData.filter(d => d.montant < 0).reduce((sum, item) => sum + item.montant, 0));
   const totalCreances = filteredFinancesData.filter(d => d.montant > 0).reduce((sum, item) => sum + item.montant, 0);
+  const soldeActuel = financesData.reduce((sum, item) => sum + item.montant, 0);
 
   const currentItems = filteredFinancesData.slice(0, visibleCount);
 
