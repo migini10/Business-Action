@@ -1,6 +1,7 @@
 'use server'
 
 import prisma from '@/lib/prisma'
+import { normalizeTransactionAmount } from '@/lib/finance'
 
 export async function getClientDashboardData(clientId: string) {
   try {
@@ -41,7 +42,7 @@ export async function respondToTransactionModification(transactionId: string, ac
       await prisma.transaction.update({
         where: { id: transactionId },
         data: {
-          montant: pending.montant,
+          montant: normalizeTransactionAmount(pending.montant),
           type: pending.type,
           description: pending.description,
           commentaire: pending.commentaire,

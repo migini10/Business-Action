@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { loginClient, registerClient } from '@/app/actions/auth';
 import { getClientDashboardData, respondToTransactionModification } from '@/app/actions/client';
+import { calculateClientBalance, getTransactionSign } from '@/lib/finance';
 
 export default function EspaceClient() {
   const [isLogin, setIsLogin] = useState(true);
@@ -77,9 +78,12 @@ export default function EspaceClient() {
     });
   }, [financesData, filterPeriod, customStartDate, customEndDate]);
 
-  const totalDettes = Math.abs(filteredFinancesData.filter(d => d.montant < 0).reduce((sum, item) => sum + item.montant, 0));
-  const totalCreances = filteredFinancesData.filter(d => d.montant > 0).reduce((sum, item) => sum + item.montant, 0);
-  const soldeActuel = financesData.reduce((sum, item) => sum + item.montant, 0);
+  // La fonction calculateClientBalance permet de s'affranchir des mauvaises saisies passées
+  const soldeActuel = calculateClientBalance(financesData);
+  // Les dettes et créances du point de vue de l'ADMIN (car stocké du pdv de l'admin)
+  // DETTE = admin doit au client. PAIEMENT = client paie l'admin. REMBOURSEMENT = admin rembourse client. CREANCE = client doit admin.
+  const totalCreances = financesData.reduce((sum, tx) => sum + (getTransactionSign(tx.type as any) > 0 ? Math.abs(tx.montant) : 0), 0);
+  const totalDettes = financesData.reduce((sum, tx) => sum + (getTransactionSign(tx.type as any) < 0 ? Math.abs(tx.montant) : 0), 0);
 
   const currentItems = filteredFinancesData.slice(0, visibleCount);
 
@@ -233,8 +237,8 @@ export default function EspaceClient() {
                               {item.type}
                             </span>
                           </td>
-                          <td style={{ padding: '1rem', color: item.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.95rem', fontWeight: 700 }}>
-                            {item.montant > 0 ? '+' : ''}{item.montant.toLocaleString('fr-FR')} FCFA
+                          <td style={{ padding: '1rem', color: getTransactionSign(item.type as any) < 0 ? '#DC2626' : '#16A34A', fontSize: '0.95rem', fontWeight: 700 }}>
+                            {getTransactionSign(item.type as any) > 0 ? '+' : '-'}{Math.abs(item.montant).toLocaleString('fr-FR')} FCFA
                           </td>
                         </tr>
                         {item.isModificationPending && item.pendingModification && (
@@ -278,17 +282,12 @@ export default function EspaceClient() {
                 </div>
               )}
 
-              <div style={{ backgroundColor: soldeActuel >= 0 ? '#F0FDF4' : '#FEF2F2', border: `2px solid ${soldeActuel >= 0 ? '#22C55E' : '#EF4444'}`, padding: '1.5rem', borderRadius: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ backgroundColor: soldeActuel >= 0 ? '#FEF2F2' : '#F0FDF4', border: `2px solid ${soldeActuel >= 0 ? '#EF4444' : '#22C55E'}`, padding: '1.5rem', borderRadius: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <p style={{ color: soldeActuel >= 0 ? '#166534' : '#991B1B', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Solde Actuel</p>
-                  <p style={{ color: soldeActuel >= 0 ? '#15803D' : '#B91C1C', fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>
-                    {soldeActuel >= 0 ? '+' : ''}{soldeActuel.toLocaleString('fr-FR')} FCFA
+                  <p style={{ color: soldeActuel >= 0 ? '#991B1B' : '#166534', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Position Financière</p>
+                  <p style={{ color: soldeActuel >= 0 ? '#B91C1C' : '#15803D', fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>
+                    {soldeActuel > 0 ? `Reste à payer : ${soldeActuel.toLocaleString('fr-FR')} FCFA` : soldeActuel < 0 ? `Solde en votre faveur : ${Math.abs(soldeActuel).toLocaleString('fr-FR')} FCFA` : "Compte équilibré"}
                   </p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', fontWeight: 700, backgroundColor: soldeActuel >= 0 ? '#DCFCE7' : '#FEE2E2', color: soldeActuel >= 0 ? '#16A34A' : '#DC2626' }}>
-                    {soldeActuel > 0 ? "L'entreprise vous doit de l'argent" : soldeActuel < 0 ? "Vous devez de l'argent" : "Solde équilibré"}
-                  </span>
                 </div>
               </div>
             </div>
@@ -322,7 +321,9 @@ export default function EspaceClient() {
                 </div>
                 <h3 style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', margin: 0 }}>Solde Actuel</h3>
               </div>
-              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>{soldeActuel.toLocaleString('fr-FR')} FCFA</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>
+                {soldeActuel > 0 ? `Reste à payer : ${soldeActuel.toLocaleString('fr-FR')} FCFA` : soldeActuel < 0 ? `En votre faveur : ${Math.abs(soldeActuel).toLocaleString('fr-FR')} FCFA` : "Compte équilibré"}
+              </p>
             </div>
           </div>
 

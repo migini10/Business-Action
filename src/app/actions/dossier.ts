@@ -65,6 +65,10 @@ export async function createDossier(formData: FormData) {
   }
 
   try {
+    const user = await prisma.user.findUnique({
+      where: { phone }
+    });
+
     const newDossier = await prisma.dossier.create({
       data: {
         phone,
@@ -72,7 +76,8 @@ export async function createDossier(formData: FormData) {
         typeVehicule,
         numeroDossier,
         rectoUrl,
-        versoUrl
+        versoUrl,
+        clientId: user ? user.id : null
       }
     })
     

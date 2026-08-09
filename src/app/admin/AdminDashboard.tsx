@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { updateDossierStatus, uploadAndSendDevis, addTransaction, getClientTransactions, updateTransaction } from '@/app/actions/admin';
+import { calculateClientBalance, getTransactionSign } from '@/lib/finance';
 import { registerClient } from '@/app/actions/auth';
 import Link from 'next/link';
 
@@ -707,9 +708,9 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                     <p style={{ margin: 0, fontSize: '2rem', fontWeight: 800, color: '#0F172A' }}>{selectedClient.dossiers}</p>
                   </div>
                   <div style={{ backgroundColor: selectedClient.solde < 0 ? '#FEE2E2' : (selectedClient.solde > 0 ? '#DCFCE7' : '#F1F5F9'), padding: '1.5rem', borderRadius: '1rem' }}>
-                    <p style={{ margin: '0 0 0.5rem 0', color: selectedClient.solde < 0 ? '#991B1B' : (selectedClient.solde > 0 ? '#166534' : '#64748B'), fontSize: '0.875rem', fontWeight: 600 }}>Solde Global</p>
-                    <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: selectedClient.solde < 0 ? '#DC2626' : (selectedClient.solde > 0 ? '#16A34A' : '#0F172A') }}>
-                      {selectedClient.solde === 0 ? 'À jour' : `${selectedClient.solde > 0 ? '+' : ''}${selectedClient.solde.toLocaleString('fr-FR')} FCFA`}
+                    <p style={{ margin: '0 0 0.5rem 0', color: selectedClient.solde < 0 ? '#991B1B' : (selectedClient.solde > 0 ? '#166534' : '#64748B'), fontSize: '0.875rem', fontWeight: 600 }}>Position Financière</p>
+                    <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: selectedClient.solde < 0 ? '#DC2626' : (selectedClient.solde > 0 ? '#16A34A' : '#0F172A') }}>
+                      {selectedClient.solde === 0 ? 'Compte équilibré' : (selectedClient.solde > 0 ? `Le client vous doit : ${selectedClient.solde.toLocaleString('fr-FR')} FCFA` : `Vous devez au client : ${Math.abs(selectedClient.solde).toLocaleString('fr-FR')} FCFA`)}
                     </p>
                   </div>
                 </div>
@@ -751,12 +752,11 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       />
                       <button 
                         onClick={async () => {
-                          if (!transactionAmount) return;
+                          const newAmount = parseInt(transactionAmount);
+                          if (!transactionAmount || isNaN(newAmount)) return;
                           setIsSubmitting(true);
                           
-                          const newAmount = parseInt(transactionAmount);
-                          const finalAmount = (transactionType === 'dette' || transactionType === 'remboursement') ? -Math.abs(newAmount) : Math.abs(newAmount);
-                          
+                          const finalAmount = Math.abs(newAmount);
                           let mappedType: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT' = 'PAIEMENT';
                           if (transactionType === 'dette') mappedType = 'DETTE';
                           if (transactionType === 'créance') mappedType = 'CREANCE';
@@ -766,29 +766,29 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
 
                           const res = await addTransaction({
                             clientId: selectedClient.id,
-                            amount: finalAmount,
+                            amount: (transactionType === 'dette' || transactionType === 'remboursement') ? -finalAmount : finalAmount,
                             type: mappedType,
                             desc,
                             commentaire: transactionCommentaire.trim() || undefined
                           });
 
                           if (res.success) {
-                            setClientTransactions([
+                            const updatedTransactions = [
                               {
                                 id: `T${Date.now()}`,
                                 date: new Date().toISOString(),
                                 description: desc,
-                                montant: finalAmount
+                                montant: (transactionType === 'dette' || transactionType === 'remboursement') ? -finalAmount : finalAmount,
+                                type: mappedType,
+                                commentaire: transactionCommentaire.trim()
                               },
                               ...clientTransactions
-                            ]);
+                            ];
+                            setClientTransactions(updatedTransactions);
 
-                            setSelectedClient({
-                              ...selectedClient,
-                              solde: selectedClient.solde + finalAmount
-                            });
-                            
-                            setClients(clients.map(c => c.id === selectedClient.id ? { ...c, solde: c.solde + finalAmount } : c));
+                            const newSolde = calculateClientBalance(updatedTransactions);
+                            setClients(clients.map(c => c.id === selectedClient.id ? { ...c, solde: newSolde } : c));
+                            setSelectedClient({ ...selectedClient, solde: newSolde });
 
                             setShowTransactionForm(false);
                             setTransactionAmount('');
@@ -885,8 +885,8 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                 <div style={{ fontWeight: 600 }}>{tx.description}</div>
                                 {tx.commentaire && <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>{tx.commentaire}</div>}
                               </td>
-                              <td style={{ padding: '1rem', color: tx.type === 'DETTE' ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
-                                {tx.montant > 0 ? '+' : ''}{tx.montant.toLocaleString('fr-FR')} FCFA
+                              <td style={{ padding: '1rem', color: getTransactionSign(tx.type as any) < 0 ? '#DC2626' : '#16A34A', fontSize: '0.875rem', fontWeight: 700 }}>
+                                {getTransactionSign(tx.type as any) > 0 ? '+' : '-'}{Math.abs(tx.montant).toLocaleString('fr-FR')} FCFA
                               </td>
                               <td style={{ padding: '1rem' }}>
                                 <button onClick={() => {
@@ -917,7 +917,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                       const newAmount = parseInt(transactionAmount);
                                       if (isNaN(newAmount)) return;
                                       setIsSubmitting(true);
-                                      const finalAmount = (transactionType === 'dette' || transactionType === 'remboursement') ? -Math.abs(newAmount) : Math.abs(newAmount);
+                                      const finalAmount = Math.abs(newAmount);
                                       let mappedType: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT' = 'PAIEMENT';
                                       if (transactionType === 'dette') mappedType = 'DETTE';
                                       if (transactionType === 'créance') mappedType = 'CREANCE';

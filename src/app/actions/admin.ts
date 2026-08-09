@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma'
 import { StatutDossier } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
+import { calculateClientBalance, normalizeTransactionAmount } from '@/lib/finance'
 
 export async function getDossiers() {
   try {
@@ -40,7 +41,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 import { Resend } from 'resend';
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy');
 
 export async function uploadAndSendDevis(formData: FormData) {
   const dossierId = formData.get('dossierId') as string;
@@ -147,7 +148,7 @@ export async function getClients() {
     });
     
     const formattedClients = users.map(user => {
-      const solde = user.transactions.reduce((sum, tx) => sum + tx.montant, 0);
+      const solde = calculateClientBalance(user.transactions);
       return {
         id: user.id,
         name: user.fullName,
@@ -183,7 +184,7 @@ export async function addTransaction(data: { clientId: string, amount: number, t
     await prisma.transaction.create({
       data: {
         clientId: data.clientId,
-        montant: data.amount,
+        montant: normalizeTransactionAmount(data.amount),
         type: data.type,
         description: data.desc,
         commentaire: data.commentaire,
@@ -209,7 +210,7 @@ export async function updateTransaction(id: string, data: { amount: number, type
       await prisma.transaction.update({
         where: { id },
         data: {
-          montant: data.amount,
+          montant: normalizeTransactionAmount(data.amount),
           type: data.type,
           description: data.desc,
           commentaire: data.commentaire
@@ -223,7 +224,7 @@ export async function updateTransaction(id: string, data: { amount: number, type
         data: {
           isModificationPending: true,
           pendingModification: {
-            montant: data.amount,
+            montant: normalizeTransactionAmount(data.amount),
             type: data.type,
             description: data.desc,
             commentaire: data.commentaire
