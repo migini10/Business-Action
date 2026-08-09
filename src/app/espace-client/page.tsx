@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { loginClient, registerClient } from '@/app/actions/auth';
 import { getClientDashboardData, respondToTransactionModification } from '@/app/actions/client';
-import { calculateClientBalance, getTransactionSign } from '@/lib/finance';
+import { calculateClientBalance, getTransactionSign, calculateFinancialSummary } from '@/lib/finance';
 
 export default function EspaceClient() {
   const [isLogin, setIsLogin] = useState(true);
@@ -78,12 +78,7 @@ export default function EspaceClient() {
     });
   }, [financesData, filterPeriod, customStartDate, customEndDate]);
 
-  // La fonction calculateClientBalance permet de s'affranchir des mauvaises saisies passées
-  const soldeActuel = calculateClientBalance(financesData);
-  // Les dettes et créances du point de vue de l'ADMIN (car stocké du pdv de l'admin)
-  // DETTE = admin doit au client. PAIEMENT = client paie l'admin. REMBOURSEMENT = admin rembourse client. CREANCE = client doit admin.
-  const totalCreances = financesData.reduce((sum, tx) => sum + (getTransactionSign(tx.type as any) > 0 ? Math.abs(tx.montant) : 0), 0);
-  const totalDettes = financesData.reduce((sum, tx) => sum + (getTransactionSign(tx.type as any) < 0 ? Math.abs(tx.montant) : 0), 0);
+  const { totalCreances, totalDettes, balance: soldeActuel } = calculateFinancialSummary(financesData);
 
   const currentItems = filteredFinancesData.slice(0, visibleCount);
 
@@ -196,11 +191,11 @@ export default function EspaceClient() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
                 <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1.5rem', borderRadius: '1rem' }}>
-                  <p style={{ color: '#166534', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Total des Créances (À recevoir)</p>
+                  <p style={{ color: '#166534', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>CRÉANCES ENREGISTRÉES</p>
                   <p style={{ color: '#15803D', fontSize: '2rem', fontWeight: 800, margin: 0 }}>{totalCreances.toLocaleString('fr-FR')} FCFA</p>
                 </div>
                 <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', padding: '1.5rem', borderRadius: '1rem' }}>
-                  <p style={{ color: '#991B1B', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>Total des Dettes (À payer)</p>
+                  <p style={{ color: '#991B1B', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>DETTES ENREGISTRÉES</p>
                   <p style={{ color: '#B91C1C', fontSize: '2rem', fontWeight: 800, margin: 0 }}>{totalDettes.toLocaleString('fr-FR')} FCFA</p>
                 </div>
               </div>

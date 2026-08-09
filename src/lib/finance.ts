@@ -50,3 +50,9 @@ export function calculateClientBalance(transactions: { type: TypeTransaction; mo
     return solde + (magnitude * signe);
   }, 0);
 }
+export function calculateFinancialSummary(transactions: { type: TypeTransaction; montant: number }[]) {
+  const totalCreances = transactions.reduce((sum, tx) => sum + (tx.type === 'CREANCE' ? Math.abs(tx.montant) : 0), 0);
+  const totalDettes = transactions.reduce((sum, tx) => sum + (tx.type === 'DETTE' ? Math.abs(tx.montant) : 0), 0);
+  const balance = calculateClientBalance(transactions);
+  return { totalCreances, totalDettes, balance };
+}

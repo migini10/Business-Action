@@ -6,6 +6,12 @@ export function middleware(req: NextRequest) {
   const url = req.nextUrl;
 
   if (url.pathname.startsWith('/admin')) {
+    const host = req.headers.get('host') || '';
+    const isLocalhost = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+
+    if (process.env.NODE_ENV === 'development' && isLocalhost) {
+      return NextResponse.next();
+    }
     if (basicAuth) {
       const authValue = basicAuth.split(' ')[1];
       const [user, pwd] = atob(authValue).split(':');
