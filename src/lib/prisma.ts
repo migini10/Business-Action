@@ -8,8 +8,8 @@ const prismaClientSingleton = () => {
   
   const pool = new Pool({ 
     connectionString,
-    // Supabase nécessite SSL pour les connexions externes (Vercel)
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    // Supabase nécessite SSL pour toutes les connexions (même en local)
+    ssl: { rejectUnauthorized: false }
   })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })

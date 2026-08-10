@@ -172,10 +172,10 @@ export async function getClientTransactions(clientId: string) {
       where: { clientId },
       orderBy: { date: 'desc' }
     });
-    return { success: true, transactions };
+    return { success: true as const, transactions };
   } catch (error) {
     console.error("Erreur récupération transactions:", error);
-    return { success: false, error: "Erreur lors de la récupération." };
+    return { success: false as const, error: "Erreur lors de la récupération." };
   }
 }
 

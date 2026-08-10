@@ -1,6 +1,7 @@
 'use server'
 
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { normalizeTransactionAmount } from '@/lib/finance'
 
 export async function getClientDashboardData(clientId: string) {
@@ -47,7 +48,7 @@ export async function respondToTransactionModification(transactionId: string, ac
           description: pending.description,
           commentaire: pending.commentaire,
           isModificationPending: false,
-          pendingModification: null
+          pendingModification: Prisma.DbNull
         }
       });
       return { success: true, message: "Modification acceptée." };
@@ -56,7 +57,7 @@ export async function respondToTransactionModification(transactionId: string, ac
         where: { id: transactionId },
         data: {
           isModificationPending: false,
-          pendingModification: null
+          pendingModification: Prisma.DbNull
         }
       });
       return { success: true, message: "Modification refusée." };
