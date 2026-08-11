@@ -45,8 +45,17 @@ model User {
   role      Role      @default(CLIENT)
   dossiers     Dossier[]
   transactions Transaction[]
+  passwordResetChallenges PasswordResetChallenge[]
   createdAt    DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+model AdminSession {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
 }
 
 model Dossier {
@@ -103,4 +112,20 @@ model Transaction {
 
   clientId    String
   client      User            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetChallenge {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  otpHash             String
+  expiresAt           DateTime
+  attempts            Int       @default(0)
+  verifiedAt          DateTime?
+  resetTokenHash      String?
+  resetTokenExpiresAt DateTime?
+  usedAt              DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@index([userId])
 }
