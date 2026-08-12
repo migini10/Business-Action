@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { updateDossierStatus, uploadAndSendDevis, addTransaction, getClientTransactions, updateTransaction } from '@/app/actions/admin';
 import { calculateClientBalance, getTransactionSign } from '@/lib/finance';
 import { registerClient } from '@/app/actions/auth';
+import { logoutAdmin } from '@/app/actions/admin-auth-actions';
 import Link from 'next/link';
 
 export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
@@ -194,9 +195,9 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                 A
               </div>
             </div>
-            <Link href="/" title="Retour au site" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#FEE2E2', color: '#DC2626', transition: 'all 0.2s', marginLeft: '0.5rem' }}>
+            <button onClick={() => logoutAdmin()} title="Déconnexion" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#FEE2E2', color: '#DC2626', transition: 'all 0.2s', marginLeft: '0.5rem', cursor: 'pointer', border: 'none' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            </Link>
+            </button>
           </div>
         </header>
 

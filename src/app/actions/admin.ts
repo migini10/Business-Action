@@ -4,8 +4,10 @@ import prisma from '@/lib/prisma'
 import { StatutDossier } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { calculateClientBalance, normalizeTransactionAmount } from '@/lib/finance'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export async function getDossiers() {
+  await requireAdmin();
   try {
     const dossiers = await prisma.dossier.findMany({
       orderBy: { createdAt: 'desc' }
@@ -18,6 +20,7 @@ export async function getDossiers() {
 }
 
 export async function updateDossierStatus(id: string, statut: string) {
+  await requireAdmin();
   try {
     const validStatut = statut as StatutDossier;
     await prisma.dossier.update({
@@ -44,6 +47,7 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy');
 
 export async function uploadAndSendDevis(formData: FormData) {
+  await requireAdmin();
   const dossierId = formData.get('dossierId') as string;
   const devisFile = formData.get('devis') as File | null;
   
@@ -137,6 +141,7 @@ export async function uploadAndSendDevis(formData: FormData) {
 }
 
 export async function getClients() {
+  await requireAdmin();
   try {
     const users = await prisma.user.findMany({
       where: { role: 'CLIENT' },
@@ -167,6 +172,7 @@ export async function getClients() {
 }
 
 export async function getClientTransactions(clientId: string) {
+  await requireAdmin();
   try {
     const transactions = await prisma.transaction.findMany({
       where: { clientId },
@@ -180,6 +186,7 @@ export async function getClientTransactions(clientId: string) {
 }
 
 export async function addTransaction(data: { clientId: string, amount: number, type: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT', desc: string, commentaire?: string, statut?: string }) {
+  await requireAdmin();
   try {
     await prisma.transaction.create({
       data: {
@@ -199,6 +206,7 @@ export async function addTransaction(data: { clientId: string, amount: number, t
 }
 
 export async function updateTransaction(id: string, data: { amount: number, type: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT', desc: string, commentaire?: string }) {
+  await requireAdmin();
   try {
     const transaction = await prisma.transaction.findUnique({ where: { id } });
     if (!transaction) return { success: false, error: "Transaction introuvable." };

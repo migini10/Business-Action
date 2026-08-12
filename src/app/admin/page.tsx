@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic';
 import React from 'react';
 import { getDossiers, getClients } from '@/app/actions/admin';
 import AdminDashboard from './AdminDashboard';
+import { requireAdmin } from '@/lib/admin-auth';
+import { redirect } from 'next/navigation';
 
 export const metadata = {
   title: 'Espace Admin | Business Action',
@@ -10,6 +12,12 @@ export const metadata = {
 };
 
 export default async function AdminPage() {
+  try {
+    await requireAdmin();
+  } catch (error) {
+    redirect('/admin/login');
+  }
+
   const [dossiersResult, clientsResult] = await Promise.all([
     getDossiers(),
     getClients()
