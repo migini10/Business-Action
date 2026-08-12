@@ -35,13 +35,10 @@ export async function loginAdmin(formData: FormData) {
 
   if (isMatch) {
     await createAdminSession();
-    // next/navigation redirect throw an error which must not be caught here if we are inside a try/catch, 
-    // but here we are at the top level of the action
+    return { success: true };
   } else {
     return { success: false, error: 'Identifiants incorrects' };
   }
-
-  redirect('/admin');
 }
 
 export async function logoutAdmin() {

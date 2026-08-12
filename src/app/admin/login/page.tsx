@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { loginAdmin } from '@/app/actions/admin-auth-actions';
+import { useRouter } from 'next/navigation';
 
 export default function AdminLogin() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -13,7 +15,10 @@ export default function AdminLogin() {
     try {
       const res = await loginAdmin(formData);
       if (res && !res.success) {
-        setError(res.error);
+        setError(res.error || "Identifiants incorrects");
+      } else if (res && res.success) {
+        router.replace('/admin');
+        router.refresh();
       }
     } catch (err) {
       console.error(err);
