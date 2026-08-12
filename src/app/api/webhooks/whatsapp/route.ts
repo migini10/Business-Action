@@ -62,6 +62,31 @@ export async function POST(req: NextRequest) {
       return new NextResponse('Not a WhatsApp event', { status: 404 });
     }
 
+    if (body.entry && Array.isArray(body.entry)) {
+      for (const entry of body.entry) {
+        if (entry.changes && Array.isArray(entry.changes)) {
+          for (const change of entry.changes) {
+            if (change.value && change.value.statuses && Array.isArray(change.value.statuses)) {
+              for (const statusObj of change.value.statuses) {
+                const safeId = statusObj.id ? statusObj.id.substring(0, 15) + '...' : 'UNKNOWN_ID';
+                const logData: any = {
+                  event: 'WHATSAPP_MESSAGE_STATUS',
+                  status: statusObj.status,
+                  messageIdMasked: safeId,
+                };
+                if (statusObj.errors && Array.isArray(statusObj.errors) && statusObj.errors.length > 0) {
+                  logData.errorCode = statusObj.errors[0].code;
+                  logData.errorTitle = statusObj.errors[0].title;
+                  logData.errorMessage = statusObj.errors[0].message;
+                }
+                console.log(JSON.stringify(logData));
+              }
+            }
+          }
+        }
+      }
+    }
+
     // Acknowledge receipt early
     return new NextResponse('OK', { status: 200 });
 

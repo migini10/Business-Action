@@ -108,4 +108,115 @@ test('WhatsApp Webhook POST', async (t) => {
     const res = await POST(req);
     assert.strictEqual(res.status, 400); // Empty body fails JSON parse
   });
+
+  await t.test('Webhook status sent', async () => {
+    const originalLog = console.log;
+    const logs: string[] = [];
+    console.log = (msg: string) => logs.push(msg);
+
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{
+        changes: [{
+          value: {
+            statuses: [{
+              id: 'wamid.HBgL_SENT',
+              status: 'sent'
+            }]
+          }
+        }]
+      }]
+    });
+
+    const req = new NextRequest('http://localhost/api', {
+      method: 'POST',
+      body,
+      headers: { 'x-hub-signature-256': generateSignature(body) }
+    });
+
+    const res = await POST(req);
+    assert.strictEqual(res.status, 200);
+
+    console.log = originalLog;
+    assert.strictEqual(logs.length, 1);
+    const parsedLog = JSON.parse(logs[0]);
+    assert.strictEqual(parsedLog.status, 'sent');
+    assert.strictEqual(parsedLog.messageIdMasked, 'wamid.HBgL_SENT...');
+  });
+
+  await t.test('Webhook status delivered', async () => {
+    const originalLog = console.log;
+    const logs: string[] = [];
+    console.log = (msg: string) => logs.push(msg);
+
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{
+        changes: [{
+          value: {
+            statuses: [{
+              id: 'wamid.HBgL_DELIVERED',
+              status: 'delivered'
+            }]
+          }
+        }]
+      }]
+    });
+
+    const req = new NextRequest('http://localhost/api', {
+      method: 'POST',
+      body,
+      headers: { 'x-hub-signature-256': generateSignature(body) }
+    });
+
+    const res = await POST(req);
+    assert.strictEqual(res.status, 200);
+
+    console.log = originalLog;
+    assert.strictEqual(logs.length, 1);
+    const parsedLog = JSON.parse(logs[0]);
+    assert.strictEqual(parsedLog.status, 'delivered');
+  });
+
+  await t.test('Webhook status failed with error code', async () => {
+    const originalLog = console.log;
+    const logs: string[] = [];
+    console.log = (msg: string) => logs.push(msg);
+
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{
+        changes: [{
+          value: {
+            statuses: [{
+              id: 'wamid.HBgL_FAILED_123',
+              status: 'failed',
+              errors: [{
+                code: 131051,
+                title: 'Message type is not supported',
+                message: 'Message type is not supported'
+              }]
+            }]
+          }
+        }]
+      }]
+    });
+
+    const req = new NextRequest('http://localhost/api', {
+      method: 'POST',
+      body,
+      headers: { 'x-hub-signature-256': generateSignature(body) }
+    });
+
+    const res = await POST(req);
+    assert.strictEqual(res.status, 200);
+
+    console.log = originalLog;
+    assert.strictEqual(logs.length, 1);
+    const parsedLog = JSON.parse(logs[0]);
+    assert.strictEqual(parsedLog.status, 'failed');
+    assert.strictEqual(parsedLog.errorCode, 131051);
+    assert.strictEqual(parsedLog.errorTitle, 'Message type is not supported');
+    assert.strictEqual(parsedLog.errorMessage, 'Message type is not supported');
+  });
 });
