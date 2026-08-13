@@ -14,6 +14,7 @@ export default function EspaceClient() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
   const [visibleCount, setVisibleCount] = useState(15);
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorField, setErrorField] = useState<string | null>(null);
   
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'month' | 'year' | 'custom'>('all');
   const [customStartDate, setCustomStartDate] = useState('');
@@ -103,6 +104,7 @@ export default function EspaceClient() {
     e.preventDefault();
     setIsSubmitting(true);
     setErrorMessage('');
+    setErrorField(null);
     
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
@@ -128,6 +130,7 @@ export default function EspaceClient() {
       }
     } else {
       setErrorMessage(result.error || 'Une erreur est survenue.');
+      setErrorField((result as any).field || null);
     }
   };
 
@@ -426,7 +429,7 @@ export default function EspaceClient() {
           </p>
         </div>
 
-        {errorMessage && (
+        {errorMessage && !errorField && (
           <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', padding: '1rem', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
             {errorMessage}
@@ -435,16 +438,34 @@ export default function EspaceClient() {
 
         <form onSubmit={handleSubmit}>
           {!isLogin && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Nom Complet</label>
-              <input 
-                type="text" 
-                name="name"
-                required
-                placeholder="Ex: Amadou Diallo" 
-                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
-              />
-            </div>
+            <>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Nom Complet</label>
+                <input 
+                  type="text" 
+                  name="name"
+                  required
+                  placeholder="Ex: Amadou Diallo" 
+                  style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
+                />
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Adresse email (facultatif)</label>
+                <input 
+                  type="email" 
+                  name="email"
+                  autoComplete="email"
+                  placeholder="Ex: contact@email.com" 
+                  onChange={() => { if (errorField === 'email') { setErrorField(null); setErrorMessage(''); } }}
+                  style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
+                />
+                {errorField === 'email' && (
+                  <div style={{ color: '#DC2626', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>
+                    {errorMessage}
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           <div style={{ marginBottom: '1.5rem' }}>
@@ -454,15 +475,21 @@ export default function EspaceClient() {
               name="phone"
               required
               placeholder="Ex: +221 77 123 45 67" 
+              onChange={() => { if (errorField === 'phone') { setErrorField(null); setErrorMessage(''); } }}
               style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
             />
+            {errorField === 'phone' && (
+              <div style={{ color: '#DC2626', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>
+                {errorMessage}
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: '2.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', margin: 0 }}>Mot de Passe</label>
               {isLogin && (
-                <a href="#" style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 600 }}>Oublié ?</a>
+                <Link href="/mot-de-passe-oublie" style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 600 }}>Oublié ?</Link>
               )}
             </div>
             <input 
