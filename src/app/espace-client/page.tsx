@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { loginClient, registerClient } from '@/app/actions/auth';
+import { loginClient, registerClient, getCurrentClientData, logoutClient } from '@/app/actions/auth';
 import { getClientDashboardData, respondToTransactionModification } from '@/app/actions/client';
 import { calculateClientBalance, getTransactionSign, calculateFinancialSummary } from '@/lib/finance';
 
@@ -11,6 +11,7 @@ export default function EspaceClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
   const [visibleCount, setVisibleCount] = useState(15);
   const [errorMessage, setErrorMessage] = useState('');
@@ -26,26 +27,26 @@ export default function EspaceClient() {
   const [selectedDossier, setSelectedDossier] = useState<any | null>(null);
 
   React.useEffect(() => {
+    // Nettoyer les anciens états au cas où
     if (typeof window !== 'undefined') {
-      const auth = localStorage.getItem('client_is_logged_in');
-      const dataStr = localStorage.getItem('client_data');
-      if (auth === 'true' && dataStr) {
+      localStorage.removeItem('client_is_logged_in');
+      localStorage.removeItem('client_data');
+    }
+
+    getCurrentClientData().then(authRes => {
+      if (authRes.success && authRes.user) {
         setIsLoggedIn(true);
-        const data = JSON.parse(dataStr);
-        setClientData(data);
+        setClientData(authRes.user);
         
-        getClientDashboardData(data.id).then(res => {
+        getClientDashboardData().then(res => {
           if (res.success) {
             setDossiers(res.dossiers || []);
             setFinancesData(res.transactions || []);
-          } else {
-            setIsLoggedIn(false);
-            localStorage.removeItem('client_is_logged_in');
-            localStorage.removeItem('client_data');
           }
         });
       }
-    }
+      setIsLoadingAuth(false);
+    });
   }, []);
 
   const filteredFinancesData = useMemo(() => {
@@ -89,7 +90,7 @@ export default function EspaceClient() {
     if (res.success) {
       alert(res.message);
       if (clientData) {
-        const dashRes = await getClientDashboardData(clientData.id);
+        const dashRes = await getClientDashboardData();
         if (dashRes.success) {
           setFinancesData(dashRes.transactions || []);
         }
@@ -118,12 +119,8 @@ export default function EspaceClient() {
     if (result.success && result.user) {
       setIsLoggedIn(true);
       setClientData(result.user);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('client_is_logged_in', 'true');
-        localStorage.setItem('client_data', JSON.stringify(result.user));
-      }
       
-      const dashRes = await getClientDashboardData(result.user.id);
+      const dashRes = await getClientDashboardData();
       if (dashRes.success) {
         setDossiers(dashRes.dossiers || []);
         setFinancesData(dashRes.transactions || []);
@@ -133,6 +130,17 @@ export default function EspaceClient() {
       setErrorField((result as any).field || null);
     }
   };
+
+  if (isLoadingAuth) {
+    return (
+      <main style={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <svg className="animate-spin" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+          <p style={{ marginTop: '1rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Vérification de la sécurité...</p>
+        </div>
+      </main>
+    );
+  }
 
   if (isLoggedIn) {
     return (
@@ -145,7 +153,7 @@ export default function EspaceClient() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 Créances et Dettes
               </button>
-              <button onClick={() => { setIsLoggedIn(false); if (typeof window !== 'undefined') localStorage.removeItem('client_is_logged_in'); }} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem' }}>Déconnexion</button>
+              <button onClick={async () => { await logoutClient(); setIsLoggedIn(false); setClientData(null); }} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem' }}>Déconnexion</button>
             </div>
           </div>
           {activeTab === 'finances' ? (

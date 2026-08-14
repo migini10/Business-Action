@@ -2,17 +2,13 @@
 
 import prisma from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { requireClient } from '@/lib/client-auth'
 import { normalizeTransactionAmount } from '@/lib/finance'
 
-export async function getClientDashboardData(clientId: string) {
+export async function getClientDashboardData() {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: clientId }
-    });
-
-    if (!user) {
-      return { success: false, error: "Utilisateur introuvable." };
-    }
+    const user = await requireClient();
+    const clientId = user.id;
 
     const dossiers = await prisma.dossier.findMany({
       where: { clientId },
@@ -33,9 +29,15 @@ export async function getClientDashboardData(clientId: string) {
 
 export async function respondToTransactionModification(transactionId: string, accept: boolean) {
   try {
+    const user = await requireClient();
     const transaction = await prisma.transaction.findUnique({ where: { id: transactionId } });
+
     if (!transaction || !transaction.isModificationPending || !transaction.pendingModification) {
       return { success: false, error: "Aucune modification en attente." };
+    }
+
+    if (transaction.clientId !== user.id) {
+      return { success: false, error: "Non autorisé." };
     }
 
     if (accept) {

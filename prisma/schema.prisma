@@ -46,6 +46,7 @@ model User {
   dossiers     Dossier[]
   transactions Transaction[]
   passwordResetChallenges PasswordResetChallenge[]
+  clientSessions ClientSession[]
   createdAt    DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -57,6 +58,16 @@ model AdminSession {
   expiresAt  DateTime
   revokedAt  DateTime?
 }
+
+model ClientSession {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+}
+
 
 model Dossier {
   id            String        @id @default(cuid())

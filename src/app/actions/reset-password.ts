@@ -189,6 +189,9 @@ export async function _updatePassword(newPassword: string, deps: any) {
         where: { userId: challenge.userId, id: { not: challenge.id }, usedAt: null },
         data: { usedAt: new Date(deps.now()) },
       }),
+      deps.db.clientSession.deleteMany({
+        where: { userId: challenge.userId },
+      }),
     ]);
 
     await deps.deleteCookie('password_reset_token');

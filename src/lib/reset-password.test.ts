@@ -23,6 +23,9 @@ function createMockDeps(overrides = {}) {
       create: async () => ({}),
       update: async () => ({})
     },
+    clientSession: {
+      deleteMany: async () => {}
+    },
     $transaction: async (queries: any) => queries
   };
 

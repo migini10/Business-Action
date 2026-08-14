@@ -2,8 +2,9 @@
 
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { createClientSession, getCurrentClient, revokeClientSession } from '@/lib/client-auth';
 
-export async function _registerClient(formData: FormData, deps: { db: any; hash: (p: string) => Promise<string> }) {
+export async function _registerClient(formData: FormData, deps: { db: any; hash: (p: string) => Promise<string>; createSession?: (id: string) => Promise<void> }) {
   try {
     const name = formData.get('name') as string;
     const rawPhone = formData.get('phone') as string;
@@ -63,12 +64,17 @@ export async function _registerClient(formData: FormData, deps: { db: any; hash:
         }
       });
 
+      if (deps.createSession) {
+        await deps.createSession(user.id);
+      }
+
       return { 
         success: true, 
         user: {
           id: user.id,
           name: user.fullName,
-          phone: user.phone
+          phone: user.phone,
+          email: user.email
         }
       };
     } catch (dbError: any) {
@@ -93,7 +99,8 @@ export async function _registerClient(formData: FormData, deps: { db: any; hash:
 export async function registerClient(formData: FormData) {
   return _registerClient(formData, { 
     db: prisma, 
-    hash: (p: string) => bcrypt.hash(p, 10) 
+    hash: (p: string) => bcrypt.hash(p, 10),
+    createSession: createClientSession
   });
 }
 
@@ -121,16 +128,49 @@ export async function loginClient(formData: FormData) {
       return { success: false, error: 'Numéro de téléphone ou mot de passe incorrect.' };
     }
 
+    await createClientSession(user.id);
+
     return { 
       success: true, 
       user: {
         id: user.id,
         name: user.fullName,
-        phone: user.phone
+        phone: user.phone,
+        email: user.email
       }
     };
   } catch (error) {
     console.error('Erreur lors de la connexion:', error);
     return { success: false, error: 'Une erreur est survenue lors de la connexion.' };
+  }
+}
+
+export async function logoutClient() {
+  try {
+    await revokeClientSession();
+    return { success: true };
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error);
+    return { success: false, error: 'Une erreur est survenue' };
+  }
+}
+
+export async function getCurrentClientData() {
+  try {
+    const user = await getCurrentClient();
+    if (!user) {
+      return { success: false };
+    }
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        name: user.fullName,
+        phone: user.phone,
+        email: user.email
+      }
+    };
+  } catch {
+    return { success: false };
   }
 }
