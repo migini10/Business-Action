@@ -5,6 +5,7 @@ import { updateDossierStatus, uploadAndSendDevis, addTransaction, getClientTrans
 import { calculateClientBalance, getTransactionSign } from '@/lib/finance';
 import { registerClient } from '@/app/actions/auth';
 import { logoutAdmin } from '@/app/actions/admin-auth-actions';
+import { getWhatsAppConversations, getWhatsAppMessages, sendWhatsAppMessage } from '@/app/actions/whatsapp';
 import Link from 'next/link';
 
 export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
@@ -20,7 +21,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [transactionType, setTransactionType] = useState('paiement');
   const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
-  
+
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'month' | 'year' | 'custom'>('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -29,6 +30,53 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [showAddClientForm, setShowAddClientForm] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', phone: '', email: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // WhatsApp State
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [waConversations, setWaConversations] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedWaConv, setSelectedWaConv] = useState<any | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [waMessages, setWaMessages] = useState<any[]>([]);
+  const [waReplyText, setWaReplyText] = useState('');
+  const [isSendingWa, setIsSendingWa] = useState(false);
+  const [waError, setWaError] = useState('');
+
+  useEffect(() => {
+    if (activeTab === 'whatsapp') {
+      getWhatsAppConversations().then(res => {
+        if (res.success) setWaConversations(res.conversations || []);
+      });
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (selectedWaConv) {
+      getWhatsAppMessages(selectedWaConv.id).then(res => {
+        if (res.success) setWaMessages(res.messages || []);
+      });
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setWaMessages([]);
+    }
+  }, [selectedWaConv]);
+
+  const handleSendWaReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedWaConv || !waReplyText.trim()) return;
+    setIsSendingWa(true);
+    setWaError('');
+    const res = await sendWhatsAppMessage(selectedWaConv.id, waReplyText);
+    setIsSendingWa(false);
+    if (res.success) {
+      setWaReplyText('');
+      // Reload messages
+      const msgsRes = await getWhatsAppMessages(selectedWaConv.id);
+      if (msgsRes.success) setWaMessages(msgsRes.messages || []);
+    } else {
+      setWaError(res.error || 'Erreur lors de l\'envoi');
+    }
+  };
 
   useEffect(() => {
     if (selectedClient) {
@@ -39,7 +87,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
       setClientTransactions([]);
     }
   }, [selectedClient]);
-  
+
   useEffect(() => {
     const savedTab = localStorage.getItem('adminActiveTab');
     if (savedTab) setActiveTab(savedTab);
@@ -86,7 +134,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const handleDevisSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!devisFile || !selectedDossier) return;
-    
+
     setIsUploadingDevis(true);
     const formData = new FormData();
     formData.append('dossierId', selectedDossier.id);
@@ -94,7 +142,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
 
     const result = await uploadAndSendDevis(formData);
     setIsUploadingDevis(false);
-    
+
     if (result.success) {
       alert(result.message);
       setDevisFile(null);
@@ -170,6 +218,10 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             Paramètres
           </button>
+          <button onClick={() => { setActiveTab('whatsapp'); setSelectedWaConv(null); }} style={{ ...navItemStyle, ...(activeTab === 'whatsapp' ? activeNavItemStyle : {}) }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            WhatsApp
+          </button>
         </nav>
       </aside>
 
@@ -204,7 +256,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
         {/* Content Area */}
         <div style={{ padding: '2rem', flex: 1 }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            
+
             <div style={{ marginBottom: '2rem' }}>
               <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#0F172A', margin: '0 0 0.5rem 0' }}>Bonjour, Admin 👋</h1>
               <p style={{ color: '#64748B', margin: 0 }}>Voici un aperçu des activités de votre plateforme.</p>
@@ -317,12 +369,12 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             </div>
                           </td>
                           <td style={tdStyle}>
-                            <span style={{ 
-                              backgroundColor: statusInfo.bg, 
-                              color: statusInfo.color, 
-                              padding: '0.375rem 0.75rem', 
-                              borderRadius: '9999px', 
-                              fontSize: '0.75rem', 
+                            <span style={{
+                              backgroundColor: statusInfo.bg,
+                              color: statusInfo.color,
+                              padding: '0.375rem 0.75rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.75rem',
                               fontWeight: 700,
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -336,14 +388,14 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                           </td>
                           <td style={{ ...tdStyle, textAlign: 'right' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                              <button 
+                              <button
                                 onClick={() => setSelectedDossier(dossier)}
                                 style={{ padding: '0.5rem', backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
                                 title="Voir détails"
                               >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                               </button>
-                              <select 
+                              <select
                                 value={dossier.statut}
                                 onChange={(e) => handleStatusChange(dossier.id, e.target.value)}
                                 disabled={isUpdating === dossier.id}
@@ -459,19 +511,19 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             <span style={{ fontWeight: 700, color: '#0F172A', backgroundColor: '#F1F5F9', padding: '0.2rem 0.6rem', borderRadius: '1rem' }}>{client.dossiers}</span>
                           </td>
                           <td style={tdStyle}>
-                            <span style={{ 
-                              padding: '0.375rem 0.75rem', 
-                              borderRadius: '2rem', 
-                              fontSize: '0.875rem', 
-                              fontWeight: 700, 
-                              backgroundColor: client.solde === 0 ? '#F1F5F9' : (client.solde < 0 ? '#FEE2E2' : '#DCFCE7'), 
-                              color: client.solde === 0 ? '#475569' : (client.solde < 0 ? '#DC2626' : '#16A34A') 
+                            <span style={{
+                              padding: '0.375rem 0.75rem',
+                              borderRadius: '2rem',
+                              fontSize: '0.875rem',
+                              fontWeight: 700,
+                              backgroundColor: client.solde === 0 ? '#F1F5F9' : (client.solde < 0 ? '#FEE2E2' : '#DCFCE7'),
+                              color: client.solde === 0 ? '#475569' : (client.solde < 0 ? '#DC2626' : '#16A34A')
                             }}>
                               {client.solde === 0 ? 'À jour' : `${client.solde > 0 ? '+' : ''}${client.solde.toLocaleString('fr-FR')} FCFA`}
                             </span>
                           </td>
                           <td style={{ ...tdStyle, textAlign: 'right' }}>
-                            <button 
+                            <button
                               onClick={() => setSelectedClient(client)}
                               style={{ padding: '0.5rem 1rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s' }}
                             >
@@ -502,10 +554,10 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
               </div>
-              
+
               <div style={{ padding: '1.5rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                  
+
                   {/* Informations Client */}
                   <div>
                     <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -599,7 +651,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2"><path d="M22 2L11 13"></path><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     Envoyer une Offre (Devis)
                   </h3>
-                  
+
                   {selectedDossier.devisUrl ? (
                     <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1.5rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -612,11 +664,11 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <a 
+                        <a
                           href={`https://wa.me/${selectedDossier.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour, suite à votre demande sur Bizness Action, voici le lien vers votre devis personnalisé: ${selectedDossier.devisUrl === 'uploaded' ? '' : selectedDossier.devisUrl}`)}`}
-                          target="_blank" 
-                          rel="noreferrer" 
-                          className="btn btn-primary" 
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-primary"
                           style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: '#25D366', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
@@ -632,14 +684,14 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '1rem' }}>
                         Uploadez le PDF du devis. Le client recevra automatiquement un Email et un message WhatsApp avec le lien pour le consulter.
                       </p>
-                      
+
                       <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                         <div style={{ flex: 1 }}>
                           <label style={{ display: 'block', border: '2px dashed #CBD5E1', borderRadius: '0.75rem', padding: '1rem', textAlign: 'center', cursor: 'pointer', backgroundColor: devisFile ? '#EFF6FF' : 'white', borderColor: devisFile ? 'var(--color-primary)' : '#CBD5E1', transition: 'all 0.2s' }}>
-                            <input 
-                              type="file" 
-                              accept=".pdf,.png,.jpg,.jpeg" 
-                              style={{ display: 'none' }} 
+                            <input
+                              type="file"
+                              accept=".pdf,.png,.jpg,.jpeg"
+                              style={{ display: 'none' }}
                               onChange={(e) => setDevisFile(e.target.files?.[0] || null)}
                               required
                             />
@@ -656,8 +708,8 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             )}
                           </label>
                         </div>
-                        <button 
-                          type="submit" 
+                        <button
+                          type="submit"
                           disabled={!devisFile || isUploadingDevis}
                           className="btn btn-primary"
                           style={{ padding: '1rem 1.5rem', whiteSpace: 'nowrap', opacity: (!devisFile || isUploadingDevis) ? 0.6 : 1, cursor: (!devisFile || isUploadingDevis) ? 'not-allowed' : 'pointer', border: 'none', borderRadius: '0.75rem', backgroundColor: 'var(--color-primary)', color: 'white', fontWeight: 600 }}
@@ -687,7 +739,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
               </div>
-              
+
               <div style={{ padding: '1.5rem' }}>
                 <div style={{ backgroundColor: '#F8FAFC', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #E2E8F0', marginBottom: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', margin: '0 0 1rem 0' }}>{selectedClient.name}</h3>
@@ -730,33 +782,33 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                         <option value="créance">Créance</option>
                         <option value="remboursement">Remboursement</option>
                       </select>
-                      <input 
-                        type="number" 
-                        placeholder="Montant (FCFA)" 
+                      <input
+                        type="number"
+                        placeholder="Montant (FCFA)"
                         value={transactionAmount}
                         onChange={(e) => setTransactionAmount(e.target.value)}
                         style={{ flex: '1 1 150px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
                       />
-                      <input 
-                        type="text" 
-                        placeholder="Description (ex: Acompte)" 
+                      <input
+                        type="text"
+                        placeholder="Description (ex: Acompte)"
                         value={transactionDesc}
                         onChange={(e) => setTransactionDesc(e.target.value)}
                         style={{ flex: '2 1 200px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
                       />
-                      <input 
-                        type="text" 
-                        placeholder="Commentaire (optionnel)" 
+                      <input
+                        type="text"
+                        placeholder="Commentaire (optionnel)"
                         value={transactionCommentaire}
                         onChange={(e) => setTransactionCommentaire(e.target.value)}
                         style={{ flex: '2 1 200px', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '1rem' }}
                       />
-                      <button 
+                      <button
                         onClick={async () => {
                           const newAmount = parseInt(transactionAmount);
                           if (!transactionAmount || isNaN(newAmount)) return;
                           setIsSubmitting(true);
-                          
+
                           const finalAmount = Math.abs(newAmount);
                           let mappedType: 'PAIEMENT' | 'DETTE' | 'CREANCE' | 'REMBOURSEMENT' = 'PAIEMENT';
                           if (transactionType === 'dette') mappedType = 'DETTE';
@@ -806,7 +858,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       >
                         {isSubmitting ? 'En cours...' : 'Valider'}
                       </button>
-                      <button 
+                      <button
                         onClick={() => setShowTransactionForm(false)}
                         style={{ padding: '0.75rem 1.5rem', borderRadius: '0.5rem', backgroundColor: '#EF4444', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
                       >
@@ -831,10 +883,10 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                       Historique des transactions
                     </h3>
-                    
+
                     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <select 
-                        value={filterPeriod} 
+                      <select
+                        value={filterPeriod}
                         onChange={e => setFilterPeriod(e.target.value as any)}
                         style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC', fontSize: '0.875rem' }}
                       >
@@ -847,16 +899,16 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
 
                       {filterPeriod === 'custom' && (
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <input 
-                            type="date" 
-                            value={customStartDate} 
+                          <input
+                            type="date"
+                            value={customStartDate}
                             onChange={e => setCustomStartDate(e.target.value)}
                             style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
                           />
                           <span style={{ color: '#64748B', fontSize: '0.875rem' }}>au</span>
-                          <input 
-                            type="date" 
-                            value={customEndDate} 
+                          <input
+                            type="date"
+                            value={customEndDate}
                             onChange={e => setCustomEndDate(e.target.value)}
                             style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
                           />
@@ -923,7 +975,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                       if (transactionType === 'dette') mappedType = 'DETTE';
                                       if (transactionType === 'créance') mappedType = 'CREANCE';
                                       if (transactionType === 'remboursement') mappedType = 'REMBOURSEMENT';
-                                      
+
                                       const res = await updateTransaction(tx.id, {
                                         amount: finalAmount,
                                         type: mappedType,
@@ -957,6 +1009,125 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* --- WHATSAPP TAB --- */}
+        {activeTab === 'whatsapp' && (
+          <div className="animate-fade-in" style={{ display: 'flex', gap: '1.5rem', height: 'calc(100vh - 120px)', backgroundColor: '#fff', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+            {/* Liste des conversations */}
+            <div style={{ width: '350px', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC' }}>
+              <div style={{ padding: '1.5rem', borderBottom: '1px solid #E2E8F0', backgroundColor: '#fff' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                  Messagerie
+                </h2>
+              </div>
+              <div style={{ overflowY: 'auto', flex: 1 }}>
+                {waConversations.map(conv => {
+                  const isActive = selectedWaConv?.id === conv.id;
+                  const date = new Date(conv.lastMessageAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                  return (
+                    <div
+                      key={conv.id}
+                      onClick={() => { setSelectedWaConv(conv); setWaError(''); }}
+                      style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #E2E8F0', cursor: 'pointer', backgroundColor: isActive ? '#EFF6FF' : 'transparent', transition: 'background-color 0.2s' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
+                        <span style={{ fontWeight: 600, color: '#0F172A' }}>{conv.displayName || conv.waId.replace(/(\d{2})(\d{4})(\d{4})/, '+$1 *** $3')}</span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{date}</span>
+                      </div>
+                      <div style={{ fontSize: '0.875rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {conv._count?.messages} messages
+                      </div>
+                    </div>
+                  );
+                })}
+                {waConversations.length === 0 && (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>Aucune conversation</div>
+                )}
+              </div>
+            </div>
+
+            {/* Vue d'une conversation */}
+            {selectedWaConv ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', backgroundColor: '#fff' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.125rem', color: '#0F172A', fontWeight: 600 }}>{selectedWaConv.displayName || 'Client WhatsApp'}</h3>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748B' }}>{selectedWaConv.waId.replace(/(\d{2})(\d{3})(\d{3})(\d{3})/, '+$1 $2 $3 $4')}</p>
+                </div>
+
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {waMessages.map(msg => {
+                    const isInbound = msg.direction === 'INBOUND';
+                    const time = new Date(msg.metaTimestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                    return (
+                      <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isInbound ? 'flex-start' : 'flex-end' }}>
+                        <div style={{
+                          maxWidth: '75%',
+                          padding: '0.875rem 1rem',
+                          borderRadius: '1rem',
+                          borderBottomLeftRadius: isInbound ? '0' : '1rem',
+                          borderBottomRightRadius: !isInbound ? '0' : '1rem',
+                          backgroundColor: isInbound ? '#fff' : '#10B981',
+                          color: isInbound ? '#0F172A' : '#fff',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                          border: isInbound ? '1px solid #E2E8F0' : 'none'
+                        }}>
+                          {msg.content}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', fontSize: '0.75rem', color: '#64748B' }}>
+                          <span>{time}</span>
+                          {!isInbound && (
+                            <span style={{
+                              color: msg.status === 'FAILED' ? '#EF4444' : (msg.status === 'READ' ? '#3B82F6' : '#94A3B8'),
+                              fontWeight: 600
+                            }}>
+                              {msg.status === 'FAILED' ? 'Échec' : (msg.status === 'READ' ? 'Lu' : (msg.status === 'DELIVERED' ? 'Distribué' : 'Envoyé'))}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {waMessages.length === 0 && (
+                    <div style={{ textAlign: 'center', color: '#94A3B8', marginTop: '2rem' }}>Aucun message chargé</div>
+                  )}
+                </div>
+
+                <div style={{ padding: '1.5rem', backgroundColor: '#fff', borderTop: '1px solid #E2E8F0' }}>
+                  {waError && <div style={{ color: '#DC2626', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: 500 }}>{waError}</div>}
+                  <form onSubmit={handleSendWaReply} style={{ display: 'flex', gap: '1rem' }}>
+                    <input
+                      type="text"
+                      value={waReplyText}
+                      onChange={(e) => setWaReplyText(e.target.value)}
+                      placeholder="Écrire un message..."
+                      style={{ flex: 1, padding: '0.875rem 1.25rem', borderRadius: '999px', border: '1px solid #E2E8F0', outline: 'none', backgroundColor: '#F8FAFC' }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSendingWa || !waReplyText.trim()}
+                      style={{ padding: '0 1.5rem', borderRadius: '999px', border: 'none', backgroundColor: '#10B981', color: '#fff', fontWeight: 600, cursor: isSendingWa ? 'not-allowed' : 'pointer', opacity: (isSendingWa || !waReplyText.trim()) ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      {isSendingWa ? 'Envoi...' : (
+                        <>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                          Envoyer
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ) : (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', backgroundColor: '#F8FAFC' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ marginBottom: '1rem', opacity: 0.5 }}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                  <p style={{ margin: 0 }}>Sélectionnez une conversation</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

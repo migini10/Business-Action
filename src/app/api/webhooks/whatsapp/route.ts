@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -52,12 +55,9 @@ export async function POST(req: NextRequest) {
       body = JSON.parse(rawBody);
     } catch (e) {
       console.error('Error parsing WhatsApp webhook body:', e);
-      // Even if malformed, WhatsApp expects a 200 to not retry indefinitely, but returning 400 is also safe if it's our fault.
-      // The user requested: "JSON malformé avec signature valide => réponse contrôlée, aucun crash"
       return new NextResponse('Bad Request: Invalid JSON', { status: 400 });
     }
 
-    // Ensure it's a WhatsApp webhook (Meta sends object="whatsapp_business_account")
     if (body.object !== 'whatsapp_business_account') {
       return new NextResponse('Not a WhatsApp event', { status: 404 });
     }
@@ -66,20 +66,102 @@ export async function POST(req: NextRequest) {
       for (const entry of body.entry) {
         if (entry.changes && Array.isArray(entry.changes)) {
           for (const change of entry.changes) {
+
+            // 1. Gérer les messages entrants (INBOUND)
+            if (change.value && change.value.messages && Array.isArray(change.value.messages)) {
+              for (const message of change.value.messages) {
+                if (message.type === 'text' && message.text) {
+                  const waId = message.from;
+                  const waMessageId = message.id;
+                  const timestamp = new Date(parseInt(message.timestamp) * 1000);
+                  const content = message.text.body;
+
+                  let displayName = null;
+                  if (change.value.contacts && Array.isArray(change.value.contacts)) {
+                    const contact = change.value.contacts.find((c: any) => c.wa_id === waId);
+                    if (contact && contact.profile && contact.profile.name) {
+                      displayName = contact.profile.name;
+                    }
+                  }
+
+                  try {
+                    const conversation = await prisma.whatsAppConversation.upsert({
+                      where: { waId },
+                      update: {
+                        lastMessageAt: timestamp,
+                        lastInboundAt: timestamp,
+                        ...(displayName ? { displayName } : {})
+                      },
+                      create: {
+                        waId,
+                        displayName,
+                        lastMessageAt: timestamp,
+                        lastInboundAt: timestamp,
+                      }
+                    });
+
+                    await prisma.whatsAppMessage.create({
+                      data: {
+                        waMessageId,
+                        direction: 'INBOUND',
+                        content,
+                        status: 'RECEIVED',
+                        metaTimestamp: timestamp,
+                        conversationId: conversation.id,
+                      }
+                    });
+                  } catch (err: unknown) {
+                    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+                      // Doublon de webhook pour un même waMessageId => ignorer silencieusement
+                    } else {
+                      console.error("Error inserting inbound WhatsApp message:", err);
+                    }
+                  }
+                }
+              }
+            }
+
+            // 2. Gérer les statuts sortants (OUTBOUND)
             if (change.value && change.value.statuses && Array.isArray(change.value.statuses)) {
               for (const statusObj of change.value.statuses) {
-                const safeId = statusObj.id ? statusObj.id.substring(0, 15) + '...' : 'UNKNOWN_ID';
+                const waMessageId = statusObj.id;
+                const status = statusObj.status ? statusObj.status.toUpperCase() : 'UNKNOWN';
+                const timestamp = new Date(parseInt(statusObj.timestamp) * 1000);
+
+                const safeId = waMessageId ? waMessageId.substring(0, 15) + '...' : 'UNKNOWN_ID';
                 const logData: any = {
                   event: 'WHATSAPP_MESSAGE_STATUS',
-                  status: statusObj.status,
+                  status: status,
                   messageIdMasked: safeId,
                 };
+
                 if (statusObj.errors && Array.isArray(statusObj.errors) && statusObj.errors.length > 0) {
                   logData.errorCode = statusObj.errors[0].code;
                   logData.errorTitle = statusObj.errors[0].title;
                   logData.errorMessage = statusObj.errors[0].message;
                 }
                 console.log(JSON.stringify(logData));
+
+                if (['SENT', 'DELIVERED', 'READ', 'FAILED'].includes(status)) {
+                  try {
+                    const existingMsg = await prisma.whatsAppMessage.findUnique({ where: { waMessageId } });
+                    if (existingMsg) {
+                      // Appliquer la logique de statut
+                      const isNewer = timestamp >= existingMsg.metaTimestamp;
+                      if (isNewer || status === 'FAILED') {
+                        await prisma.whatsAppMessage.update({
+                          where: { waMessageId },
+                          data: {
+                            status: status as any,
+                            metaTimestamp: isNewer ? timestamp : existingMsg.metaTimestamp,
+                          }
+                        });
+                      }
+                    }
+                  } catch (err) {
+                    console.error("Error updating WhatsApp status:", err);
+                  }
+                }
               }
             }
           }
@@ -87,7 +169,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Acknowledge receipt early
     return new NextResponse('OK', { status: 200 });
 
   } catch (error) {
