@@ -279,9 +279,11 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     assert.strictEqual(res.success, false);
     assert.strictEqual(res.error, 'Erreur lors de l\'envoi via Meta API.');
 
-    // Check FAILED message was saved
+    // Check reservation was made and then updated to FAILED
     assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls.length, 1);
-    assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls[0].arguments[0].data.status, 'FAILED');
+    assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls[0].arguments[0].data.status, 'SENT');
+    assert.strictEqual(mockPrisma.whatsAppMessage.update.mock.calls.length, 1);
+    assert.strictEqual(mockPrisma.whatsAppMessage.update.mock.calls[0].arguments[0].data.status, 'FAILED');
 
     global.fetch = originalFetch;
   });
@@ -300,10 +302,11 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     const res = await sendWhatsAppMessage('conv_1', 'Hello');
     assert.strictEqual(res.success, true);
 
-    // Check SENT message was saved via transaction
+    // Check reservation was made and then updated with waMessageId
     assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls.length, 1);
     assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls[0].arguments[0].data.status, 'SENT');
-    assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls[0].arguments[0].data.waMessageId, 'wamid.outbound.1');
+    assert.strictEqual(mockPrisma.whatsAppMessage.update.mock.calls.length, 1);
+    assert.strictEqual(mockPrisma.whatsAppMessage.update.mock.calls[0].arguments[0].data.waMessageId, 'wamid.outbound.1');
 
     global.fetch = originalFetch;
   });

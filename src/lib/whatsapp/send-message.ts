@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import prisma from '@/lib/prisma';
 import { WhatsAppConversation } from '@prisma/client';
 
@@ -38,6 +39,32 @@ export async function internalSendWhatsAppMessage(
     }
   };
 
+  const timestamp = new Date();
+  let reservedMessageId: string | null = null;
+
+  // 1. Réservation en DB AVANT l'appel Meta (garantit l'idempotence stricte)
+  try {
+    const reservedMsg = await prisma.whatsAppMessage.create({
+      data: {
+        direction: 'OUTBOUND',
+        content: text.trim(),
+        status: 'SENT', // Statut initial optimiste/intermédiaire
+        metaTimestamp: timestamp,
+        conversationId: conversation.id,
+        autoReplyToId
+      }
+    });
+    reservedMessageId = reservedMsg.id;
+  } catch (err: any) {
+    if (err.code === 'P2002' && autoReplyToId) {
+      // Déjà répondu à ce message entrant
+      return { success: false, error: 'Auto-réponse déjà traitée.' };
+    }
+    console.error('internalSendWhatsAppMessage DB reservation error:', err);
+    return { success: false, error: 'Erreur interne de persistance.' };
+  }
+
+  // 2. Appel HTTP Meta
   const response = await fetch(`https://graph.facebook.com/v17.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`, {
     method: 'POST',
     headers: {
@@ -48,37 +75,27 @@ export async function internalSendWhatsAppMessage(
   });
 
   const data = await response.json();
-  const timestamp = new Date();
 
   if (!response.ok) {
     console.error('Meta API Error:', JSON.stringify(data));
-    await prisma.whatsAppMessage.create({
-      data: {
-        direction: 'OUTBOUND',
-        content: text.trim(),
-        status: 'FAILED',
-        metaTimestamp: timestamp,
-        conversationId: conversation.id,
-        autoReplyToId
-      }
+
+    // Mettre à jour la réservation en statut FAILED
+    await prisma.whatsAppMessage.update({
+      where: { id: reservedMessageId },
+      data: { status: 'FAILED' }
     });
+
     return { success: false, error: 'Erreur lors de l\'envoi via Meta API.' };
   }
 
   const waMessageId = data.messages && data.messages[0] ? data.messages[0].id : null;
 
+  // 3. Mise à jour de la réservation avec succès
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.whatsAppMessage.create({
-        data: {
-          waMessageId,
-          direction: 'OUTBOUND',
-          content: text.trim(),
-          status: 'SENT',
-          metaTimestamp: timestamp,
-          conversationId: conversation.id,
-          autoReplyToId
-        }
+      await tx.whatsAppMessage.update({
+        where: { id: reservedMessageId! },
+        data: { waMessageId }
       });
 
       await tx.whatsAppConversation.update({
@@ -88,8 +105,7 @@ export async function internalSendWhatsAppMessage(
     });
     return { success: true };
   } catch (err: unknown) {
-    console.error('internalSendWhatsAppMessage DB error:', err);
-    // If P2002 on autoReplyToId, it means an auto-reply was already generated.
-    return { success: false, error: 'Erreur interne de persistance.' };
+    console.error('internalSendWhatsAppMessage DB update error:', err);
+    return { success: false, error: 'Erreur interne de persistance après envoi.' };
   }
 }

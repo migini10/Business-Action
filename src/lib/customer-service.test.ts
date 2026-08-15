@@ -149,12 +149,67 @@ describe('Customer Service Auto - MVP', () => {
 
       const result = await internalSendWhatsAppMessage(fakeConversation, 'text', 'inbound-2');
       assert.strictEqual(result.success, false);
-      assert.strictEqual(result.error, 'Erreur interne de persistance.');
-      
+      assert.strictEqual(result.error, 'Auto-réponse déjà traitée.');
+
       global.fetch = originalFetch;
       delete process.env.WHATSAPP_ACCESS_TOKEN;
       delete process.env.WHATSAPP_PHONE_NUMBER_ID;
       (prisma.whatsAppMessage as any).create = originalCreate;
+    });
+
+    it('concurrent idempotency: reserves DB before calling Meta', async () => {
+      const fakeConversation = { id: 'conv-concurrent', waId: 'wa-c', language: 'fr', lastInboundAt: new Date() } as any;
+      const inboundId = 'inbound-concurrent';
+
+      let fetchCalls = 0;
+      const originalFetch = global.fetch;
+      global.fetch = mock.fn(async () => {
+        fetchCalls++;
+        return { ok: true, json: async () => ({ messages: [{ id: 'mock-wamid' }] }) };
+      }) as any;
+
+      let createCalls = 0;
+      const originalCreate = prisma.whatsAppMessage.create;
+      const originalUpdate = prisma.whatsAppMessage.update;
+      const originalConvUpdate = prisma.whatsAppConversation.update;
+
+      (prisma.whatsAppMessage as any).create = mock.fn(async () => {
+        createCalls++;
+        if (createCalls === 1) return { id: 'reserved-id' };
+        throw { code: 'P2002' };
+      });
+      (prisma.whatsAppMessage as any).update = mock.fn(async () => ({}));
+      (prisma.whatsAppConversation as any).update = mock.fn(async () => ({}));
+
+      const originalTransaction = prisma.$transaction;
+      (prisma as any).$transaction = mock.fn(async (callback: any) => {
+        // Just mock the execution of the callback and provide a dummy tx
+        return callback(prisma);
+      });
+
+      process.env.WHATSAPP_ACCESS_TOKEN = 'mock-token';
+      process.env.WHATSAPP_PHONE_NUMBER_ID = 'mock-id';
+
+      const [res1, res2] = await Promise.all([
+        internalSendWhatsAppMessage(fakeConversation, 'text', inboundId),
+        internalSendWhatsAppMessage(fakeConversation, 'text', inboundId)
+      ]);
+
+      // Only one execution should succeed
+      assert.strictEqual(res1.success, true);
+      assert.strictEqual(res2.success, false);
+      assert.strictEqual(res2.error, 'Auto-réponse déjà traitée.');
+
+      // Crucial: Meta API must be called exactly ONCE
+      assert.strictEqual(fetchCalls, 1);
+
+      global.fetch = originalFetch;
+      (prisma.whatsAppMessage as any).create = originalCreate;
+      (prisma.whatsAppMessage as any).update = originalUpdate;
+      (prisma.whatsAppConversation as any).update = originalConvUpdate;
+      (prisma as any).$transaction = originalTransaction;
+      delete process.env.WHATSAPP_ACCESS_TOKEN;
+      delete process.env.WHATSAPP_PHONE_NUMBER_ID;
     });
   });
 });
