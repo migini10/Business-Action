@@ -69,3 +69,82 @@ export async function respondToTransactionModification(transactionId: string, ac
     return { success: false, error: "Erreur lors du traitement." };
   }
 }
+
+export interface UpdateClientProfileDeps {
+  db: {
+    user: {
+      update: (args: Prisma.UserUpdateArgs) => Promise<{
+        id: string;
+        fullName: string | null;
+        phone: string;
+        email: string | null;
+      }>;
+    };
+  };
+  requireClient: () => Promise<{ id: string }>;
+}
+
+export async function updateClientProfile(formData: FormData) {
+  return _updateClientProfile(formData, { db: prisma as unknown as UpdateClientProfileDeps['db'], requireClient });
+}
+
+export async function _updateClientProfile(formData: FormData, deps: UpdateClientProfileDeps) {
+  try {
+    const user = await deps.requireClient();
+
+    const name = formData.get('fullName') as string;
+    const rawPhone = formData.get('phone') as string;
+    const rawEmail = formData.get('email') as string | null;
+
+    if (!name || !name.trim() || !rawPhone) {
+      return { success: false, error: 'Le nom et le téléphone sont obligatoires.' };
+    }
+
+    const phone = rawPhone.trim();
+    if (!phone) {
+      return { success: false, error: 'Le numéro de téléphone est obligatoire.' };
+    }
+
+    let email: string | null = null;
+    if (rawEmail && rawEmail.trim() !== '') {
+      email = rawEmail.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return { success: false, error: 'Le format de l\'adresse email est invalide.', field: 'email' };
+      }
+    }
+
+    const updatedUser = await deps.db.user.update({
+      where: { id: user.id },
+      data: {
+        fullName: name.trim(),
+        phone,
+        email
+      }
+    });
+
+    return {
+      success: true,
+      message: 'Profil mis à jour avec succès.',
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.fullName,
+        phone: updatedUser.phone,
+        email: updatedUser.email
+      }
+    };
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const target = (error.meta?.target as string[]) || [];
+      if (target.includes('email')) {
+        return { success: false, error: 'Cette adresse email est déjà utilisée par un autre compte.', field: 'email' };
+      }
+      if (target.includes('phone')) {
+        return { success: false, error: 'Ce numéro de téléphone est déjà utilisé par un autre compte.', field: 'phone' };
+      }
+      return { success: false, error: 'Ces informations sont déjà utilisées.' };
+    }
+    console.error("Erreur mise à jour profil client:", error);
+    return { success: false, error: 'Une erreur est survenue lors de la mise à jour du profil.' };
+  }
+}

@@ -1,18 +1,38 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { loginClient, registerClient, getCurrentClientData, logoutClient } from '@/app/actions/auth';
-import { getClientDashboardData, respondToTransactionModification } from '@/app/actions/client';
+import { getClientDashboardData, respondToTransactionModification, updateClientProfile } from '@/app/actions/client';
 import { calculateClientBalance, getTransactionSign, calculateFinancialSummary } from '@/lib/finance';
 
-export default function EspaceClient() {
+function EspaceClientContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'finances'>('dashboard');
+
+  const tabParam = searchParams.get('tab');
+  const validTabs = ['dashboard', 'finances', 'profile'];
+  const activeTab = validTabs.includes(tabParam as string) ? tabParam : 'dashboard';
+
+  const setActiveTab = (tab: string) => {
+    if (tab === 'dashboard') {
+      router.replace(pathname, { scroll: false });
+    } else {
+      router.replace(`${pathname}?tab=${tab}`, { scroll: false });
+    }
+  };
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [profileSuccessMessage, setProfileSuccessMessage] = useState('');
+  const [profileErrorMessage, setProfileErrorMessage] = useState('');
+  const [profileErrorField, setProfileErrorField] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(15);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorField, setErrorField] = useState<string | null>(null);
@@ -131,6 +151,29 @@ export default function EspaceClient() {
     }
   };
 
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdatingProfile(true);
+    setProfileSuccessMessage('');
+    setProfileErrorMessage('');
+    setProfileErrorField(null);
+
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+
+    const result = await updateClientProfile(formData);
+
+    setIsUpdatingProfile(false);
+
+    if (result.success && result.user) {
+      setClientData(result.user);
+      setProfileSuccessMessage(result.message || 'Profil mis à jour.');
+    } else {
+      setProfileErrorMessage(result.error || 'Erreur lors de la mise à jour.');
+      setProfileErrorField((result as any).field || null);
+    }
+  };
+
   if (isLoadingAuth) {
     return (
       <main style={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -153,10 +196,102 @@ export default function EspaceClient() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 Créances et Dettes
               </button>
+              <button onClick={() => { setActiveTab('profile'); setProfileSuccessMessage(''); setProfileErrorMessage(''); setProfileErrorField(null); }} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                Mon profil
+              </button>
               <button onClick={async () => { await logoutClient(); setIsLoggedIn(false); setClientData(null); }} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem' }}>Déconnexion</button>
             </div>
           </div>
-          {activeTab === 'finances' ? (
+          {activeTab === 'profile' && clientData ? (
+            <div className="card animate-fade-in" style={{ padding: '2rem', borderRadius: 'var(--radius-xl)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                <button onClick={() => setActiveTab('dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                  Retour
+                </button>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>Mon Profil</h2>
+              </div>
+
+              {profileSuccessMessage && (
+                <div style={{ backgroundColor: '#D1FAE5', color: '#065F46', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', fontWeight: 500 }}>
+                  {profileSuccessMessage}
+                </div>
+              )}
+              {profileErrorMessage && (
+                <div style={{ backgroundColor: '#FEE2E2', color: '#991B1B', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', fontWeight: 500 }}>
+                  {profileErrorMessage}
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '500px' }}>
+                <div className="form-group">
+                  <label htmlFor="fullName" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--color-text-main)' }}>Nom complet *</label>
+                  <input
+                    type="text"
+                    id="fullName"
+                    name="fullName"
+                    defaultValue={clientData.name || ''}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.875rem',
+                      borderRadius: '0.75rem',
+                      border: `1px solid ${profileErrorField === 'fullName' ? '#EF4444' : '#E2E8F0'}`,
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                    }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="phone" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--color-text-main)' }}>Numéro de téléphone *</label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    defaultValue={clientData.phone || ''}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.875rem',
+                      borderRadius: '0.75rem',
+                      border: `1px solid ${profileErrorField === 'phone' ? '#EF4444' : '#E2E8F0'}`,
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                    }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="email" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--color-text-main)' }}>Adresse email <span style={{ color: '#94A3B8', fontWeight: 400 }}>(Facultatif)</span></label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    defaultValue={clientData.email || ''}
+                    style={{
+                      width: '100%',
+                      padding: '0.875rem',
+                      borderRadius: '0.75rem',
+                      border: `1px solid ${profileErrorField === 'email' ? '#EF4444' : '#E2E8F0'}`,
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isUpdatingProfile}
+                  className="btn btn-primary"
+                  style={{ padding: '1rem', marginTop: '0.5rem', fontSize: '1rem' }}
+                >
+                  {isUpdatingProfile ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                </button>
+              </form>
+            </div>
+          ) : activeTab === 'finances' ? (
             <div className="card animate-fade-in" style={{ padding: '2rem', borderRadius: 'var(--radius-xl)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -541,5 +676,20 @@ export default function EspaceClient() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function EspaceClient() {
+  return (
+    <Suspense fallback={
+      <main style={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <svg className="animate-spin" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+          <p style={{ marginTop: '1rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Chargement de l'espace client...</p>
+        </div>
+      </main>
+    }>
+      <EspaceClientContent />
+    </Suspense>
   );
 }
