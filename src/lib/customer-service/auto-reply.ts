@@ -3,6 +3,7 @@ import { WhatsAppConversation, WhatsAppMessage } from '@prisma/client';
 import { detectLanguage, SupportedLanguage } from './language';
 import { detectIntent } from './intent';
 import { getAutoResponse } from './responses';
+import { handleQuoteFlow } from './quote-flow';
 import { internalSendWhatsAppMessage } from '@/lib/whatsapp/send-message';
 
 export async function processAutoReply(
@@ -29,9 +30,19 @@ export async function processAutoReply(
   // 2. Détection de l'intention
   const intent = detectIntent(text);
 
-  // 3. Génération de la réponse
+  // 3. Gestion du Workflow Conversationnel (Devis)
+  // On route vers la machine à état si on n'est pas IDLE ou si c'est une demande de devis
+  if (conversation.botState !== 'IDLE' || intent === 'QUOTE_REQUEST') {
+    const quoteResponse = await handleQuoteFlow(conversation, text, finalLanguage || 'fr');
+    if (quoteResponse) {
+      await internalSendWhatsAppMessage(conversation, quoteResponse, inboundMessage.id);
+      return;
+    }
+  }
+
+  // 4. Génération de la réponse standard (Fallback)
   const responseText = getAutoResponse(finalLanguage, intent);
 
-  // 4. Envoi via l'API Meta (avec réservation d'idempotence via autoReplyToId)
+  // 5. Envoi via l'API Meta (avec réservation d'idempotence via autoReplyToId)
   await internalSendWhatsAppMessage(conversation, responseText, inboundMessage.id);
 }
