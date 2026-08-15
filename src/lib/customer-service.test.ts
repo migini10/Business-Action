@@ -1,0 +1,160 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { describe, it, mock, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert';
+import { detectLanguage } from './customer-service/language';
+import { detectIntent } from './customer-service/intent';
+import { getAutoResponse } from './customer-service/responses';
+import { processAutoReply } from './customer-service/auto-reply';
+import prisma from '@/lib/prisma';
+import { internalSendWhatsAppMessage } from '@/lib/whatsapp/send-message';
+
+describe('Customer Service Auto - MVP', () => {
+  beforeEach(() => {
+    mock.restoreAll();
+  });
+
+  describe('1. Language Detection', () => {
+    it('detects French', () => {
+      assert.strictEqual(detectLanguage('bonjour je voudrais un devis'), 'fr');
+      assert.strictEqual(detectLanguage('MERCI BEAUCOUP'), 'fr');
+      assert.strictEqual(detectLanguage('oui s\'il vous plait'), 'fr');
+    });
+
+    it('detects English', () => {
+      assert.strictEqual(detectLanguage('hello i need a quote'), 'en');
+      assert.strictEqual(detectLanguage('how much does it cost?'), 'en');
+      assert.strictEqual(detectLanguage('thanks'), 'en');
+    });
+
+    it('detects Wolof with or without special characters', () => {
+      assert.strictEqual(detectLanguage('dama bëgg devis'), 'wo');
+      assert.strictEqual(detectLanguage('dama begg devis'), 'wo'); // no accents
+      assert.strictEqual(detectLanguage('ñaata la?'), 'wo');
+      assert.strictEqual(detectLanguage('nata la?'), 'wo');
+      assert.strictEqual(detectLanguage('naka mu awoo'), 'wo');
+    });
+
+    it('does not incorrectly detect Wolof from "salam" alone', () => {
+      assert.strictEqual(detectLanguage('salam'), null);
+    });
+
+    it('returns null for ambiguous or unrecognized text', () => {
+      assert.strictEqual(detectLanguage('asdasdasd'), null);
+      assert.strictEqual(detectLanguage('???'), null);
+    });
+
+    it('allows explicit language change', () => {
+      assert.strictEqual(detectLanguage('francais'), 'fr');
+      assert.strictEqual(detectLanguage('wolof'), 'wo');
+      assert.strictEqual(detectLanguage('english'), 'en');
+    });
+  });
+
+  describe('2. Intent Detection', () => {
+    it('detects QUOTE_REQUEST (FR/EN/WO)', () => {
+      assert.strictEqual(detectIntent('je veux un devis'), 'QUOTE_REQUEST');
+      assert.strictEqual(detectIntent('i need a quote'), 'QUOTE_REQUEST');
+      assert.strictEqual(detectIntent('dama bëgg devis'), 'QUOTE_REQUEST');
+      assert.strictEqual(detectIntent('quel est le prix ?'), 'QUOTE_REQUEST');
+      assert.strictEqual(detectIntent('how much for this?'), 'GENERAL_QUESTION');
+      assert.strictEqual(detectIntent('ñaata la?'), 'QUOTE_REQUEST');
+    });
+
+    it('detects REQUEST_STATUS', () => {
+      assert.strictEqual(detectIntent('où en est mon suivi'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('statut de mon dossier'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('where is my request'), 'REQUEST_STATUS');
+    });
+
+    it('detects HUMAN_SUPPORT', () => {
+      assert.strictEqual(detectIntent('je veux parler à un conseiller'), 'HUMAN_SUPPORT');
+      assert.strictEqual(detectIntent('besoin d\'un humain'), 'HUMAN_SUPPORT');
+      assert.strictEqual(detectIntent('agent please'), 'HUMAN_SUPPORT');
+    });
+
+    it('detects GENERAL_QUESTION', () => {
+      assert.strictEqual(detectIntent('j\'ai une question'), 'GENERAL_QUESTION');
+      assert.strictEqual(detectIntent('information'), 'GENERAL_QUESTION');
+    });
+
+    it('detects UNKNOWN', () => {
+      assert.strictEqual(detectIntent('blablabla'), 'UNKNOWN');
+      assert.strictEqual(detectIntent('12345'), 'UNKNOWN');
+    });
+  });
+
+  describe('3. Auto Response Logic', () => {
+    it('returns FR response correctly', () => {
+      const resp = getAutoResponse('fr', 'QUOTE_REQUEST');
+      assert.ok(resp.includes('préparer votre demande de devis'));
+    });
+    it('returns EN response correctly', () => {
+      const resp = getAutoResponse('en', 'HUMAN_SUPPORT');
+      assert.ok(resp.includes('transferring you to an agent'));
+    });
+    it('returns WO response correctly', () => {
+      const resp = getAutoResponse('wo', 'GENERAL_QUESTION');
+      assert.ok(resp.includes('Lan nga'));
+    });
+    it('defaults to FR if language is null', () => {
+      const resp = getAutoResponse(null, 'UNKNOWN');
+      assert.ok(resp.includes('parler à un conseiller'));
+    });
+  });
+
+  describe('4. Idempotency & Orchestrator (Mocks)', () => {
+    it('fails gracefully when Meta API fails, keeping webhook stable', async () => {
+      // Mock global fetch to simulate Meta API failure
+      const originalFetch = global.fetch;
+      global.fetch = mock.fn(async () => {
+        return { ok: false, json: async () => ({ error: 'Simulated API failure' }) };
+      }) as any;
+
+      const originalCreate = prisma.whatsAppMessage.create;
+      const originalUpdate = prisma.whatsAppConversation.update;
+      (prisma.whatsAppMessage as any).create = mock.fn(async () => ({ id: 'failed_msg_id' }));
+      (prisma.whatsAppConversation as any).update = mock.fn(async () => ({}));
+
+      const fakeConversation = { id: 'conv-1', waId: 'wa-1', language: 'fr', lastInboundAt: new Date() } as any;
+      const fakeInbound = { id: 'inbound-1' } as any;
+
+      // Ensure that processAutoReply doesn't crash
+      try {
+        await processAutoReply(fakeConversation, fakeInbound, 'bonjour');
+      } catch (e) {
+        assert.fail('processAutoReply should not throw if Meta fails');
+      }
+
+      (prisma.whatsAppMessage as any).create = originalCreate;
+      (prisma.whatsAppConversation as any).update = originalUpdate;
+      global.fetch = originalFetch;
+    });
+
+    it('idempotency: handles P2002 on autoReplyToId', async () => {
+      const originalCreate = prisma.whatsAppMessage.create;
+      (prisma.whatsAppMessage as any).create = mock.fn(async () => {
+        throw { code: 'P2002' };
+      });
+      const fakeConversation = { id: 'conv-2', waId: 'wa-2', language: 'fr', lastInboundAt: new Date() } as any;
+      const fakeInbound = { id: 'inbound-2' } as any;
+
+      process.env.WHATSAPP_ACCESS_TOKEN = 'mock-token';
+      process.env.WHATSAPP_PHONE_NUMBER_ID = 'mock-id';
+
+      const originalFetch = global.fetch;
+      global.fetch = mock.fn(async () => {
+        return { ok: true, json: async () => ({ messages: [{ id: 'mock-wamid' }] }) };
+      }) as any;
+
+      const result = await internalSendWhatsAppMessage(fakeConversation, 'text', 'inbound-2');
+      assert.strictEqual(result.success, false);
+      assert.strictEqual(result.error, 'Erreur interne de persistance.');
+      
+      global.fetch = originalFetch;
+      delete process.env.WHATSAPP_ACCESS_TOKEN;
+      delete process.env.WHATSAPP_PHONE_NUMBER_ID;
+      (prisma.whatsAppMessage as any).create = originalCreate;
+    });
+  });
+});

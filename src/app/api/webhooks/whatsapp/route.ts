@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { processAutoReply } from '@/lib/customer-service/auto-reply';
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
                       }
                     });
 
-                    await prisma.whatsAppMessage.create({
+                    const inboundMessage = await prisma.whatsAppMessage.create({
                       data: {
                         waMessageId,
                         direction: 'INBOUND',
@@ -110,6 +111,12 @@ export async function POST(req: NextRequest) {
                         conversationId: conversation.id,
                       }
                     });
+
+                    try {
+                      await processAutoReply(conversation, inboundMessage, content);
+                    } catch (autoErr) {
+                      console.error("Auto-reply processing failed:", autoErr);
+                    }
                   } catch (err: unknown) {
                     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
                       // Doublon de webhook pour un même waMessageId => ignorer silencieusement
