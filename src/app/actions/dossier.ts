@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma'
 import { TypeVehicule } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
+import { sendPushNotificationSafe } from '@/lib/push/send-push'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -81,9 +82,17 @@ export async function createDossier(formData: FormData) {
       }
     })
     
+    // Notification push non bloquante
+    await sendPushNotificationSafe({
+      title: 'Nouvelle demande',
+      body: `${newDossier.numeroDossier} — ${newDossier.typeVehicule || 'Véhicule'}`,
+      url: '/admin',
+    });
+
     return { success: true, numeroDossier: newDossier.numeroDossier }
-  } catch (error: any) {
-    console.error("Erreur lors de la création du dossier:", error)
-    return { success: false, error: "Erreur Serveur: " + (error.message || String(error)) }
+  } catch (error) {
+    const err = error as Error;
+    console.error("Erreur lors de la création du dossier:", err)
+    return { success: false, error: "Erreur Serveur: " + (err.message || String(err)) }
   }
 }

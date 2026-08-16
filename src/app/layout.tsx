@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Topbar from "@/components/Topbar";
+import PwaInit from "@/components/PwaInit";
 
 
 const geistSans = Geist({
@@ -17,6 +18,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Business Action",
   description: "Application de gestion Business Action",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#0ea5e9",
 };
 
 export default function RootLayout({
@@ -31,7 +41,7 @@ export default function RootLayout({
         <div style={{ flex: 1 }}>
           {children}
         </div>
-
+        <PwaInit />
       </body>
     </html>
   );

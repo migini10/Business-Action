@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { Echeance, StatutDossier, StatutPaiement, TypeVehicule } from '@prisma/client';
+import PushSettings from '@/components/PushSettings';
 import { updateDossierStatus, uploadAndSendDevis, addTransaction, getClientTransactions, updateTransaction } from '@/app/actions/admin';
 import { calculateClientBalance, getTransactionSign } from '@/lib/finance';
 import { registerClient } from '@/app/actions/auth';
@@ -1009,6 +1011,14 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* --- PARAMÈTRES TAB --- */}
+        {activeTab === 'parametres' && (
+          <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '2rem' }}>Paramètres</h1>
+            <PushSettings />
           </div>
         )}
 

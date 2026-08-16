@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { processAutoReply } from '@/lib/customer-service/auto-reply';
+import { sendPushNotificationSafe } from '@/lib/push/send-push';
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -117,6 +118,16 @@ export async function POST(req: NextRequest) {
                     } catch (autoErr) {
                       console.error("Auto-reply processing failed:", autoErr);
                     }
+
+                    // Envoi de la notification push (non-bloquant)
+                    const truncatedMessage = content.length > 50 ? content.substring(0, 50) + '...' : content;
+                    const contactName = conversation.displayName || conversation.waId;
+                    await sendPushNotificationSafe({
+                      title: 'Nouveau message WhatsApp',
+                      body: `${contactName} : ${truncatedMessage}`,
+                      url: '/admin',
+                    });
+
                   } catch (err: unknown) {
                     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
                       // Doublon de webhook pour un même waMessageId => ignorer silencieusement

@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { WhatsAppConversation, TypeVehicule, Prisma } from '@prisma/client';
 import { QUOTE_RESPONSES, getVehicleTypeName } from './quote-responses';
+import { sendPushNotificationSafe } from '../push/send-push';
 import { parseVehicleSelection, parseConfirmSelection } from './quote-state';
 
 import { normalizeWhatsAppIdentity } from './identity';
@@ -137,7 +138,7 @@ export async function handleQuoteFlow(
             where: { phone: phoneStr }
           });
 
-          return await tx.dossier.create({
+          const createdDossier = await tx.dossier.create({
             data: {
               numeroDossier,
               phone: phoneStr,
@@ -145,6 +146,15 @@ export async function handleQuoteFlow(
               clientId: user ? user.id : null
             }
           });
+
+          // Notification push non bloquante
+          await sendPushNotificationSafe({
+            title: 'Nouvelle demande de devis',
+            body: `${numeroDossier} — ${draft.typeVehicule || 'Véhicule'}`,
+            url: '/admin',
+          });
+
+          return createdDossier;
         });
 
         return responses.SUCCESS(dossier.numeroDossier);
