@@ -74,6 +74,17 @@ require.cache[require.resolve('./push/send-push')] = {
   __esModule: true
 };
 
+const mockAutoReply = {
+  processAutoReply: mock.fn(async () => { return; })
+};
+require.cache[require.resolve('./customer-service/auto-reply')] = {
+  id: require.resolve('./customer-service/auto-reply'),
+  filename: require.resolve('./customer-service/auto-reply'),
+  loaded: true,
+  exports: mockAutoReply,
+  __esModule: true
+};
+
 const { POST: whatsappPost } = require('../app/api/webhooks/whatsapp/route');
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://test.com';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test_key';
@@ -85,10 +96,12 @@ describe('PWA Integration & Idempotency Tests', () => {
 
   beforeEach(() => {
     mockSendPush.sendPushNotificationSafe.mock.resetCalls();
+    mockAutoReply.processAutoReply.mock.resetCalls();
+    mockAutoReply.processAutoReply.mock.mockImplementation(async () => { return; });
     mockPrisma.whatsAppMessage.create.mock.resetCalls();
     mockPrisma.whatsAppConversation.upsert.mock.resetCalls();
     mockPrisma.dossier.create.mock.resetCalls();
-    
+
     process.env.WHATSAPP_APP_SECRET = WHATSAPP_APP_SECRET;
   });
 
@@ -114,7 +127,7 @@ describe('PWA Integration & Idempotency Tests', () => {
     const req = new Request('http://localhost', {
       method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) }
     });
-    
+
     const res = await whatsappPost(req);
     assert.strictEqual(res.status, 200);
     assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1);
@@ -144,19 +157,45 @@ describe('PWA Integration & Idempotency Tests', () => {
     const req = new Request('http://localhost', {
       method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) }
     });
-    
+
     const res = await whatsappPost(req);
     assert.strictEqual(res.status, 200); // Handled gracefully
     assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 0); // NO PUSH!
-    
+
     // Restore mock
     mockPrisma.whatsAppMessage.create.mock.mockImplementation(async () => ({}));
+  });
+
+  test('WhatsApp Inbound: exactly 1 push call even if processAutoReply fails', async () => {
+    mockAutoReply.processAutoReply.mock.mockImplementationOnce(async () => {
+      throw new Error('Auto-reply crashed');
+    });
+
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{
+        changes: [{
+          value: {
+            messages: [{ from: '123456789', id: 'wamid.crash', type: 'text', text: { body: 'Hello' } }],
+            contacts: [{ profile: { name: 'John Doe' }, wa_id: '123456789' }]
+          }
+        }]
+      }]
+    });
+
+    const req = new Request('http://localhost', {
+      method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) }
+    });
+
+    const res = await whatsappPost(req);
+    assert.strictEqual(res.status, 200); // Route doesn't crash
+    assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1); // Push was sent before crash
   });
 
   test('Dossier Creation: exactly 1 push call for successful creation', async () => {
     const fd = new FormData();
     fd.append('typeVehicule', 'Voiture');
-    
+
     const res = await createDossier(fd);
     if (!res.success) {
       console.error('Dossier Error:', res.error);
@@ -170,12 +209,12 @@ describe('PWA Integration & Idempotency Tests', () => {
     const conv = { id: 'conv-123', waId: '123', phone: '123', language: 'fr', botState: 'QUOTE_CONFIRM', draftQuote: { typeVehicule: 'Voiture' } };
     await handleQuoteFlow(conv, 'OUI', 'fr');
     assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1);
-    
+
     // Now simulate that the draft was already deleted (replay)
     mockPrisma.whatsAppConversation.updateMany.mock.mockImplementationOnce(async () => ({ count: 0 }));
-    
+
     await handleQuoteFlow(conv, 'OUI', 'fr');
-    
+
     // Push call count should still be exactly 1!
     assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1);
   });

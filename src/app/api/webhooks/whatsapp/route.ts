@@ -113,20 +113,27 @@ export async function POST(req: NextRequest) {
                       }
                     });
 
+                    const truncatedMessage = content.length > 50 ? content.substring(0, 50) + '...' : content;
+                    const contactName = conversation.displayName || conversation.waId;
+
+                    // Envoi de la notification push (non-bloquant) avant processAutoReply
+                    const pushResult = await sendPushNotificationSafe({
+                      title: 'Nouveau message WhatsApp',
+                      body: `${contactName} : ${truncatedMessage}`,
+                      url: '/admin',
+                    });
+
+                    console.log(JSON.stringify({
+                      event: 'WHATSAPP_ADMIN_PUSH',
+                      success: pushResult,
+                      messageIdMasked: waMessageId ? waMessageId.slice(0, 12) + '...' : null
+                    }));
+
                     try {
                       await processAutoReply(conversation, inboundMessage, content);
                     } catch (autoErr) {
                       console.error("Auto-reply processing failed:", autoErr);
                     }
-
-                    // Envoi de la notification push (non-bloquant)
-                    const truncatedMessage = content.length > 50 ? content.substring(0, 50) + '...' : content;
-                    const contactName = conversation.displayName || conversation.waId;
-                    await sendPushNotificationSafe({
-                      title: 'Nouveau message WhatsApp',
-                      body: `${contactName} : ${truncatedMessage}`,
-                      url: '/admin',
-                    });
 
                   } catch (err: unknown) {
                     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
