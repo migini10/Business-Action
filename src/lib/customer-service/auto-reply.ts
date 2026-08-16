@@ -4,6 +4,7 @@ import { detectLanguage, SupportedLanguage } from './language';
 import { detectIntent } from './intent';
 import { getFaqResponse } from './knowledge/faq';
 import { handleQuoteFlow } from './quote-flow';
+import { handleTrackingStart, handleTrackingSelect } from './tracking-flow';
 import { internalSendWhatsAppMessage } from '@/lib/whatsapp/send-message';
 
 export async function processAutoReply(
@@ -32,10 +33,22 @@ export async function processAutoReply(
 
   // 3. Gestion du Workflow Conversationnel (Devis)
   // On route vers la machine à état si on n'est pas IDLE ou si c'est une demande de devis
-  if (conversation.botState !== 'IDLE' || intent === 'QUOTE_REQUEST') {
+  if (conversation.botState === 'QUOTE_VEHICLE' || conversation.botState === 'QUOTE_CONFIRM' || intent === 'QUOTE_REQUEST') {
     const quoteResponse = await handleQuoteFlow(conversation, text, finalLanguage || 'fr');
     if (quoteResponse) {
       await internalSendWhatsAppMessage(conversation, quoteResponse, inboundMessage.id);
+      return;
+    }
+  }
+
+  // 3.5 Gestion du Suivi de Dossier
+  if (conversation.botState === 'TRACK_SELECT' || intent === 'REQUEST_STATUS') {
+    const trackingResponse = conversation.botState === 'TRACK_SELECT'
+      ? await handleTrackingSelect(conversation, text, finalLanguage || 'fr')
+      : await handleTrackingStart(conversation, text, finalLanguage || 'fr');
+
+    if (trackingResponse) {
+      await internalSendWhatsAppMessage(conversation, trackingResponse, inboundMessage.id);
       return;
     }
   }

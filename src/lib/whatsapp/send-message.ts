@@ -77,23 +77,37 @@ export async function internalSendWhatsAppMessage(
     });
   } catch (fetchErr) {
     console.error('Meta API Network Error:', fetchErr);
-    await prisma.whatsAppMessage.update({
-      where: { id: reservedMessageId! },
-      data: { status: 'FAILED' }
-    });
+    try {
+      await prisma.whatsAppMessage.update({
+        where: { id: reservedMessageId! },
+        data: { status: 'FAILED' }
+      });
+    } catch (dbErr) {
+      console.error('Failed to update status on fetch error:', dbErr);
+    }
     return { success: false, error: 'Erreur réseau lors de l\'envoi via Meta API.' };
   }
 
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch (parseErr) {
+    console.error('Meta API Parse Error:', parseErr);
+    data = { error: 'Failed to parse JSON response' };
+  }
 
   if (!response.ok) {
     console.error('Meta API Error:', JSON.stringify(data));
 
     // Mettre à jour la réservation en statut FAILED
-    await prisma.whatsAppMessage.update({
-      where: { id: reservedMessageId },
-      data: { status: 'FAILED' }
-    });
+    try {
+      await prisma.whatsAppMessage.update({
+        where: { id: reservedMessageId },
+        data: { status: 'FAILED' }
+      });
+    } catch (dbErr) {
+      console.error('Failed to update status on Meta API error:', dbErr);
+    }
 
     return { success: false, error: 'Erreur lors de l\'envoi via Meta API.' };
   }

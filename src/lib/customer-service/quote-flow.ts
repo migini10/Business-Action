@@ -3,11 +3,7 @@ import { WhatsAppConversation, TypeVehicule, Prisma } from '@prisma/client';
 import { QUOTE_RESPONSES, getVehicleTypeName } from './quote-responses';
 import { parseVehicleSelection, parseConfirmSelection } from './quote-state';
 
-function extractPhone(waId: string): string {
-  // Remove trailing details, just get the number, assume waId is already the phone
-  // In reality waId looks like "221771234567"
-  return "+" + waId;
-}
+import { normalizeWhatsAppIdentity } from './identity';
 
 export async function handleQuoteFlow(
   conversation: WhatsAppConversation,
@@ -134,7 +130,7 @@ export async function handleQuoteFlow(
           }
 
           const numeroDossier = 'DOS-' + Math.floor(1000 + Math.random() * 9000) + '-SN';
-          const phoneStr = extractPhone(conversation.waId);
+          const phoneStr = normalizeWhatsAppIdentity(conversation.waId);
 
           // Find user to associate if exists
           const user = await tx.user.findUnique({
