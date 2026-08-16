@@ -75,11 +75,10 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
   });
 
   describe('IDOR & Security (Isolation des dossiers)', () => {
-    it('returns generic not found when Alice asks for Bob\'s dossier', async () => {
+    it('returns generic not found when Alice asks for Bob\'s dossier (valid format but third-party)', async () => {
       const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
       const res = await handleTrackingStart(conv, 'suivre DOS-1003-SN', 'fr');
       assert.strictEqual(res, TRACKING_RESPONSES.fr.NOT_FOUND);
-      
       const findManyMock = (prisma.dossier.findMany as any).mock.calls;
       const lastCall = findManyMock[findManyMock.length - 1];
       assert.strictEqual(lastCall.arguments[0].where.numeroDossier, 'DOS-1003-SN');
@@ -88,7 +87,21 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
 
     it('returns identical generic not found for non-existent dossier', async () => {
       const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
-      const res = await handleTrackingStart(conv, 'suivre DOS-9999-SN', 'fr');
+      const res = await handleTrackingStart(conv, 'Je veux suivre DOS-9999-SN', 'fr');
+      assert.strictEqual(res, TRACKING_RESPONSES.fr.NOT_FOUND);
+    });
+
+    it('returns identical generic not found for malformed reference DOS-999999-SN', async () => {
+      const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
+      const res = await handleTrackingStart(conv, 'Je veux suivre DOS-999999-SN', 'fr');
+      assert.strictEqual(res, TRACKING_RESPONSES.fr.NOT_FOUND);
+      // Ensure findMany was NEVER called because we rejected it early as an invalid attempt
+      // It shouldn't have executed a findMany for 'DOS-999999-SN' because it was caught by !specificRef
+    });
+
+    it('returns identical generic not found for malformed reference DOS-ABC-SN', async () => {
+      const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
+      const res = await handleTrackingStart(conv, 'Je veux suivre DOS-ABC-SN', 'fr');
       assert.strictEqual(res, TRACKING_RESPONSES.fr.NOT_FOUND);
     });
     

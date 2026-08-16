@@ -28,11 +28,17 @@ export async function handleTrackingStart(
   }
 
   const phoneStr = normalizeWhatsAppIdentity(conversation.waId);
+  const hasAttempt = /DOS-/i.test(text);
   const specificRef = extractDossierReference(text);
 
   let dossiers: Dossier[] = [];
 
-  if (specificRef) {
+  if (hasAttempt) {
+    if (!specificRef) {
+      // Invalid format attempt, return generic not found
+      return responses.NOT_FOUND;
+    }
+
     // Both ref and phone in the SAME query (Anti-IDOR)
     dossiers = await prisma.dossier.findMany({
       where: {
@@ -64,7 +70,7 @@ export async function handleTrackingStart(
   // Multiple dossiers
   // Save references in trackingContext
   const references = dossiers.map(d => d.numeroDossier);
-  
+
   await prisma.whatsAppConversation.update({
     where: { id: conversation.id },
     data: {
@@ -117,7 +123,7 @@ export async function handleTrackingSelect(
   // Parse selection: either a number (1, 2, 3...) or a specific reference DOS-XXXX-SN
   let selectedRef: string | null = null;
   const specificRef = extractDossierReference(text);
-  
+
   if (specificRef && context.references.includes(specificRef)) {
     selectedRef = specificRef;
   } else {
