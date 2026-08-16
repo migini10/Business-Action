@@ -1,3 +1,5 @@
+import { matchAnyKeyword, normalizeText } from './fuzzy-match';
+
 export type CustomerIntent = 
   | 'QUOTE_REQUEST'
   | 'FAQ_QUOTE'
@@ -7,11 +9,7 @@ export type CustomerIntent =
   | 'UNKNOWN';
 
 export function detectIntent(text: string): CustomerIntent {
-  const normalizedText = text.toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
-    .replace(/[^\w\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const normalizedText = normalizeText(text);
 
   const words = normalizedText.split(' ');
 
@@ -22,8 +20,8 @@ export function detectIntent(text: string): CustomerIntent {
   // Status request: statut, status, suivi, where, quand, etat, track
   const statusKeywords = ['statut', 'status', 'suivi', 'where', 'quand', 'etat', 'track'];
 
-  // Human support: humain, human, conseiller, agent, parler, help, aide, assist, assistance, personne
-  const humanKeywords = ['humain', 'human', 'conseiller', 'agent', 'parler', 'help', 'aide', 'assist', 'assistance', 'personne'];
+  // Human support: humain, human, conseiller, agent, parler, help, aide, assist, assistance, personne, advisor
+  const humanKeywords = ['humain', 'human', 'conseiller', 'agent', 'parler', 'help', 'aide', 'assist', 'assistance', 'personne', 'advisor'];
 
   // General questions: question, info, comment, how, information, quel, what, ban, naka
   const questionKeywords = ['question', 'info', 'comment', 'how', 'information', 'informations', 'quel', 'quelle', 'what', 'ban', 'naka'];
@@ -38,11 +36,11 @@ export function detectIntent(text: string): CustomerIntent {
   let serviceScore = 0;
 
   for (const word of words) {
-    if (quoteKeywords.includes(word)) quoteScore++;
-    if (statusKeywords.includes(word)) statusScore++;
-    if (humanKeywords.includes(word)) humanScore++;
-    if (questionKeywords.includes(word)) questionScore++;
-    if (serviceKeywords.includes(word)) serviceScore++;
+    if (matchAnyKeyword(word, quoteKeywords)) quoteScore++;
+    if (matchAnyKeyword(word, statusKeywords)) statusScore++;
+    if (matchAnyKeyword(word, humanKeywords)) humanScore++;
+    if (matchAnyKeyword(word, questionKeywords)) questionScore++;
+    if (matchAnyKeyword(word, serviceKeywords)) serviceScore++;
   }
 
   // Prioritize intents
