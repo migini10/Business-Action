@@ -78,6 +78,27 @@ describe('Customer Service Auto - MVP', () => {
       assert.strictEqual(detectIntent('où en est mon suivi'), 'REQUEST_STATUS');
       assert.strictEqual(detectIntent('statut de mon dossier'), 'REQUEST_STATUS');
       assert.strictEqual(detectIntent('where is my request'), 'REQUEST_STATUS');
+
+      // FR exact & typos
+      assert.strictEqual(detectIntent('Où en est mon dossier ?'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('ou en est mon dossier?'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('Je veux suivre mon dossier'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('Je veux suivre ma demande'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('Quel est le statut de mon dossier ?'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('ou en ai mon dosier'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('ou en est ma demende'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('je veu suivre mon dossier'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('quel est le statu de mon dossier'), 'REQUEST_STATUS');
+
+      // EN variants
+      assert.strictEqual(detectIntent('What is the status of my request?'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('Where is my request?'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('I want to track my request'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('whats the staus of my requst'), 'REQUEST_STATUS');
+
+      // WO variants
+      assert.strictEqual(detectIntent('famu tollu sama dossier'), 'REQUEST_STATUS');
+      assert.strictEqual(detectIntent('ana sama mbir'), 'REQUEST_STATUS');
     });
 
     it('detects HUMAN_SUPPORT', () => {
@@ -89,7 +110,9 @@ describe('Customer Service Auto - MVP', () => {
     it('detects UNKNOWN', () => {
       assert.strictEqual(detectIntent('blablabla'), 'UNKNOWN');
       assert.strictEqual(detectIntent('12345'), 'UNKNOWN');
-      assert.strictEqual(detectIntent('j\'ai une question'), 'UNKNOWN'); // question=1, service=0, quote=0 -> 'UNKNOWN'. Oh wait, GENERAL_QUESTION is removed!
+      assert.strictEqual(detectIntent('j\'ai une question'), 'UNKNOWN');
+      assert.strictEqual(detectIntent('bonjour'), 'UNKNOWN');
+      assert.strictEqual(detectIntent('voiture rouge'), 'UNKNOWN');
     });
   });
 

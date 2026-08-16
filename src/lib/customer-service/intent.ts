@@ -18,7 +18,7 @@ export function detectIntent(text: string): CustomerIntent {
   const quoteKeywords = ['devis', 'quote', 'prix', 'price', 'combien', 'naata', 'cost', 'tarif', 'tarifs', 'commencer', 'start', 'tambali', 'much'];
   
   // Status request: statut, status, suivi, where, quand, etat, track
-  const statusKeywords = ['statut', 'status', 'suivi', 'where', 'quand', 'etat', 'track'];
+  const statusKeywords = ['statut', 'status', 'statu', 'staus', 'suivi', 'suivre', 'where', 'quand', 'etat', 'track', 'requst'];
 
   // Human support: humain, human, conseiller, agent, parler, help, aide, assist, assistance, personne, advisor
   const humanKeywords = ['humain', 'human', 'conseiller', 'agent', 'parler', 'help', 'aide', 'assist', 'assistance', 'personne', 'advisor'];
@@ -41,6 +41,14 @@ export function detectIntent(text: string): CustomerIntent {
     if (matchAnyKeyword(word, humanKeywords)) humanScore++;
     if (matchAnyKeyword(word, questionKeywords)) questionScore++;
     if (matchAnyKeyword(word, serviceKeywords)) serviceScore++;
+  }
+
+  const statusPhrases = [
+    'ou en est', 'ou en ai', 'ou en e', 'where is', 'what is the stat', 'whats the stat',
+    'famu tollu', 'fumu tollu', 'fumu toll', 'ana sama', 'famu toll'
+  ];
+  for (const phrase of statusPhrases) {
+    if (normalizedText.includes(phrase)) statusScore += 2;
   }
 
   // Prioritize intents
