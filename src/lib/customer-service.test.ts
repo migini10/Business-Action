@@ -25,6 +25,7 @@ describe('Customer Service Auto - MVP', () => {
       assert.strictEqual(detectLanguage('hello i need a quote'), 'en');
       assert.strictEqual(detectLanguage('how much does it cost?'), 'en');
       assert.strictEqual(detectLanguage('thanks'), 'en');
+      assert.strictEqual(detectLanguage('What is the status of my request?'), 'en');
     });
 
     it('detects Wolof with or without special characters', () => {
@@ -33,6 +34,10 @@ describe('Customer Service Auto - MVP', () => {
       assert.strictEqual(detectLanguage('ñaata la?'), 'wo');
       assert.strictEqual(detectLanguage('nata la?'), 'wo');
       assert.strictEqual(detectLanguage('naka mu awoo'), 'wo');
+      assert.strictEqual(detectLanguage('Fumu tollu sama dossier ?'), 'wo');
+      assert.strictEqual(detectLanguage('Famu tollu sama dossier ?'), 'wo');
+      assert.strictEqual(detectLanguage('Ana sama dossier ?'), 'wo');
+      assert.strictEqual(detectLanguage('Fumu toll sama mbir ?'), 'wo');
     });
 
     it('does not incorrectly detect Wolof from "salam" alone', () => {

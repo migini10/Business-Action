@@ -10,9 +10,9 @@ export function detectLanguage(text: string): SupportedLanguage | null {
   const words = normalizedText.split(' ');
 
   // Discriminant keywords for each language
-  const wolofKeywords = ['begg', 'naata', 'nata', 'naka', 'soxla', 'dama', 'nga', 'waaw', 'waw', 'nuyu', 'jerejef', 'ndax', 'amna', 'amnga'];
-  const englishKeywords = ['hello', 'hi', 'quote', 'price', 'cost', 'how', 'much', 'thanks', 'thank', 'yes', 'no', 'please', 'need', 'want'];
-  const frenchKeywords = ['bonjour', 'salut', 'devis', 'prix', 'combien', 'merci', 'oui', 'non', 'svp', 'plait', 'besoin', 'veux', 'voudrais', 'tarif'];
+  const wolofKeywords = ['begg', 'naata', 'nata', 'naka', 'soxla', 'dama', 'nga', 'waaw', 'waw', 'nuyu', 'jerejef', 'ndax', 'amna', 'amnga', 'fumu', 'famu', 'tollu', 'toll', 'ana', 'mbir', 'sama'];
+  const englishKeywords = ['hello', 'hi', 'quote', 'price', 'cost', 'how', 'much', 'thanks', 'thank', 'yes', 'no', 'please', 'need', 'want', 'status', 'track', 'where', 'my', 'request', 'staus', 'requst'];
+  const frenchKeywords = ['bonjour', 'salut', 'devis', 'prix', 'combien', 'merci', 'oui', 'non', 'svp', 'plait', 'besoin', 'veux', 'voudrais', 'tarif', 'suivi', 'suivre', 'statut', 'statu', 'dossier', 'demande', 'etat', 'quand', 'quel'];
 
   // Exact switch
   if (normalizedText === 'francais' || normalizedText === 'french') return 'fr';

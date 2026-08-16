@@ -9,10 +9,10 @@ import { Prisma } from '@prisma/client';
 describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
   let mockDossiers: any[] = [];
   let mockConversations: any = {};
-  
+
   before(() => {
     const p = prisma as any;
-    
+
     p.whatsAppConversation = {
       findUniqueOrThrow: mock.fn(async ({ where }: any) => {
         const conv = mockConversations[where.id];
@@ -53,7 +53,7 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
         }) || null;
       })
     };
-    
+
     p.$transaction = mock.fn(async (cb: any) => cb(prisma));
   });
 
@@ -62,7 +62,7 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
       'alice-id': { id: 'alice-id', waId: '221770000001', language: 'fr', botState: 'IDLE', trackingContext: null },
       'bob-id': { id: 'bob-id', waId: '221770000002', language: 'fr', botState: 'IDLE', trackingContext: null }
     };
-    
+
     mockDossiers = [
       { numeroDossier: 'DOS-1001-SN', phone: '+221770000001', typeVehicule: 'PARTICULIER', statut: 'EN_ATTENTE', createdAt: new Date('2023-01-01') },
       { numeroDossier: 'DOS-1002-SN', phone: '+221770000001', typeVehicule: 'UTILITAIRE', statut: 'EN_TRAITEMENT', createdAt: new Date('2023-01-02') },
@@ -104,7 +104,7 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
       const res = await handleTrackingStart(conv, 'Je veux suivre DOS-ABC-SN', 'fr');
       assert.strictEqual(res, TRACKING_RESPONSES.fr.NOT_FOUND);
     });
-    
+
     it('returns only Alice\'s dossiers when she tracks without specifying reference', async () => {
       const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
       const res = await handleTrackingStart(conv, 'où en est mon dossier', 'fr');
@@ -112,7 +112,7 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
       assert.strictEqual(res?.includes('DOS-1002-SN'), true);
       assert.strictEqual(res?.includes('DOS-1003-SN'), false);
     });
-    
+
     it('returns Bob\'s single dossier directly', async () => {
       const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'bob-id' } });
       const res = await handleTrackingStart(conv, 'où en est mon dossier', 'fr');
@@ -125,10 +125,10 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
     it('enters TRACK_SELECT state for Alice', async () => {
       const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
       assert.strictEqual(conv.botState, 'IDLE');
-      
+
       const res = await handleTrackingStart(conv, 'je veux suivre ma demande', 'fr');
       assert.strictEqual(res?.includes('plusieurs demandes'), true);
-      
+
       const updatedConv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
       assert.strictEqual(updatedConv.botState, 'TRACK_SELECT');
       const context = updatedConv.trackingContext as { references: string[] };
@@ -143,7 +143,7 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
       const updatedConv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
       const res = await handleTrackingSelect(updatedConv, '3', 'fr'); // out of bounds
       assert.strictEqual(res, TRACKING_RESPONSES.fr.INVALID_SELECTION);
-      
+
       const finalConv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
       assert.strictEqual(finalConv.botState, 'TRACK_SELECT');
     });
@@ -153,9 +153,9 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
       await handleTrackingStart(conv, 'je veux suivre', 'fr'); // sets TRACK_SELECT
 
       const updatedConv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
-      const res = await handleTrackingSelect(updatedConv, '1', 'fr'); 
+      const res = await handleTrackingSelect(updatedConv, '1', 'fr');
       assert.strictEqual(res?.includes('En cours de traitement'), true); // DOS-1002-SN
-      
+
       const finalConv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
       assert.strictEqual(finalConv.botState, 'IDLE');
       assert.strictEqual(finalConv.trackingContext, null);
@@ -166,15 +166,56 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
     it('allows human transfer during TRACK_SELECT', async () => {
       const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
       await handleTrackingStart(conv, 'suivi', 'fr');
-      
+
       let updatedConv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
       assert.strictEqual(updatedConv.botState, 'TRACK_SELECT');
-      
+
       const res = await handleTrackingSelect(updatedConv, 'je veux parler a un conseiller', 'fr');
       assert.strictEqual(res, TRACKING_RESPONSES.fr.HUMAN_TRANSFER);
-      
+
       updatedConv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
       assert.strictEqual(updatedConv.botState, 'IDLE'); // Reset
+    });
+  });
+
+  describe('Language Localization', () => {
+    it('returns TRACK_SELECT and status in Wolof', async () => {
+      const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
+      // Simulate that auto-reply already detected WO
+      conv.language = 'wo';
+
+      const res = await handleTrackingStart(conv, 'Fumu tollu sama dossier ?', 'wo');
+      assert.strictEqual(res?.includes('Gis naa ay mbir yu bari'), true);
+
+      let updatedConv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
+      assert.strictEqual(updatedConv.botState, 'TRACK_SELECT');
+
+      const selectRes = await handleTrackingSelect(updatedConv, '1', 'wo');
+      // "Sa mbir DOS-XXXX-SN nii la tollu"
+      assert.strictEqual(selectRes?.includes('Sa mbir'), true);
+
+      updatedConv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
+      assert.strictEqual(updatedConv.botState, 'IDLE');
+    });
+
+    it('returns tracking response in English', async () => {
+      const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
+      conv.language = 'en';
+
+      const res = await handleTrackingStart(conv, 'What is the status of my request?', 'en');
+      assert.strictEqual(res?.includes('I found multiple requests'), true);
+
+      const updatedConv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
+      const selectRes = await handleTrackingSelect(updatedConv, '1', 'en');
+      assert.strictEqual(selectRes?.includes('Your request'), true);
+    });
+
+    it('returns tracking response in French by default', async () => {
+      const conv = await prisma.whatsAppConversation.findUniqueOrThrow({ where: { id: 'alice-id' } });
+      conv.language = 'fr';
+
+      const res = await handleTrackingStart(conv, 'Où en est mon dossier ?', 'fr');
+      assert.strictEqual(res?.includes('plusieurs demandes'), true);
     });
   });
 });
