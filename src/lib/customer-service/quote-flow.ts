@@ -61,6 +61,14 @@ export async function handleQuoteFlow(
         return responses.SERVICE_INVALID;
       }
       
+      if (vehicleType === 'HUMAN_SUPPORT') {
+        await prisma.whatsAppConversation.update({
+          where: { id: conversation.id },
+          data: { botState: 'IDLE', draftQuote: Prisma.DbNull }
+        });
+        return responses.HUMAN_TRANSFER;
+      }
+
       await prisma.whatsAppConversation.update({
         where: { id: conversation.id },
         data: { 
@@ -92,6 +100,14 @@ export async function handleQuoteFlow(
           data: { botState: 'QUOTE_VEHICLE', draftQuote: Prisma.DbNull }
         });
         return responses.SERVICE_PROMPT;
+      }
+
+      if (confirmAction === 'HUMAN_SUPPORT') {
+        await prisma.whatsAppConversation.update({
+          where: { id: conversation.id },
+          data: { botState: 'IDLE', draftQuote: Prisma.DbNull }
+        });
+        return responses.HUMAN_TRANSFER;
       }
 
       // Action === 'CONFIRM'

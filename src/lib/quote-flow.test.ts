@@ -54,7 +54,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
   test('Select vehicle - invalid input', async () => {
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'bonjour', 'fr');
-    assert.match(result as string, /Veuillez répondre par 1, 2, 3 ou 4/);
+    assert.match(result as string, /Veuillez répondre par 1, 2, 3, 4 ou 5/);
   });
 
   test('Confirm and create (QUOTE_CONFIRM -> IDLE)', async () => {
@@ -130,7 +130,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     assert.strictEqual(updateArgs.data.botState, 'QUOTE_VEHICLE');
   });
 
-  test('Human transfer command', async () => {
+  test('Human transfer command (text)', async () => {
     p.whatsAppConversation.update.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'je veux parler à un humain', 'fr');
@@ -139,9 +139,37 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     assert.strictEqual(updateArgs.data.botState, 'IDLE'); // Should reset flow
   });
 
+  test('Select 5 in QUOTE_VEHICLE -> HUMAN_SUPPORT', async () => {
+    p.whatsAppConversation.update.mock.resetCalls();
+    const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
+    const result = await handleQuoteFlow(conv, '5', 'fr');
+    assert.match(result as string, /conseiller va prendre le relais/);
+    const updateArgs = p.whatsAppConversation.update.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.data.botState, 'IDLE');
+    assert.strictEqual(updateArgs.data.draftQuote, Prisma.DbNull);
+  });
+
+  test('Select 4 in QUOTE_CONFIRM -> HUMAN_SUPPORT', async () => {
+    p.whatsAppConversation.update.mock.resetCalls();
+    const conv = { ...baseConv, botState: 'QUOTE_CONFIRM', draftQuote: { typeVehicule: 'UTILITAIRE' } } as unknown as WhatsAppConversation;
+    const result = await handleQuoteFlow(conv, '4', 'fr');
+    assert.match(result as string, /conseiller va prendre le relais/);
+    const updateArgs = p.whatsAppConversation.update.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.data.botState, 'IDLE');
+    assert.strictEqual(updateArgs.data.draftQuote, Prisma.DbNull);
+  });
+
   test('Language WO', async () => {
     const conv = { ...baseConv, botState: 'IDLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'devis', 'wo');
     assert.match(result as string, /Ban xetu auto nga am/);
+    assert.match(result as string, /5\. Wax ak nit/);
+  });
+
+  test('Language EN', async () => {
+    const conv = { ...baseConv, botState: 'IDLE' } as unknown as WhatsAppConversation;
+    const result = await handleQuoteFlow(conv, 'quote', 'en');
+    assert.match(result as string, /What type of vehicle is your request about/);
+    assert.match(result as string, /5\. Talk to an advisor/);
   });
 });

@@ -5,6 +5,7 @@ export const VEHICLE_OPTIONS = {
   '2': 'UTILITAIRE',
   '3': 'POIDS_LOURD',
   '4': 'DEUX_ROUES',
+  '5': 'HUMAN_SUPPORT',
   
   // Accept string matches as well
   'particulier': 'PARTICULIER',
@@ -42,7 +43,10 @@ export const CONFIRM_OPTIONS = {
   'annuler': 'CANCEL',
   'cancel': 'CANCEL',
   'bayyi': 'CANCEL',
-  'bàyyi': 'CANCEL'
+  'bàyyi': 'CANCEL',
+
+  // Human Support
+  '4': 'HUMAN_SUPPORT'
 };
 
 export function parseVehicleSelection(text: string): string | null {
@@ -57,10 +61,10 @@ export function parseVehicleSelection(text: string): string | null {
   return null;
 }
 
-export function parseConfirmSelection(text: string): 'CONFIRM' | 'MODIFY' | 'CANCEL' | null {
+export function parseConfirmSelection(text: string): 'CONFIRM' | 'MODIFY' | 'CANCEL' | 'HUMAN_SUPPORT' | null {
   const normalized = text.toLowerCase().trim();
   if (CONFIRM_OPTIONS[normalized as keyof typeof CONFIRM_OPTIONS]) {
-    return CONFIRM_OPTIONS[normalized as keyof typeof CONFIRM_OPTIONS] as 'CONFIRM' | 'MODIFY' | 'CANCEL';
+    return CONFIRM_OPTIONS[normalized as keyof typeof CONFIRM_OPTIONS] as 'CONFIRM' | 'MODIFY' | 'CANCEL' | 'HUMAN_SUPPORT';
   }
   return null;
 }
