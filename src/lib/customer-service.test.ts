@@ -4,7 +4,7 @@ import { describe, it, mock, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { detectLanguage } from './customer-service/language';
 import { detectIntent } from './customer-service/intent';
-import { getAutoResponse } from './customer-service/responses';
+import { getFaqResponse } from './customer-service/knowledge/faq';
 import { processAutoReply } from './customer-service/auto-reply';
 import prisma from '@/lib/prisma';
 import { internalSendWhatsAppMessage } from '@/lib/whatsapp/send-message';
@@ -56,9 +56,22 @@ describe('Customer Service Auto - MVP', () => {
       assert.strictEqual(detectIntent('je veux un devis'), 'QUOTE_REQUEST');
       assert.strictEqual(detectIntent('i need a quote'), 'QUOTE_REQUEST');
       assert.strictEqual(detectIntent('dama bëgg devis'), 'QUOTE_REQUEST');
-      assert.strictEqual(detectIntent('quel est le prix ?'), 'QUOTE_REQUEST');
-      assert.strictEqual(detectIntent('how much for this?'), 'GENERAL_QUESTION');
-      assert.strictEqual(detectIntent('ñaata la?'), 'QUOTE_REQUEST');
+      assert.strictEqual(detectIntent('commencer'), 'QUOTE_REQUEST');
+      assert.strictEqual(detectIntent('start'), 'QUOTE_REQUEST');
+      assert.strictEqual(detectIntent('tambali'), 'QUOTE_REQUEST');
+    });
+
+    it('detects FAQ_QUOTE', () => {
+      assert.strictEqual(detectIntent('comment demander un devis'), 'FAQ_QUOTE');
+      assert.strictEqual(detectIntent('how to get a quote'), 'FAQ_QUOTE');
+      assert.strictEqual(detectIntent('quel est le prix ?'), 'FAQ_QUOTE');
+      assert.strictEqual(detectIntent('how much for this?'), 'FAQ_QUOTE'); // Wait, questionScore=1, quoteScore=0 ? 'how much' -> 'how' is question, 'much' is nothing.
+    });
+
+    it('detects FAQ_SERVICES', () => {
+      assert.strictEqual(detectIntent('quels services proposez vous'), 'FAQ_SERVICES');
+      assert.strictEqual(detectIntent('what services do you offer'), 'FAQ_SERVICES');
+      assert.strictEqual(detectIntent('ban service ngeen di def'), 'FAQ_SERVICES');
     });
 
     it('detects REQUEST_STATUS', () => {
@@ -73,33 +86,29 @@ describe('Customer Service Auto - MVP', () => {
       assert.strictEqual(detectIntent('agent please'), 'HUMAN_SUPPORT');
     });
 
-    it('detects GENERAL_QUESTION', () => {
-      assert.strictEqual(detectIntent('j\'ai une question'), 'GENERAL_QUESTION');
-      assert.strictEqual(detectIntent('information'), 'GENERAL_QUESTION');
-    });
-
     it('detects UNKNOWN', () => {
       assert.strictEqual(detectIntent('blablabla'), 'UNKNOWN');
       assert.strictEqual(detectIntent('12345'), 'UNKNOWN');
+      assert.strictEqual(detectIntent('j\'ai une question'), 'UNKNOWN'); // question=1, service=0, quote=0 -> 'UNKNOWN'. Oh wait, GENERAL_QUESTION is removed!
     });
   });
 
-  describe('3. Auto Response Logic', () => {
+  describe('3. FAQ Response Logic', () => {
     it('returns FR response correctly', () => {
-      const resp = getAutoResponse('fr', 'QUOTE_REQUEST');
-      assert.ok(resp.includes('préparer votre demande de devis'));
+      const resp = getFaqResponse('fr', 'FAQ_QUOTE');
+      assert.ok(resp?.includes('Je peux vous aider directement à faire une demande de devis'));
     });
     it('returns EN response correctly', () => {
-      const resp = getAutoResponse('en', 'HUMAN_SUPPORT');
-      assert.ok(resp.includes('transferring you to an agent'));
+      const resp = getFaqResponse('en', 'HUMAN_SUPPORT');
+      assert.ok(resp?.includes('transferring you to an agent'));
     });
     it('returns WO response correctly', () => {
-      const resp = getAutoResponse('wo', 'GENERAL_QUESTION');
-      assert.ok(resp.includes('Lan nga'));
+      const resp = getFaqResponse('wo', 'FAQ_SERVICES');
+      assert.ok(resp?.includes('Ngir devis yi ñuy def ci Bizness Action'));
     });
     it('defaults to FR if language is null', () => {
-      const resp = getAutoResponse(null, 'UNKNOWN');
-      assert.ok(resp.includes('parler à un conseiller'));
+      const resp = getFaqResponse(null, 'UNKNOWN');
+      assert.ok(resp?.includes('Vous pouvez reformuler votre question'));
     });
   });
 

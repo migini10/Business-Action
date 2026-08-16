@@ -2,7 +2,7 @@ import prisma from '@/lib/prisma';
 import { WhatsAppConversation, WhatsAppMessage } from '@prisma/client';
 import { detectLanguage, SupportedLanguage } from './language';
 import { detectIntent } from './intent';
-import { getAutoResponse } from './responses';
+import { getFaqResponse } from './knowledge/faq';
 import { handleQuoteFlow } from './quote-flow';
 import { internalSendWhatsAppMessage } from '@/lib/whatsapp/send-message';
 
@@ -40,8 +40,13 @@ export async function processAutoReply(
     }
   }
 
-  // 4. Génération de la réponse standard (Fallback)
-  const responseText = getAutoResponse(finalLanguage, intent);
+  // 4. Génération de la réponse depuis la FAQ (Fallback)
+  const responseText = getFaqResponse(finalLanguage, intent) || getFaqResponse(finalLanguage, 'UNKNOWN');
+
+  if (!responseText) {
+    // Should never happen thanks to fallback in getFaqResponse
+    return;
+  }
 
   // 5. Envoi via l'API Meta (avec réservation d'idempotence via autoReplyToId)
   await internalSendWhatsAppMessage(conversation, responseText, inboundMessage.id);
