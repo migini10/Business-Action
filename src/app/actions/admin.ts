@@ -97,13 +97,13 @@ export async function uploadAndSendDevis(formData: FormData) {
       try {
         const { data, error } = await resend.emails.send({
           // Utilisez 'onboarding@resend.dev' pour les tests si votre domaine n'est pas encore vérifié
-          from: 'Bizness Action <onboarding@resend.dev>',
+          from: 'Business Action <onboarding@resend.dev>',
           to: [dossier.email],
           subject: `Votre devis pour ${dossier.typeVehicule.replace('_', ' ').toLowerCase()} est prêt !`,
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto;">
               <h1 style="color: #2563EB;">Bonjour,</h1>
-              <p>Suite à votre demande sur <strong>Bizness Action</strong>, nous avons le plaisir de vous transmettre votre devis personnalisé.</p>
+              <p>Suite à votre demande sur <strong>Business Action</strong>, nous avons le plaisir de vous transmettre votre devis personnalisé.</p>
               <p>Votre numéro de suivi : <strong>${dossier.numeroDossier}</strong></p>
               <div style="margin: 30px 0;">
                 <a href="${devisUrl}" style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
@@ -112,7 +112,7 @@ export async function uploadAndSendDevis(formData: FormData) {
               </div>
               <p>Vous pouvez consulter ou télécharger le document officiel en cliquant sur le bouton ci-dessus.</p>
               <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-              <p>Cordialement,<br><strong>L'équipe Bizness Action</strong></p>
+              <p>Cordialement,<br><strong>L'équipe Business Action</strong></p>
             </div>
           `
         });

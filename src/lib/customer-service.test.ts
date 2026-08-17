@@ -132,7 +132,7 @@ describe('Customer Service Auto - MVP', () => {
     });
     it('returns WO response correctly', () => {
       const resp = getFaqResponse('wo', 'FAQ_SERVICES');
-      assert.ok(resp?.includes('Ngir devis yi ñuy def ci Bizness Action'));
+      assert.ok(resp?.includes('Ngir devis yi ñuy def ci Business Action'));
     });
     it('defaults to FR if language is null', () => {
       const resp = getFaqResponse(null, 'UNKNOWN');

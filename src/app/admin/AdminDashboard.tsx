@@ -199,7 +199,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
         <div style={{ padding: '2rem 1.5rem', borderBottom: '1px solid #E2E8F0' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            BizAction
+            Business Action
           </h2>
         </div>
 
@@ -667,7 +667,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <a
-                          href={`https://wa.me/${selectedDossier.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour, suite à votre demande sur Bizness Action, voici le lien vers votre devis personnalisé: ${selectedDossier.devisUrl === 'uploaded' ? '' : selectedDossier.devisUrl}`)}`}
+                          href={`https://wa.me/${selectedDossier.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour, suite à votre demande sur Business Action, voici le lien vers votre devis personnalisé: ${selectedDossier.devisUrl === 'uploaded' ? '' : selectedDossier.devisUrl}`)}`}
                           target="_blank"
                           rel="noreferrer"
                           className="btn btn-primary"
