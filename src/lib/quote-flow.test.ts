@@ -110,6 +110,9 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     
     assert.ok(successResult);
     assert.ok(concurrentResult);
+
+    // RESTORE MOCK
+    p.whatsAppConversation.updateMany.mock.mockImplementation(async () => ({ count: 1 }));
   });
 
   test('Cancel command', async () => {
@@ -131,31 +134,31 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
   });
 
   test('Human transfer command (text)', async () => {
-    p.whatsAppConversation.update.mock.resetCalls();
+    p.whatsAppConversation.updateMany.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'je veux parler à un humain', 'fr');
-    assert.match(result as string, /conseiller va prendre le relais/);
-    const updateArgs = p.whatsAppConversation.update.mock.calls[0].arguments[0];
-    assert.strictEqual(updateArgs.data.botState, 'IDLE'); // Should reset flow
+    assert.match(result as string, /Votre demande a été transmise à un conseiller/);
+    const updateArgs = p.whatsAppConversation.updateMany.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.data.botState, 'HUMAN_SUPPORT');
   });
 
   test('Select 5 in QUOTE_VEHICLE -> HUMAN_SUPPORT', async () => {
-    p.whatsAppConversation.update.mock.resetCalls();
+    p.whatsAppConversation.updateMany.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, '5', 'fr');
-    assert.match(result as string, /conseiller va prendre le relais/);
-    const updateArgs = p.whatsAppConversation.update.mock.calls[0].arguments[0];
-    assert.strictEqual(updateArgs.data.botState, 'IDLE');
+    assert.match(result as string, /Votre demande a été transmise à un conseiller/);
+    const updateArgs = p.whatsAppConversation.updateMany.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.data.botState, 'HUMAN_SUPPORT');
     assert.strictEqual(updateArgs.data.draftQuote, Prisma.DbNull);
   });
 
   test('Select 4 in QUOTE_CONFIRM -> HUMAN_SUPPORT', async () => {
-    p.whatsAppConversation.update.mock.resetCalls();
+    p.whatsAppConversation.updateMany.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_CONFIRM', draftQuote: { typeVehicule: 'UTILITAIRE' } } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, '4', 'fr');
-    assert.match(result as string, /conseiller va prendre le relais/);
-    const updateArgs = p.whatsAppConversation.update.mock.calls[0].arguments[0];
-    assert.strictEqual(updateArgs.data.botState, 'IDLE');
+    assert.match(result as string, /Votre demande a été transmise à un conseiller/);
+    const updateArgs = p.whatsAppConversation.updateMany.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.data.botState, 'HUMAN_SUPPORT');
     assert.strictEqual(updateArgs.data.draftQuote, Prisma.DbNull);
   });
 

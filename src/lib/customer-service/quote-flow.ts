@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { WhatsAppConversation, TypeVehicule, Prisma } from '@prisma/client';
 import { QUOTE_RESPONSES, getVehicleTypeName } from './quote-responses';
 import { sendPushNotificationSafe } from '../push/send-push';
+import { handleHumanHandoff } from './human-handoff';
 import { parseVehicleSelection, parseConfirmSelection } from './quote-state';
 
 import { normalizeWhatsAppIdentity } from './identity';
@@ -17,11 +18,8 @@ export async function handleQuoteFlow(
   // Interruption logic (human transfer, cancel, restart)
   const isHuman = ['humain', 'agent', 'conseiller', 'human', 'nit'].some(k => normalizedText.includes(k));
   if (isHuman) {
-    await prisma.whatsAppConversation.update({
-      where: { id: conversation.id },
-      data: { botState: 'IDLE', draftQuote: Prisma.DbNull }
-    });
-    return responses.HUMAN_TRANSFER;
+    const response = await handleHumanHandoff(conversation, lang);
+    return response;
   }
 
   const isCancel = ['annuler', 'cancel', 'bayyi', 'bàyyi'].includes(normalizedText);
@@ -59,11 +57,8 @@ export async function handleQuoteFlow(
       }
       
       if (vehicleType === 'HUMAN_SUPPORT') {
-        await prisma.whatsAppConversation.update({
-          where: { id: conversation.id },
-          data: { botState: 'IDLE', draftQuote: Prisma.DbNull }
-        });
-        return responses.HUMAN_TRANSFER;
+        const response = await handleHumanHandoff(conversation, lang);
+        return response;
       }
 
       await prisma.whatsAppConversation.update({
@@ -100,11 +95,8 @@ export async function handleQuoteFlow(
       }
 
       if (confirmAction === 'HUMAN_SUPPORT') {
-        await prisma.whatsAppConversation.update({
-          where: { id: conversation.id },
-          data: { botState: 'IDLE', draftQuote: Prisma.DbNull }
-        });
-        return responses.HUMAN_TRANSFER;
+        const response = await handleHumanHandoff(conversation, lang);
+        return response;
       }
 
       // Action === 'CONFIRM'

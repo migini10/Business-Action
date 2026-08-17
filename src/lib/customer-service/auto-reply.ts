@@ -5,6 +5,7 @@ import { detectIntent } from './intent';
 import { getFaqResponse } from './knowledge/faq';
 import { handleQuoteFlow } from './quote-flow';
 import { handleTrackingStart, handleTrackingSelect } from './tracking-flow';
+import { handleHumanHandoff } from './human-handoff';
 import { internalSendWhatsAppMessage } from '@/lib/whatsapp/send-message';
 
 export async function processAutoReply(
@@ -12,6 +13,11 @@ export async function processAutoReply(
   inboundMessage: WhatsAppMessage,
   text: string
 ) {
+  // 0. Si le bot est déjà en mode humain, il ne répond plus
+  if (conversation.botState === 'HUMAN_SUPPORT') {
+    return;
+  }
+
   // 1. Détection de la langue
   const detectedLanguage = detectLanguage(text);
   let finalLanguage = conversation.language as SupportedLanguage | null;
@@ -30,6 +36,15 @@ export async function processAutoReply(
 
   // 2. Détection de l'intention
   const intent = detectIntent(text);
+
+  // 2.5 Handoff explicit (Parler à un conseiller)
+  if (intent === 'HUMAN_SUPPORT') {
+    const handoffResponse = await handleHumanHandoff(conversation, finalLanguage || 'fr');
+    if (handoffResponse) {
+      await internalSendWhatsAppMessage(conversation, handoffResponse, inboundMessage.id);
+    }
+    return;
+  }
 
   // 3. Gestion du Workflow Conversationnel (Devis)
   // On route vers la machine à état si on n'est pas IDLE ou si c'est une demande de devis

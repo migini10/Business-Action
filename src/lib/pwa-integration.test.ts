@@ -218,4 +218,113 @@ describe('PWA Integration & Idempotency Tests', () => {
     // Push call count should still be exactly 1!
     assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1);
   });
+
+  test('AUTO-005: transition atomique IDLE -> HUMAN_SUPPORT & Push handoff exactement 1 fois', async () => {
+    const { handleHumanHandoff } = require('./customer-service/human-handoff');
+    const conv = { id: 'conv-123', waId: '123', phone: '123', language: 'fr', botState: 'IDLE' };
+    
+    // First call succeeds (atomic win)
+    const response1 = await handleHumanHandoff(conv, 'fr');
+    assert.match(response1, /Votre demande a été transmise à un conseiller/); // FR -> HUMAN_SUPPORT
+    assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1);
+
+    // Simulate replay/concurrent where state is already HUMAN_SUPPORT
+    mockPrisma.whatsAppConversation.updateMany.mock.mockImplementationOnce(async () => ({ count: 0 }));
+    
+    const response2 = await handleHumanHandoff(conv, 'fr');
+    assert.strictEqual(response2, null); // conversation déjà HUMAN_SUPPORT => aucun deuxième handoff
+    assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1); // No additional push
+  });
+
+  test('AUTO-005: WO -> HUMAN_SUPPORT', async () => {
+    const { handleHumanHandoff } = require('./customer-service/human-handoff');
+    mockPrisma.whatsAppConversation.updateMany.mock.mockImplementationOnce(async () => ({ count: 1 }));
+    const conv = { id: 'conv-wo', waId: '123', phone: '123', language: 'wo', botState: 'IDLE' };
+    const response = await handleHumanHandoff(conv, 'wo');
+    assert.match(response, /Jox nañu sa mbir mi ab laytekat/);
+  });
+
+  test('AUTO-005: EN -> HUMAN_SUPPORT', async () => {
+    const { handleHumanHandoff } = require('./customer-service/human-handoff');
+    mockPrisma.whatsAppConversation.updateMany.mock.mockImplementationOnce(async () => ({ count: 1 }));
+    const conv = { id: 'conv-en', waId: '123', phone: '123', language: 'en', botState: 'IDLE' };
+    const response = await handleHumanHandoff(conv, 'en');
+    assert.match(response, /Your request has been forwarded/);
+  });
+
+  test('AUTO-005: deux appels concurrents => un seul gagnant', async () => {
+    const { handleHumanHandoff } = require('./customer-service/human-handoff');
+    // Mock updateMany to succeed only once
+    let calls = 0;
+    mockPrisma.whatsAppConversation.updateMany.mock.mockImplementation(async () => {
+      calls++;
+      return { count: calls === 1 ? 1 : 0 };
+    });
+    mockSendPush.sendPushNotificationSafe.mock.resetCalls();
+
+    const conv = { id: 'conv-concurrent', waId: '123', phone: '123', language: 'fr', botState: 'IDLE' };
+    
+    const [res1, res2] = await Promise.all([
+      handleHumanHandoff(conv, 'fr'),
+      handleHumanHandoff(conv, 'fr')
+    ]);
+
+    const winner = [res1, res2].find(r => r !== null);
+    const loser = [res1, res2].find(r => r === null);
+
+    assert.ok(winner);
+    assert.strictEqual(loser, null);
+    // confirmation client exactement 1 fois
+    assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1); // Push handoff exactement 1 fois
+  });
+
+  test('AUTO-005: message suivant pendant HUMAN_SUPPORT => pas d\'auto-réponse mais Push normal conservé', async () => {
+    mockSendPush.sendPushNotificationSafe.mock.resetCalls();
+    mockAutoReply.processAutoReply.mock.resetCalls();
+
+    // Mocking a webhook call for a conversation already in HUMAN_SUPPORT
+    // The webhook route just looks up conversation. If it exists, it processes it.
+    // However, our auto-reply mock is not used here directly to test the early return.
+    // Let's call processAutoReply directly to test the skip:
+    const { processAutoReply } = require('./customer-service/auto-reply');
+    const conv = { id: 'conv-123', waId: '123', phone: '123', language: 'fr', botState: 'HUMAN_SUPPORT' };
+    
+    await processAutoReply(conv, { id: 'msg-1' }, 'Hello agent');
+    // processAutoReply should return immediately, not calling send message
+    assert.strictEqual(mockPrisma.whatsAppConversation.update.mock.callCount(), 0);
+  });
+
+  test('AUTO-005: Push normal "Nouveau message WhatsApp" toujours conservé pour les messages webhook', async () => {
+    mockSendPush.sendPushNotificationSafe.mock.resetCalls();
+    mockPrisma.whatsAppConversation.findUnique.mock.mockImplementationOnce(async () => ({
+      id: 'conv_1', waId: '123', botState: 'HUMAN_SUPPORT', language: 'fr', lastMessageAt: new Date()
+    }));
+    
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{ changes: [{ value: { messages: [{ from: '123', id: 'wamid.human', type: 'text', text: { body: 'Hello' } }], contacts: [{ wa_id: '123' }] } }] }]
+    });
+    const req = new Request('http://localhost', { method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) } });
+    const res = await whatsappPost(req);
+    
+    assert.strictEqual(res.status, 200);
+    // Webhook calls sendPushNotificationSafe directly. It must be called.
+    assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1);
+  });
+
+  test('AUTO-005: replay P2002 => aucun double handoff', async () => {
+    // If webhook replays a message that caused the transition, P2002 happens before everything.
+    mockPrisma.whatsAppMessage.create.mock.mockImplementationOnce(async () => { throw { code: 'P2002' }; });
+    mockSendPush.sendPushNotificationSafe.mock.resetCalls();
+
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{ changes: [{ value: { messages: [{ from: '123', id: 'wamid.replay2', type: 'text', text: { body: 'parler à un humain' } }], contacts: [{ wa_id: '123' }] } }] }]
+    });
+    const req = new Request('http://localhost', { method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) } });
+    const res = await whatsappPost(req);
+    
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 0);
+  });
 });

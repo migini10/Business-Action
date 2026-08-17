@@ -7,7 +7,7 @@ import { updateDossierStatus, uploadAndSendDevis, addTransaction, getClientTrans
 import { calculateClientBalance, getTransactionSign } from '@/lib/finance';
 import { registerClient } from '@/app/actions/auth';
 import { logoutAdmin } from '@/app/actions/admin-auth-actions';
-import { getWhatsAppConversations, getWhatsAppMessages, sendWhatsAppMessage } from '@/app/actions/whatsapp';
+import { getWhatsAppConversations, getWhatsAppMessages, sendWhatsAppMessage, resumeBot } from '@/app/actions/whatsapp';
 import Link from 'next/link';
 
 export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
@@ -1050,6 +1050,13 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       <div style={{ fontSize: '0.875rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {conv._count?.messages} messages
                       </div>
+                      {conv.botState === 'HUMAN_SUPPORT' && (
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <span style={{ backgroundColor: '#FEE2E2', color: '#DC2626', padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                            Conseiller requis
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1062,9 +1069,32 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
             {/* Vue d'une conversation */}
             {selectedWaConv ? (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', backgroundColor: '#fff' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.125rem', color: '#0F172A', fontWeight: 600 }}>{selectedWaConv.displayName || 'Client WhatsApp'}</h3>
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748B' }}>{selectedWaConv.waId.replace(/(\d{2})(\d{3})(\d{3})(\d{3})/, '+$1 $2 $3 $4')}</p>
+                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', backgroundColor: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.125rem', color: '#0F172A', fontWeight: 600 }}>
+                      {selectedWaConv.displayName || 'Client WhatsApp'}
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748B' }}>
+                      {selectedWaConv.waId.replace(/(\d{2})(\d{3})(\d{3})(\d{3})/, '+$1 $2 $3 $4')}
+                    </p>
+                  </div>
+                  {selectedWaConv.botState === 'HUMAN_SUPPORT' && (
+                    <button
+                      onClick={async () => {
+                        const res = await resumeBot(selectedWaConv.id);
+                        if (res.success) {
+                          setSelectedWaConv({ ...selectedWaConv, botState: 'IDLE' });
+                          // Also update in list
+                          setWaConversations(prev => prev.map(c => c.id === selectedWaConv.id ? { ...c, botState: 'IDLE' } : c));
+                        } else {
+                          setWaError(res.error || 'Erreur lors de la reprise.');
+                        }
+                      }}
+                      style={{ padding: '0.5rem 1rem', backgroundColor: '#3B82F6', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+                    >
+                      Rendre la main au bot
+                    </button>
+                  )}
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: '1rem' }}>

@@ -248,6 +248,33 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     assert.strictEqual(res.error, 'Conversation introuvable.');
   });
 
+  test('AUTO-005: resumeBot sans admin => refus', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => { throw new Error('Unauthorized'); });
+    const { resumeBot } = require('../app/actions/whatsapp');
+    try {
+      await resumeBot('conv_1');
+      assert.fail('Should have thrown');
+    } catch (e: any) {
+      assert.strictEqual(e.message, 'Unauthorized');
+    }
+  });
+
+  test('AUTO-005: resumeBot avec admin => HUMAN_SUPPORT -> IDLE', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+    mockPrisma.whatsAppConversation.update.mock.mockImplementation(async (args: any) => {
+      return { id: args.where.id, botState: args.data.botState };
+    });
+    const { resumeBot } = require('../app/actions/whatsapp');
+    const res = await resumeBot('conv_1');
+    
+    assert.strictEqual(res.success, true);
+    assert.strictEqual(mockPrisma.whatsAppConversation.update.mock.callCount(), 1);
+    
+    const updateArgs = mockPrisma.whatsAppConversation.update.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.where.id, 'conv_1');
+    assert.strictEqual(updateArgs.data.botState, 'IDLE');
+  });
+
   test('Admin Action: texte vide => refus', async () => {
     const res = await sendWhatsAppMessage('conv_1', '   ');
     assert.strictEqual(res.success, false);

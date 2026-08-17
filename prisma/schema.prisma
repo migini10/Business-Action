@@ -146,6 +146,7 @@ enum WhatsAppBotState {
   QUOTE_VEHICLE
   QUOTE_CONFIRM
   TRACK_SELECT
+  HUMAN_SUPPORT
 }
 
 model WhatsAppConversation {

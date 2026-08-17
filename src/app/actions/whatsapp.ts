@@ -4,6 +4,7 @@
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { internalSendWhatsAppMessage } from '@/lib/whatsapp/send-message';
+import { Prisma } from '@prisma/client';
 
 export async function getWhatsAppConversations() {
   await requireAdmin();
@@ -62,5 +63,23 @@ export async function sendWhatsAppMessage(conversationId: string, text: string) 
   } catch (error: any) {
     console.error('sendWhatsAppMessage error:', error);
     return { success: false, error: 'Erreur interne lors de l\'envoi.' };
+  }
+}
+
+export async function resumeBot(conversationId: string) {
+  await requireAdmin();
+  try {
+    const result = await prisma.whatsAppConversation.update({
+      where: { id: conversationId },
+      data: {
+        botState: 'IDLE',
+        draftQuote: Prisma.DbNull,
+        trackingContext: Prisma.DbNull
+      }
+    });
+    return { success: true, conversation: result };
+  } catch (error: any) {
+    console.error('resumeBot error:', error);
+    return { success: false, error: 'Erreur lors de la réactivation du bot.' };
   }
 }

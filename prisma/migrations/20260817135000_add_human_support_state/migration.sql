@@ -1,0 +1,1 @@
+ALTER TYPE "WhatsAppBotState" ADD VALUE 'HUMAN_SUPPORT';
