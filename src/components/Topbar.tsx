@@ -2,9 +2,17 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { getAccueilHref } from '@/lib/mobile-ui';
+import Image from 'next/image';
 
 export default function Topbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname() || '';
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
+  const accueilHref = getAccueilHref(pathname);
 
   return (
     <>
@@ -13,12 +21,14 @@ export default function Topbar() {
       <div className={`sidebar ${isMenuOpen ? 'open' : ''}`}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
           <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="var(--color-primary)"/>
-              <path d="M2 17L12 22L22 17" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 12L12 17L22 12" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span style={{ fontWeight: 800, fontSize: '1.25rem' }}>Business Action</span>
+            <Image
+              src="/Logo Business Action.png"
+              alt="Business Action"
+              width={180}
+              height={50}
+              style={{ width: 'auto', height: '40px', maxWidth: '100%' }}
+              priority
+            />
           </div>
           <button className="sidebar-close" onClick={() => setIsMenuOpen(false)} style={{ background: 'var(--color-gray-light)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-main)', transition: 'background 0.2s' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -26,7 +36,7 @@ export default function Topbar() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <Link href="/" className="sidebar-link" onClick={() => setIsMenuOpen(false)}>
+          <Link href={accueilHref} className="sidebar-link" onClick={() => setIsMenuOpen(false)}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             Accueil
           </Link>
@@ -62,14 +72,16 @@ export default function Topbar() {
       <div className="topbar">
         <div className="container">
           <header className="header animate-fade-in">
-            <Link href="/" style={{ textDecoration: 'none' }}>
+            <Link href={accueilHref} style={{ textDecoration: 'none' }}>
               <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'var(--color-text-main)' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="var(--color-primary)"/>
-                  <path d="M2 17L12 22L22 17" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 12L12 17L22 12" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span style={{ fontWeight: 800 }}>Business Action</span>
+                <Image
+                  src="/Logo Business Action.png"
+                  alt="Business Action"
+                  width={180}
+                  height={50}
+                  style={{ width: 'auto', height: '40px', maxWidth: '100%' }}
+                  priority
+                />
               </div>
             </Link>
             <nav style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

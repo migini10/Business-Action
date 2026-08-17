@@ -1,6 +1,6 @@
 import React from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Home() {
   return (
@@ -211,13 +211,14 @@ export default function Home() {
         <div className="container">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '4rem', marginBottom: '4rem' }}>
             <div style={{ gridColumn: 'span 2' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#fff"/>
-                  <path d="M2 17L12 22L22 17" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 12L12 17L22 12" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Business Action
+              <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center' }}>
+                <Image
+                  src="/Logo Business Action.png"
+                  alt="Business Action"
+                  width={180}
+                  height={50}
+                  style={{ width: 'auto', height: '40px', maxWidth: '100%' }}
+                />
               </div>
               <p style={{ color: '#94A3B8', fontSize: '1rem', lineHeight: 1.6, maxWidth: '400px' }}>La plateforme SaaS de référence pour la gestion de devis d'assurance et de paiements. Rapide, sécurisée et totalement transparente.</p>
             </div>

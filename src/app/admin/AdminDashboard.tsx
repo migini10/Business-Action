@@ -9,6 +9,9 @@ import { registerClient } from '@/app/actions/auth';
 import { logoutAdmin } from '@/app/actions/admin-auth-actions';
 import { getWhatsAppConversations, getWhatsAppMessages, sendWhatsAppMessage, resumeBot } from '@/app/actions/whatsapp';
 import Link from 'next/link';
+import Image from 'next/image';
+import { getSidebarClasses, getWhatsappGridClasses, shouldAutoScroll } from '@/lib/mobile-ui';
+import { getMessageDayKey, formatMessageDate, formatMessageTime } from '@/lib/date-utils';
 
 export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
   const [dossiers, setDossiers] = useState(initialDossiers);
@@ -43,6 +46,87 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [waReplyText, setWaReplyText] = useState('');
   const [isSendingWa, setIsSendingWa] = useState(false);
   const [waError, setWaError] = useState('');
+
+  // Search & Notifications State
+  const [searchQuery, setSearchQuery] = useState('');
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const renderSearch = () => (
+    <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" value={searchQuery} onChange={handleSearchChange} placeholder="Rechercher un dossier..." style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', borderRadius: '999px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.875rem', backgroundColor: '#F8FAFC' }} />
+    </div>
+  );
+
+  const renderNotifications = (isMobile: boolean = false) => (
+    <button style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', color: '#64748B', display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '0', padding: 0 }}>
+      <div style={{ position: 'relative' }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <span style={{ position: 'absolute', top: '-2px', right: '-2px', width: '10px', height: '10px', backgroundColor: '#EF4444', borderRadius: '50%', border: '2px solid #fff' }}></span>
+      </div>
+      {isMobile && <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Notifications</span>}
+    </button>
+  );
+
+  // Mobile UI States
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const waScrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isMobileDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileDrawerOpen]);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMobileDrawerOpen) {
+        setIsMobileDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isMobileDrawerOpen]);
+
+  // First open auto-scroll
+  const initialScrolledConversationIdRef = React.useRef<string | null>(null);
+  const isNearBottomRef = React.useRef<boolean>(true);
+
+  const lastMessageId = waMessages.length > 0 ? waMessages[waMessages.length - 1].id : null;
+
+  React.useLayoutEffect(() => {
+    if (selectedWaConv && waMessages.length > 0) {
+      if (initialScrolledConversationIdRef.current !== selectedWaConv.id) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (waScrollContainerRef.current) {
+              waScrollContainerRef.current.scrollTop = waScrollContainerRef.current.scrollHeight;
+              initialScrolledConversationIdRef.current = selectedWaConv.id;
+              isNearBottomRef.current = true;
+            }
+          });
+        });
+      } else if (isNearBottomRef.current) {
+        requestAnimationFrame(() => {
+          if (waScrollContainerRef.current) {
+            waScrollContainerRef.current.scrollTop = waScrollContainerRef.current.scrollHeight;
+          }
+        });
+      }
+    }
+  }, [selectedWaConv?.id, lastMessageId]);
+
+  const handleWaScroll = () => {
+    if (waScrollContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = waScrollContainerRef.current;
+      isNearBottomRef.current = shouldAutoScroll(scrollTop, scrollHeight, clientHeight);
+    }
+  };
 
   useEffect(() => {
     if (activeTab === 'whatsapp') {
@@ -86,12 +170,14 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
         if (res.success) setClientTransactions(res.transactions || []);
       });
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setClientTransactions([]);
     }
   }, [selectedClient]);
 
   useEffect(() => {
     const savedTab = localStorage.getItem('adminActiveTab');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (savedTab) setActiveTab(savedTab);
   }, []);
 
@@ -188,58 +274,117 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const rejectedDossiers = dossiers.filter(d => d.statut === 'REJETE').length;
 
   return (
-    <div className="admin-container" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--color-gray-light)' }}>
+    <div className="admin-container" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--color-gray-light)', overflowX: 'hidden' }}>
       {/* Sidebar */}
-      <aside className="admin-sidebar" style={{
+      {/* Mobile Backdrop */}
+      <div
+        className={`admin-backdrop ${isMobileDrawerOpen ? 'open' : ''}`}
+        onClick={() => setIsMobileDrawerOpen(false)}
+      />
+      <aside
+        id="admin-mobile-drawer"
+        className={getSidebarClasses(isMobileDrawerOpen)}
+        style={{
         backgroundColor: '#ffffff',
         display: 'flex',
-        flexDirection: 'column',
-        zIndex: 40
+        flexDirection: 'column'
       }}>
-        <div style={{ padding: '2rem 1.5rem', borderBottom: '1px solid #E2E8F0' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            Business Action
-          </h2>
+        <div className="drawer-header" style={{ padding: '2rem 1.5rem', borderBottom: '1px solid #E2E8F0', flexShrink: 0 }}>
+          <Link href="/admin" onClick={() => setIsMobileDrawerOpen(false)} style={{ textDecoration: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Image
+                src="/Logo Business Action.png"
+                alt="Business Action"
+                width={180}
+                height={50}
+                style={{ width: 'auto', height: '40px', maxWidth: '100%' }}
+                priority
+              />
+            </div>
+          </Link>
+          <button
+            className="mobile-only"
+            onClick={() => setIsMobileDrawerOpen(false)}
+            aria-label="Fermer le menu"
+            style={{ background: 'none', border: 'none', padding: '0.5rem', marginLeft: 'auto', cursor: 'pointer', color: '#64748B' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
 
-        <nav style={{ flex: 1, padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <button onClick={() => setActiveTab('dashboard')} style={{ ...navItemStyle, ...(activeTab === 'dashboard' ? activeNavItemStyle : {}) }}>
+        <div className="drawer-scroll-content" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+          <nav style={{ flex: 1, padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <button onClick={() => { setActiveTab('dashboard'); setIsMobileDrawerOpen(false); }} style={{ ...navItemStyle, ...(activeTab === 'dashboard' ? activeNavItemStyle : {}) }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
             Tableau de bord
           </button>
-          <button onClick={() => setActiveTab('demandes')} style={{ ...navItemStyle, ...(activeTab === 'demandes' ? activeNavItemStyle : {}) }}>
+          <button onClick={() => { setActiveTab('demandes'); setIsMobileDrawerOpen(false); }} style={{ ...navItemStyle, ...(activeTab === 'demandes' ? activeNavItemStyle : {}) }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
             Demandes
           </button>
-          <button onClick={() => setActiveTab('utilisateurs')} style={{ ...navItemStyle, ...(activeTab === 'utilisateurs' ? activeNavItemStyle : {}) }}>
+          <button onClick={() => { setActiveTab('utilisateurs'); setIsMobileDrawerOpen(false); }} style={{ ...navItemStyle, ...(activeTab === 'utilisateurs' ? activeNavItemStyle : {}) }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             Utilisateurs
           </button>
-          <button onClick={() => setActiveTab('parametres')} style={{ ...navItemStyle, ...(activeTab === 'parametres' ? activeNavItemStyle : {}) }}>
+          <button onClick={() => { setActiveTab('parametres'); setIsMobileDrawerOpen(false); }} style={{ ...navItemStyle, ...(activeTab === 'parametres' ? activeNavItemStyle : {}) }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             Paramètres
           </button>
-          <button onClick={() => { setActiveTab('whatsapp'); setSelectedWaConv(null); }} style={{ ...navItemStyle, ...(activeTab === 'whatsapp' ? activeNavItemStyle : {}) }}>
+          <button onClick={() => { setActiveTab('whatsapp'); setSelectedWaConv(null); initialScrolledConversationIdRef.current = null; setIsMobileDrawerOpen(false); }} style={{ ...navItemStyle, ...(activeTab === 'whatsapp' ? activeNavItemStyle : {}) }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
             WhatsApp
           </button>
         </nav>
+
+        <div className="mobile-only" style={{ padding: '1.5rem', borderTop: '1px solid #E2E8F0', flexDirection: 'column', gap: '1rem' }}>
+          {renderSearch()}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', paddingLeft: '0.5rem' }}>
+            {renderNotifications(true)}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--color-primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', fontWeight: 'bold' }}>
+              A
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: '#0F172A' }}>Admin</p>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>admin@business-action.com</p>
+            </div>
+          </div>
+          <button onClick={() => { logoutAdmin(); setIsMobileDrawerOpen(false); }} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: '#FEE2E2', color: '#DC2626', border: 'none', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            Déconnexion
+          </button>
+        </div>
+        </div>
       </aside>
 
       {/* Main Content */}
       <main className="admin-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
         {/* Topbar */}
         <header style={{ height: '70px', backgroundColor: '#ffffff', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', position: 'sticky', top: 0, zIndex: 30 }}>
-          <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" placeholder="Rechercher un dossier..." style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', borderRadius: '999px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.875rem', backgroundColor: '#F8FAFC' }} />
+          <div className="mobile-only" style={{ display: 'flex', alignItems: 'center' }}>
+            <Image
+              src="/Logo Business Action.png"
+              alt="Business Action"
+              width={180}
+              height={50}
+              style={{ width: 'auto', height: '40px', maxWidth: '100%' }}
+              priority
+            />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <button style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', color: '#64748B' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-              <span style={{ position: 'absolute', top: '-2px', right: '-2px', width: '10px', height: '10px', backgroundColor: '#EF4444', borderRadius: '50%', border: '2px solid #fff' }}></span>
+          <button
+              className="mobile-only"
+              onClick={() => setIsMobileDrawerOpen(true)}
+              aria-label="Ouvrir le menu"
+              aria-expanded={isMobileDrawerOpen}
+              aria-controls="admin-mobile-drawer"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', color: '#0F172A' }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
+            <div className="desktop-only" style={{ width: '100%', maxWidth: '300px' }}>{renderSearch()}</div>
+          <div className="desktop-only" style={{ alignItems: 'center', gap: '1.5rem' }}>
+            {renderNotifications()}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderLeft: '1px solid #E2E8F0', paddingLeft: '1.5rem' }}>
               <div style={{ textAlign: 'right' }}>
                 <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: '#0F172A' }}>Admin</p>
@@ -256,13 +401,15 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
         </header>
 
         {/* Content Area */}
-        <div style={{ padding: '2rem', flex: 1 }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ padding: activeTab === 'whatsapp' ? 0 : '2rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', flex: 1 }}>
 
-            <div style={{ marginBottom: '2rem' }}>
-              <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#0F172A', margin: '0 0 0.5rem 0' }}>Bonjour, Admin 👋</h1>
-              <p style={{ color: '#64748B', margin: 0 }}>Voici un aperçu des activités de votre plateforme.</p>
-            </div>
+            {activeTab === 'dashboard' && (
+              <div style={{ marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#0F172A', margin: '0 0 0.5rem 0' }}>Bonjour, Admin 👋</h1>
+                <p style={{ color: '#64748B', margin: 0 }}>Voici un aperçu des activités de votre plateforme.</p>
+              </div>
+            )}
 
             {/* KPI Cards */}
             {(activeTab === 'dashboard' || activeTab === 'demandes') && (
@@ -325,124 +472,186 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                   Filtrer
                 </button>
               </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                    <tr>
-                      <th style={thStyle}>Client & Dossier</th>
-                      <th style={thStyle}>Véhicule & Docs</th>
-                      <th style={thStyle}>Date</th>
-                      <th style={thStyle}>Statut</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dossiers.map((dossier) => {
-                      const statusInfo = getStatusColor(dossier.statut);
-                      return (
-                        <tr key={dossier.id} style={{ borderBottom: '1px solid #E2E8F0', transition: 'background-color 0.2s' }} className="hover:bg-gray-50">
-                          <td style={tdStyle}>
-                            <p style={{ fontWeight: 700, color: '#0F172A', margin: '0 0 0.25rem 0' }}>{dossier.numeroDossier}</p>
-                            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                              {dossier.phone}
-                            </p>
-                            {dossier.email && (
-                               <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0.25rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                                 {dossier.email}
-                               </p>
-                            )}
-                          </td>
-                          <td style={tdStyle}>
-                            <span style={{ fontSize: '0.875rem', color: '#334155', fontWeight: 600, textTransform: 'capitalize', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#F1F5F9', padding: '0.25rem 0.75rem', borderRadius: '999px' }}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                              {dossier.typeVehicule.toLowerCase().replace('_', ' ')}
-                            </span>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              {dossier.rectoUrl && <a href={dossier.rectoUrl} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 Carte Grise (Recto)</a>}
-                              {dossier.versoUrl && <a href={dossier.versoUrl} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 Carte Grise (Verso)</a>}
-                            </div>
-                          </td>
-                          <td style={{ ...tdStyle, color: '#64748B' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                              {new Date(dossier.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                            </div>
-                          </td>
-                          <td style={tdStyle}>
-                            <span style={{
-                              backgroundColor: statusInfo.bg,
-                              color: statusInfo.color,
-                              padding: '0.375rem 0.75rem',
-                              borderRadius: '9999px',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.375rem'
-                            }}>
-                              {isUpdating === dossier.id && (
-                                <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+              <div style={{ width: '100%' }}>
+                {/* Desktop View */}
+                <div className="desktop-only" style={{ overflowX: 'auto', width: '100%' }}>
+                  <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                      <tr>
+                        <th style={thStyle}>Client & Dossier</th>
+                        <th style={thStyle}>Véhicule & Docs</th>
+                        <th style={thStyle}>Date</th>
+                        <th style={thStyle}>Statut</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dossiers.map((dossier) => {
+                        const statusInfo = getStatusColor(dossier.statut);
+                        return (
+                          <tr key={dossier.id} style={{ borderBottom: '1px solid #E2E8F0', transition: 'background-color 0.2s' }} className="hover:bg-gray-50">
+                            <td style={tdStyle}>
+                              <p style={{ fontWeight: 700, color: '#0F172A', margin: '0 0 0.25rem 0' }}>{dossier.numeroDossier}</p>
+                              <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                {dossier.phone}
+                              </p>
+                              {dossier.email && (
+                                 <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0.25rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                   {dossier.email}
+                                 </p>
                               )}
-                              {statusInfo.label}
-                            </span>
-                          </td>
-                          <td style={{ ...tdStyle, textAlign: 'right' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                              <button
-                                onClick={() => setSelectedDossier(dossier)}
-                                style={{ padding: '0.5rem', backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
-                                title="Voir détails"
-                              >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                              </button>
-                              <select
-                                value={dossier.statut}
-                                onChange={(e) => handleStatusChange(dossier.id, e.target.value)}
-                                disabled={isUpdating === dossier.id}
-                                style={{
-                                  padding: '0.5rem 2rem 0.5rem 0.75rem',
-                                  borderRadius: '0.5rem',
-                                  border: '1px solid #CBD5E1',
-                                  fontSize: '0.875rem',
-                                  fontWeight: 600,
-                                  outline: 'none',
-                                  cursor: isUpdating === dossier.id ? 'not-allowed' : 'pointer',
-                                  backgroundColor: isUpdating === dossier.id ? '#F1F5F9' : '#fff',
-                                  color: '#334155',
-                                  appearance: 'none',
-                                  backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23475569%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")`,
-                                  backgroundRepeat: 'no-repeat',
-                                  backgroundPosition: 'right 0.7rem top 50%',
-                                  backgroundSize: '0.65rem auto',
-                                }}
-                              >
-                                <option value="EN_ATTENTE">Mettre en attente</option>
-                                <option value="EN_TRAITEMENT">Traiter</option>
-                                <option value="OFFRE_ENVOYEE">Offre Envoyée</option>
-                                <option value="VALIDE">Valider</option>
-                                <option value="REJETE">Rejeter</option>
-                              </select>
+                            </td>
+                            <td style={tdStyle}>
+                              <span style={{ fontSize: '0.875rem', color: '#334155', fontWeight: 600, textTransform: 'capitalize', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#F1F5F9', padding: '0.25rem 0.75rem', borderRadius: '999px' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                {dossier.typeVehicule.toLowerCase().replace('_', ' ')}
+                              </span>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {dossier.rectoUrl && <a href={dossier.rectoUrl} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 Carte Grise (Recto)</a>}
+                                {dossier.versoUrl && <a href={dossier.versoUrl} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 Carte Grise (Verso)</a>}
+                              </div>
+                            </td>
+                            <td style={{ ...tdStyle, color: '#64748B' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                {new Date(dossier.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </div>
+                            </td>
+                            <td style={tdStyle}>
+                              <span style={{
+                                backgroundColor: statusInfo.bg,
+                                color: statusInfo.color,
+                                padding: '0.375rem 0.75rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.375rem'
+                              }}>
+                                {isUpdating === dossier.id && (
+                                  <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                                )}
+                                {statusInfo.label}
+                              </span>
+                            </td>
+                            <td style={{ ...tdStyle, textAlign: 'right' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                <button
+                                  onClick={() => setSelectedDossier(dossier)}
+                                  style={{ padding: '0.5rem', backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+                                  title="Voir détails"
+                                >
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                                <select
+                                  value={dossier.statut}
+                                  onChange={(e) => handleStatusChange(dossier.id, e.target.value)}
+                                  disabled={isUpdating === dossier.id}
+                                  style={{
+                                    padding: '0.5rem 2rem 0.5rem 0.75rem',
+                                    borderRadius: '0.5rem',
+                                    border: '1px solid #CBD5E1',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600,
+                                    outline: 'none',
+                                    cursor: isUpdating === dossier.id ? 'not-allowed' : 'pointer',
+                                    backgroundColor: isUpdating === dossier.id ? '#F1F5F9' : '#fff',
+                                    color: '#334155',
+                                    appearance: 'none',
+                                    backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23475569%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'right 0.7rem top 50%',
+                                    backgroundSize: '0.65rem auto',
+                                  }}
+                                >
+                                  <option value="EN_ATTENTE">Mettre en attente</option>
+                                  <option value="EN_TRAITEMENT">Traiter</option>
+                                  <option value="OFFRE_ENVOYEE">Offre Envoyée</option>
+                                  <option value="VALIDE">Valider</option>
+                                  <option value="REJETE">Rejeter</option>
+                                </select>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+
+                      {dossiers.length === 0 && (
+                        <tr>
+                          <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: '#64748B' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                              <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: 500 }}>Aucun dossier trouvé.</p>
+                              <p style={{ margin: 0, fontSize: '0.875rem' }}>Les nouvelles demandes apparaîtront ici.</p>
                             </div>
                           </td>
                         </tr>
-                      )
-                    })}
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-                    {dossiers.length === 0 && (
-                      <tr>
-                        <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: '#64748B' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                            <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: 500 }}>Aucun dossier trouvé.</p>
-                            <p style={{ margin: 0, fontSize: '0.875rem' }}>Les nouvelles demandes apparaîtront ici.</p>
+                {/* Mobile View */}
+                <div className="mobile-only" style={{ flexDirection: 'column', padding: '1rem', gap: '1rem', width: '100%' }}>
+                  {dossiers.map((dossier) => {
+                    const statusInfo = getStatusColor(dossier.statut);
+                    return (
+                      <div key={`mob-${dossier.id}`} style={{ border: '1px solid #E2E8F0', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', backgroundColor: '#fff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ wordBreak: 'break-all' }}>
+                            <p style={{ fontWeight: 800, color: '#0F172A', margin: '0 0 0.25rem 0', fontSize: '1rem' }}>{dossier.numeroDossier}</p>
+                            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              📞 {dossier.phone}
+                            </p>
+                            {dossier.email && (
+                              <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0.25rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                ✉ {dossier.email}
+                              </p>
+                            )}
                           </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                          <span style={{
+                            backgroundColor: statusInfo.bg,
+                            color: statusInfo.color,
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {statusInfo.label}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>Véhicule</p>
+                          <span style={{ fontSize: '0.875rem', color: '#334155', fontWeight: 600, textTransform: 'capitalize', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#F1F5F9', padding: '0.25rem 0.75rem', borderRadius: '999px', width: 'fit-content' }}>
+                            {dossier.typeVehicule.toLowerCase().replace('_', ' ')}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                           <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                             {new Date(dossier.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                           </span>
+                           <button
+                             onClick={() => setSelectedDossier(dossier)}
+                             style={{ padding: '0.5rem 1rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}
+                           >
+                             Voir le dossier
+                           </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {dossiers.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748B' }}>
+                       <p style={{ margin: 0, fontSize: '1rem', fontWeight: 500 }}>Aucun dossier trouvé.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
               </>
@@ -487,55 +696,109 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                   </div>
                 )}
 
-                <div style={{ overflowX: 'auto', width: '100%' }}>
-                  <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                      <tr>
-                        <th style={thStyle}>Client</th>
-                        <th style={thStyle}>Contact</th>
-                        <th style={thStyle}>Dossiers Actifs</th>
-                        <th style={thStyle}>Solde Global</th>
-                        <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {clients.map((client) => (
-                        <tr key={client.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                          <td style={tdStyle}>
-                            <p style={{ fontWeight: 700, color: '#0F172A', margin: '0 0 0.25rem 0' }}>{client.name}</p>
-                            <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', backgroundColor: '#E2E8F0', color: '#475569', borderRadius: '4px' }}>Client Régulier</span>
-                          </td>
-                          <td style={tdStyle}>
-                            <p style={{ fontSize: '0.875rem', color: '#334155', margin: '0 0 0.25rem 0', fontWeight: 600 }}>{client.phone}</p>
-                            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0 }}>{client.email}</p>
-                          </td>
-                          <td style={tdStyle}>
-                            <span style={{ fontWeight: 700, color: '#0F172A', backgroundColor: '#F1F5F9', padding: '0.2rem 0.6rem', borderRadius: '1rem' }}>{client.dossiers}</span>
-                          </td>
-                          <td style={tdStyle}>
+                <div style={{ width: '100%' }}>
+                  <div className="desktop-only" style={{ overflowX: 'auto', width: '100%' }}>
+                    <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                        <tr>
+                          <th style={thStyle}>Client</th>
+                          <th style={thStyle}>Contact</th>
+                          <th style={thStyle}>Dossiers Actifs</th>
+                          <th style={thStyle}>Solde Global</th>
+                          <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {clients.map((client) => (
+                          <tr key={client.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                            <td style={tdStyle}>
+                              <p style={{ fontWeight: 700, color: '#0F172A', margin: '0 0 0.25rem 0' }}>{client.name}</p>
+                              <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', backgroundColor: '#E2E8F0', color: '#475569', borderRadius: '4px' }}>Client Régulier</span>
+                            </td>
+                            <td style={tdStyle}>
+                              <p style={{ fontSize: '0.875rem', color: '#334155', margin: '0 0 0.25rem 0', fontWeight: 600 }}>{client.phone}</p>
+                              <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0 }}>{client.email}</p>
+                            </td>
+                            <td style={tdStyle}>
+                              <span style={{ fontWeight: 700, color: '#0F172A', backgroundColor: '#F1F5F9', padding: '0.2rem 0.6rem', borderRadius: '1rem' }}>{client.dossiers}</span>
+                            </td>
+                            <td style={tdStyle}>
+                              <span style={{
+                                padding: '0.375rem 0.75rem',
+                                borderRadius: '2rem',
+                                fontSize: '0.875rem',
+                                fontWeight: 700,
+                                backgroundColor: client.solde === 0 ? '#F1F5F9' : (client.solde < 0 ? '#FEE2E2' : '#DCFCE7'),
+                                color: client.solde === 0 ? '#475569' : (client.solde < 0 ? '#DC2626' : '#16A34A')
+                              }}>
+                                {client.solde === 0 ? 'À jour' : `${client.solde > 0 ? '+' : ''}${client.solde.toLocaleString('fr-FR')} FCFA`}
+                              </span>
+                            </td>
+                            <td style={{ ...tdStyle, textAlign: 'right' }}>
+                              <button
+                                onClick={() => setSelectedClient(client)}
+                                style={{ padding: '0.5rem 1rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s' }}
+                              >
+                                Voir Détails
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mobile-only" style={{ flexDirection: 'column', gap: '1rem', width: '100%' }}>
+                    {clients.map((client) => (
+                      <div key={`mob-client-${client.id}`} style={{ border: '1px solid #E2E8F0', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', backgroundColor: '#fff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ wordBreak: 'break-all' }}>
+                            <p style={{ fontWeight: 800, color: '#0F172A', margin: '0 0 0.25rem 0', fontSize: '1rem' }}>{client.name}</p>
+                            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              📞 {client.phone}
+                            </p>
+                            {client.email && (
+                              <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0.25rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                ✉ {client.email}
+                              </p>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', backgroundColor: '#E2E8F0', color: '#475569', borderRadius: '4px', whiteSpace: 'nowrap' }}>Client Régulier</span>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>Dossiers Actifs</p>
+                            <span style={{ fontWeight: 700, color: '#0F172A', backgroundColor: '#F1F5F9', padding: '0.2rem 0.6rem', borderRadius: '1rem', display: 'inline-block', marginTop: '0.25rem' }}>{client.dossiers}</span>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>Solde Global</p>
                             <span style={{
-                              padding: '0.375rem 0.75rem',
+                              padding: '0.25rem 0.5rem',
                               borderRadius: '2rem',
                               fontSize: '0.875rem',
                               fontWeight: 700,
+                              display: 'inline-block',
+                              marginTop: '0.25rem',
                               backgroundColor: client.solde === 0 ? '#F1F5F9' : (client.solde < 0 ? '#FEE2E2' : '#DCFCE7'),
                               color: client.solde === 0 ? '#475569' : (client.solde < 0 ? '#DC2626' : '#16A34A')
                             }}>
                               {client.solde === 0 ? 'À jour' : `${client.solde > 0 ? '+' : ''}${client.solde.toLocaleString('fr-FR')} FCFA`}
                             </span>
-                          </td>
-                          <td style={{ ...tdStyle, textAlign: 'right' }}>
-                            <button
-                              onClick={() => setSelectedClient(client)}
-                              style={{ padding: '0.5rem 1rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s' }}
-                            >
-                              Voir Détails
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                           <button
+                             onClick={() => setSelectedClient(client)}
+                             style={{ padding: '0.5rem 1rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}
+                           >
+                             Voir Détails
+                           </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -1024,9 +1287,9 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
 
         {/* --- WHATSAPP TAB --- */}
         {activeTab === 'whatsapp' && (
-          <div className="animate-fade-in" style={{ display: 'flex', gap: '1.5rem', height: 'calc(100vh - 120px)', backgroundColor: '#fff', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+          <div className={`animate-fade-in ${getWhatsappGridClasses(!!selectedWaConv)}`} style={{ backgroundColor: '#fff', borderRadius: '0', overflow: 'hidden' }}>
             {/* Liste des conversations */}
-            <div style={{ width: '350px', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC' }}>
+            <div className="wa-list-container" style={{ borderRight: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
               <div style={{ padding: '1.5rem', borderBottom: '1px solid #E2E8F0', backgroundColor: '#fff' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
@@ -1040,7 +1303,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                   return (
                     <div
                       key={conv.id}
-                      onClick={() => { setSelectedWaConv(conv); setWaError(''); }}
+                      onClick={() => { initialScrolledConversationIdRef.current = null; setSelectedWaConv(conv); setWaError(''); }}
                       style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #E2E8F0', cursor: 'pointer', backgroundColor: isActive ? '#EFF6FF' : 'transparent', transition: 'background-color 0.2s' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
@@ -1068,15 +1331,24 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
 
             {/* Vue d'une conversation */}
             {selectedWaConv ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', backgroundColor: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1.125rem', color: '#0F172A', fontWeight: 600 }}>
-                      {selectedWaConv.displayName || 'Client WhatsApp'}
-                    </h3>
-                    <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748B' }}>
-                      {selectedWaConv.waId.replace(/(\d{2})(\d{3})(\d{3})(\d{3})/, '+$1 $2 $3 $4')}
-                    </p>
+              <div className="wa-conv-container" style={{ minWidth: 0 }}>
+                <div className="wa-conversation-header" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', backgroundColor: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0, flexShrink: 0, position: 'sticky', top: 0, zIndex: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                    <button
+                      className="mobile-only"
+                      onClick={() => { setSelectedWaConv(null); initialScrolledConversationIdRef.current = null; }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', marginLeft: '-0.5rem', color: '#64748B', flexShrink: 0 }}
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    </button>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.125rem', color: '#0F172A', fontWeight: 600, display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {selectedWaConv.displayName || 'Client WhatsApp'}
+                      </h3>
+                      <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {selectedWaConv.waId.replace(/(\d{2})(\d{3})(\d{3})(\d{3})/, '+$1 $2 $3 $4')}
+                      </p>
+                    </div>
                   </div>
                   {selectedWaConv.botState === 'HUMAN_SUPPORT' && (
                     <button
@@ -1090,44 +1362,66 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                           setWaError(res.error || 'Erreur lors de la reprise.');
                         }
                       }}
-                      style={{ padding: '0.5rem 1rem', backgroundColor: '#3B82F6', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+                      style={{ padding: '0.5rem 1rem', backgroundColor: '#3B82F6', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem', flexShrink: 0, whiteSpace: 'nowrap' }}
                     >
                       Rendre la main au bot
                     </button>
                   )}
                 </div>
 
-                <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {waMessages.map(msg => {
+                <div ref={waScrollContainerRef} onScroll={handleWaScroll} className="wa-messages" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0, padding: '1.5rem', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+                  {waMessages.map((msg, index) => {
                     const isInbound = msg.direction === 'INBOUND';
-                    const time = new Date(msg.metaTimestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                    // Fallback sur createdAt si metaTimestamp est absent (bien que schema l'oblige)
+                    const timestampToUse = msg.metaTimestamp || msg.createdAt;
+
+                    const currentDayKey = getMessageDayKey(timestampToUse);
+                    const previousDayKey = index > 0
+                      ? getMessageDayKey(waMessages[index - 1].metaTimestamp || waMessages[index - 1].createdAt)
+                      : null;
+
+                    const showSeparator = currentDayKey !== previousDayKey;
+
+                    const time = formatMessageTime(timestampToUse);
+
                     return (
-                      <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isInbound ? 'flex-start' : 'flex-end' }}>
-                        <div style={{
-                          maxWidth: '75%',
-                          padding: '0.875rem 1rem',
-                          borderRadius: '1rem',
-                          borderBottomLeftRadius: isInbound ? '0' : '1rem',
-                          borderBottomRightRadius: !isInbound ? '0' : '1rem',
-                          backgroundColor: isInbound ? '#fff' : '#10B981',
-                          color: isInbound ? '#0F172A' : '#fff',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                          border: isInbound ? '1px solid #E2E8F0' : 'none'
-                        }}>
-                          {msg.content}
+                      <React.Fragment key={msg.id}>
+                        {showSeparator && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '1rem 0' }}>
+                            <div style={{ backgroundColor: '#F1F5F9', padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem', color: '#64748B', fontWeight: 500, letterSpacing: '0.025em' }}>
+                              {formatMessageDate(timestampToUse)}
+                            </div>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: isInbound ? 'flex-start' : 'flex-end', width: '100%', minWidth: 0 }}>
+                          <div style={{
+                            maxWidth: '85%',
+                            overflowWrap: 'anywhere',
+                            wordBreak: 'break-word',
+                            padding: '0.875rem 1rem',
+                            borderRadius: '1rem',
+                            borderBottomLeftRadius: isInbound ? '0' : '1rem',
+                            borderBottomRightRadius: !isInbound ? '0' : '1rem',
+                            backgroundColor: isInbound ? '#fff' : '#10B981',
+                            color: isInbound ? '#0F172A' : '#fff',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            border: isInbound ? '1px solid #E2E8F0' : 'none'
+                          }}>
+                            {msg.content}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', fontSize: '0.75rem', color: '#64748B' }}>
+                            <span>{time}</span>
+                            {!isInbound && (
+                              <span style={{
+                                color: msg.status === 'FAILED' ? '#EF4444' : (msg.status === 'READ' ? '#3B82F6' : '#94A3B8'),
+                                fontWeight: 600
+                              }}>
+                                {msg.status === 'FAILED' ? 'Échec' : (msg.status === 'READ' ? 'Lu' : (msg.status === 'DELIVERED' ? 'Distribué' : 'Envoyé'))}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', fontSize: '0.75rem', color: '#64748B' }}>
-                          <span>{time}</span>
-                          {!isInbound && (
-                            <span style={{
-                              color: msg.status === 'FAILED' ? '#EF4444' : (msg.status === 'READ' ? '#3B82F6' : '#94A3B8'),
-                              fontWeight: 600
-                            }}>
-                              {msg.status === 'FAILED' ? 'Échec' : (msg.status === 'READ' ? 'Lu' : (msg.status === 'DELIVERED' ? 'Distribué' : 'Envoyé'))}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                      </React.Fragment>
                     );
                   })}
                   {waMessages.length === 0 && (
@@ -1135,25 +1429,26 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                   )}
                 </div>
 
-                <div style={{ padding: '1.5rem', backgroundColor: '#fff', borderTop: '1px solid #E2E8F0' }}>
+                <div className="wa-composer" style={{ flexShrink: 0, padding: '1.5rem', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))', backgroundColor: '#fff', borderTop: '1px solid #E2E8F0', width: '100%', minWidth: 0 }}>
                   {waError && <div style={{ color: '#DC2626', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: 500 }}>{waError}</div>}
-                  <form onSubmit={handleSendWaReply} style={{ display: 'flex', gap: '1rem' }}>
+                  <form onSubmit={handleSendWaReply} style={{ display: 'flex', gap: '0.5rem', width: '100%', minWidth: 0 }}>
                     <input
                       type="text"
                       value={waReplyText}
                       onChange={(e) => setWaReplyText(e.target.value)}
                       placeholder="Écrire un message..."
-                      style={{ flex: 1, padding: '0.875rem 1.25rem', borderRadius: '999px', border: '1px solid #E2E8F0', outline: 'none', backgroundColor: '#F8FAFC' }}
+                      style={{ flex: 1, minWidth: 0, padding: '0.875rem 1.25rem', borderRadius: '999px', border: '1px solid #E2E8F0', outline: 'none', backgroundColor: '#F8FAFC' }}
                     />
                     <button
                       type="submit"
                       disabled={isSendingWa || !waReplyText.trim()}
-                      style={{ padding: '0 1.5rem', borderRadius: '999px', border: 'none', backgroundColor: '#10B981', color: '#fff', fontWeight: 600, cursor: isSendingWa ? 'not-allowed' : 'pointer', opacity: (isSendingWa || !waReplyText.trim()) ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                      style={{ padding: '0 1rem', flexShrink: 0, borderRadius: '999px', border: 'none', backgroundColor: '#10B981', color: '#fff', fontWeight: 600, cursor: isSendingWa ? 'not-allowed' : 'pointer', opacity: (isSendingWa || !waReplyText.trim()) ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     >
-                      {isSendingWa ? 'Envoi...' : (
+                      {isSendingWa ? '...' : (
                         <>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                          Envoyer
+                          <svg className="desktop-only" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                          <svg className="mobile-only" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                          <span className="desktop-only">Envoyer</span>
                         </>
                       )}
                     </button>

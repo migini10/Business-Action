@@ -266,10 +266,10 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     });
     const { resumeBot } = require('../app/actions/whatsapp');
     const res = await resumeBot('conv_1');
-    
+
     assert.strictEqual(res.success, true);
     assert.strictEqual(mockPrisma.whatsAppConversation.update.mock.callCount(), 1);
-    
+
     const updateArgs = mockPrisma.whatsAppConversation.update.mock.calls[0].arguments[0];
     assert.strictEqual(updateArgs.where.id, 'conv_1');
     assert.strictEqual(updateArgs.data.botState, 'IDLE');
@@ -336,5 +336,20 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     assert.strictEqual(mockPrisma.whatsAppMessage.update.mock.calls[0].arguments[0].data.waMessageId, 'wamid.outbound.1');
 
     global.fetch = originalFetch;
+  });
+
+  test('Admin Action: getWhatsAppMessages sorting by metaTimestamp asc then createdAt asc', async () => {
+    mockPrisma.whatsAppMessage.findMany.mock.mockImplementation(async () => [
+      { id: '1', metaTimestamp: new Date('2026-08-17T10:00:00Z') },
+      { id: '2', metaTimestamp: new Date('2026-08-17T10:05:00Z') }
+    ]);
+    const res = await getWhatsAppMessages('conv_1');
+    assert.strictEqual(res.success, true);
+
+    const callArgs = mockPrisma.whatsAppMessage.findMany.mock.calls[0].arguments[0];
+    assert.deepStrictEqual(callArgs.orderBy, [
+      { metaTimestamp: 'asc' },
+      { createdAt: 'asc' }
+    ], 'Should order by metaTimestamp and createdAt ascending');
   });
 });

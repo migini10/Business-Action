@@ -29,7 +29,10 @@ export async function getWhatsAppMessages(conversationId: string) {
   try {
     const messages = await prisma.whatsAppMessage.findMany({
       where: { conversationId },
-      orderBy: { metaTimestamp: 'asc' },
+      orderBy: [
+        { metaTimestamp: 'asc' },
+        { createdAt: 'asc' }
+      ],
     });
     return { success: true, messages };
   } catch (error: any) {

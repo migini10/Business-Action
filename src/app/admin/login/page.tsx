@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { loginAdmin } from '@/app/actions/admin-auth-actions';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function AdminLogin() {
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +32,16 @@ export default function AdminLogin() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC' }}>
       <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', width: '100%', maxWidth: '400px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+          <Image
+            src="/Logo Business Action.png"
+            alt="Business Action"
+            width={180}
+            height={50}
+            style={{ width: 'auto', height: '40px', maxWidth: '100%' }}
+            priority
+          />
+        </div>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', textAlign: 'center', color: '#1e293b' }}>
           Espace Administrateur
         </h1>
@@ -42,26 +53,26 @@ export default function AdminLogin() {
         <form action={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <label htmlFor="user" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#475569', marginBottom: '0.25rem' }}>Identifiant</label>
-            <input 
+            <input
               id="user"
               name="user"
-              type="text" 
+              type="text"
               required
               style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', boxSizing: 'border-box' }}
             />
           </div>
           <div>
             <label htmlFor="password" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#475569', marginBottom: '0.25rem' }}>Mot de passe</label>
-            <input 
+            <input
               id="password"
               name="password"
-              type="password" 
+              type="password"
               required
               style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', boxSizing: 'border-box' }}
             />
           </div>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
             style={{ marginTop: '1rem', width: '100%', backgroundColor: '#2563EB', color: 'white', padding: '0.75rem', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
           >
