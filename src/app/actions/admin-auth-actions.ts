@@ -12,8 +12,12 @@ export async function loginAdmin(formData: FormData) {
     return { success: false, error: 'Identifiants requis' };
   }
 
-  const validUser = process.env.ADMIN_USER || 'admin';
-  const validPass = process.env.ADMIN_PASSWORD || 'bizness2026';
+  const validUser = process.env.ADMIN_USER;
+  const validPass = process.env.ADMIN_PASSWORD;
+
+  if (!validUser || !validPass) {
+    return { success: false, error: 'Identifiants incorrects' };
+  }
 
   const userBuf = Buffer.from(user);
   const validUserBuf = Buffer.from(validUser);
