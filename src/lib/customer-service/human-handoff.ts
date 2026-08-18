@@ -22,6 +22,9 @@ export async function handleHumanHandoff(
     },
     data: {
       botState: 'HUMAN_SUPPORT',
+      supportStatus: 'TO_DO',
+      claimedAt: null,
+      resolvedAt: null,
       draftQuote: Prisma.DbNull,
       trackingContext: Prisma.DbNull
     }

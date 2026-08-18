@@ -222,7 +222,7 @@ describe('PWA Integration & Idempotency Tests', () => {
   test('AUTO-005: transition atomique IDLE -> HUMAN_SUPPORT & Push handoff exactement 1 fois', async () => {
     const { handleHumanHandoff } = require('./customer-service/human-handoff');
     const conv = { id: 'conv-123', waId: '123', phone: '123', language: 'fr', botState: 'IDLE' };
-    
+
     // First call succeeds (atomic win)
     const response1 = await handleHumanHandoff(conv, 'fr');
     assert.match(response1, /Votre demande a été transmise à un conseiller/); // FR -> HUMAN_SUPPORT
@@ -230,7 +230,7 @@ describe('PWA Integration & Idempotency Tests', () => {
 
     // Simulate replay/concurrent where state is already HUMAN_SUPPORT
     mockPrisma.whatsAppConversation.updateMany.mock.mockImplementationOnce(async () => ({ count: 0 }));
-    
+
     const response2 = await handleHumanHandoff(conv, 'fr');
     assert.strictEqual(response2, null); // conversation déjà HUMAN_SUPPORT => aucun deuxième handoff
     assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1); // No additional push
@@ -263,7 +263,7 @@ describe('PWA Integration & Idempotency Tests', () => {
     mockSendPush.sendPushNotificationSafe.mock.resetCalls();
 
     const conv = { id: 'conv-concurrent', waId: '123', phone: '123', language: 'fr', botState: 'IDLE' };
-    
+
     const [res1, res2] = await Promise.all([
       handleHumanHandoff(conv, 'fr'),
       handleHumanHandoff(conv, 'fr')
@@ -288,7 +288,7 @@ describe('PWA Integration & Idempotency Tests', () => {
     // Let's call processAutoReply directly to test the skip:
     const { processAutoReply } = require('./customer-service/auto-reply');
     const conv = { id: 'conv-123', waId: '123', phone: '123', language: 'fr', botState: 'HUMAN_SUPPORT' };
-    
+
     await processAutoReply(conv, { id: 'msg-1' }, 'Hello agent');
     // processAutoReply should return immediately, not calling send message
     assert.strictEqual(mockPrisma.whatsAppConversation.update.mock.callCount(), 0);
@@ -299,14 +299,14 @@ describe('PWA Integration & Idempotency Tests', () => {
     mockPrisma.whatsAppConversation.findUnique.mock.mockImplementationOnce(async () => ({
       id: 'conv_1', waId: '123', botState: 'HUMAN_SUPPORT', language: 'fr', lastMessageAt: new Date()
     }));
-    
+
     const body = JSON.stringify({
       object: 'whatsapp_business_account',
       entry: [{ changes: [{ value: { messages: [{ from: '123', id: 'wamid.human', type: 'text', text: { body: 'Hello' } }], contacts: [{ wa_id: '123' }] } }] }]
     });
     const req = new Request('http://localhost', { method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) } });
     const res = await whatsappPost(req);
-    
+
     assert.strictEqual(res.status, 200);
     // Webhook calls sendPushNotificationSafe directly. It must be called.
     assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 1);
@@ -314,7 +314,9 @@ describe('PWA Integration & Idempotency Tests', () => {
 
   test('AUTO-005: replay P2002 => aucun double handoff', async () => {
     // If webhook replays a message that caused the transition, P2002 happens before everything.
-    mockPrisma.whatsAppMessage.create.mock.mockImplementationOnce(async () => { throw { code: 'P2002' }; });
+    mockPrisma.whatsAppMessage.create.mock.mockImplementationOnce(async () => {
+      throw new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: '7' });
+    });
     mockSendPush.sendPushNotificationSafe.mock.resetCalls();
 
     const body = JSON.stringify({
@@ -323,7 +325,7 @@ describe('PWA Integration & Idempotency Tests', () => {
     });
     const req = new Request('http://localhost', { method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) } });
     const res = await whatsappPost(req);
-    
+
     assert.strictEqual(res.status, 200);
     assert.strictEqual(mockSendPush.sendPushNotificationSafe.mock.callCount(), 0);
   });

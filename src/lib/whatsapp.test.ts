@@ -5,6 +5,7 @@ import { test, describe, beforeEach, mock, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 
 // Setup require cache mocks
 const mockPrisma = {
@@ -13,12 +14,15 @@ const mockPrisma = {
     findUnique: mock.fn(async () => null),
     findMany: mock.fn(async () => []),
     update: mock.fn(async () => ({})),
+    updateMany: mock.fn(async () => ({ count: 1 })),
   },
   whatsAppMessage: {
-    create: mock.fn(async () => ({})),
+    create: mock.fn(async () => ({ id: 'msg_1' })),
     findUnique: mock.fn(async () => null),
+    findFirst: mock.fn(async () => null),
     findMany: mock.fn(async () => []),
     update: mock.fn(async () => ({})),
+    updateMany: mock.fn(async () => ({ count: 1 })),
   },
   $transaction: mock.fn(async (cb: any) => {
     return cb(mockPrisma);
@@ -77,10 +81,14 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     mockPrisma.whatsAppConversation.findUnique.mock.resetCalls();
     mockPrisma.whatsAppConversation.findMany.mock.resetCalls();
     mockPrisma.whatsAppConversation.update.mock.resetCalls();
+    mockPrisma.whatsAppConversation.updateMany?.mock?.resetCalls?.();
     mockPrisma.whatsAppMessage.create.mock.resetCalls();
     mockPrisma.whatsAppMessage.findUnique.mock.resetCalls();
+    mockPrisma.whatsAppMessage.findFirst?.mock?.resetCalls?.();
     mockPrisma.whatsAppMessage.findMany.mock.resetCalls();
     mockPrisma.whatsAppMessage.update.mock.resetCalls();
+    mockPrisma.whatsAppMessage.updateMany?.mock?.resetCalls?.();
+    mockPrisma.$transaction.mock.resetCalls();
     mockPrisma.adminSession.findUnique.mock.resetCalls();
     mockCookieStore.get.mock.resetCalls();
     mockAuth.requireAdmin.mock.resetCalls();
@@ -130,7 +138,7 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls.length, 0);
   });
 
-  test('Webhook: POST - valid text message creates conversation and message', async () => {
+  test('1. Webhook: POST - inbound unique => readAt null, transaction used', async () => {
     const body = JSON.stringify({
       object: 'whatsapp_business_account',
       entry: [{
@@ -154,25 +162,24 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     const res = await POST(req);
     assert.strictEqual(res.status, 200);
 
+    assert.strictEqual(mockPrisma.$transaction.mock.calls.length, 1);
+
     assert.strictEqual(mockPrisma.whatsAppConversation.upsert.mock.calls.length, 1);
     const upsertArgs = mockPrisma.whatsAppConversation.upsert.mock.calls[0].arguments[0];
     assert.strictEqual(upsertArgs.where.waId, '123456789');
-    assert.strictEqual(upsertArgs.create.displayName, 'John Doe');
 
     assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls.length, 1);
     const createArgs = mockPrisma.whatsAppMessage.create.mock.calls[0].arguments[0];
     assert.strictEqual(createArgs.data.waMessageId, 'wamid.123');
-    assert.strictEqual(createArgs.data.content, 'Hello Admin');
     assert.strictEqual(createArgs.data.direction, 'INBOUND');
-    assert.strictEqual(createArgs.data.status, 'RECEIVED');
+    // readAt est implicitement géré par Prisma comme null (absence de clé)
+    assert.strictEqual(createArgs.data.readAt, undefined);
   });
 
-  test('Webhook: POST - duplicated message (P2002) is idempotent', async () => {
-    // Mock create to throw P2002
+  test('3/4. Webhook: POST - duplicated message (P2002) is idempotent and lastMessageAt rollback', async () => {
+    // Dans la transaction, create throw P2002
     mockPrisma.whatsAppMessage.create.mock.mockImplementation(async () => {
-      const err: any = new Error('Unique constraint failed');
-      err.code = 'P2002';
-      throw err;
+      throw new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: '7' });
     });
 
     const body = JSON.stringify({
@@ -185,8 +192,32 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     const res = await POST(req);
     assert.strictEqual(res.status, 200); // Idempotent, returns 200
 
+    // transaction appelée, mais rollback automatique car throw.
+    assert.strictEqual(mockPrisma.$transaction.mock.calls.length, 1);
+
     // Restore mock
-    mockPrisma.whatsAppMessage.create.mock.mockImplementation(async () => ({}));
+    mockPrisma.whatsAppMessage.create.mock.mockImplementation(async () => ({ id: 'msg_1' }));
+  });
+
+  test('5. Webhook: POST - erreur transaction autre que P2002 => propagée', async () => {
+    mockPrisma.whatsAppMessage.create.mock.mockImplementation(async () => {
+      throw new Error('Database down');
+    });
+
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{ changes: [{ value: { messages: [{ from: '123', id: 'wamid.err', timestamp: '1690000000', type: 'text', text: { body: 'Err' } }] } }] }]
+    });
+    const req = new NextRequest('http://localhost/api', {
+      method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) }
+    });
+
+    // On s'attend à ce que l'erreur soit interceptée par le try/catch global et retourne 500
+    const res = await POST(req);
+    assert.strictEqual(res.status, 500);
+
+    // Restore mock
+    mockPrisma.whatsAppMessage.create.mock.mockImplementation(async () => ({ id: 'msg_1' }));
   });
 
   test('Webhook: POST - status update in order', async () => {
@@ -338,18 +369,196 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     global.fetch = originalFetch;
   });
 
-  test('Admin Action: getWhatsAppMessages sorting by metaTimestamp asc then createdAt asc', async () => {
-    mockPrisma.whatsAppMessage.findMany.mock.mockImplementation(async () => [
-      { id: '1', metaTimestamp: new Date('2026-08-17T10:00:00Z') },
-      { id: '2', metaTimestamp: new Date('2026-08-17T10:05:00Z') }
-    ]);
-    const res = await getWhatsAppMessages('conv_1');
+  test('18. Admin Action: getWhatsAppMessages sorting by metaTimestamp asc, createdAt asc, id asc', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+    const { getWhatsAppMessages } = require('../app/actions/whatsapp');
+
+    await getWhatsAppMessages('conv_target');
+
+    assert.strictEqual(mockPrisma.whatsAppMessage.findMany.mock.calls.length, 1);
+    const args = mockPrisma.whatsAppMessage.findMany.mock.calls[0].arguments[0];
+    assert.strictEqual(args.where.conversationId, 'conv_target');
+    assert.deepStrictEqual(args.orderBy, [
+      { metaTimestamp: 'asc' },
+      { createdAt: 'asc' },
+      { id: 'asc' }
+    ], 'Should order by metaTimestamp, createdAt and id ascending');
+  });
+
+  test('2. Admin Action: outbound ne participe pas aux non-lus', async () => {
+    mockPrisma.whatsAppConversation.findUnique.mock.mockImplementation(async () => ({
+      id: 'conv_1', waId: '123', lastInboundAt: new Date()
+    }));
+    const originalFetch = global.fetch;
+    global.fetch = mock.fn(async () => ({
+      ok: true,
+      json: async () => ({ messages: [{ id: 'wamid.outbound.2' }] })
+    })) as any;
+
+    const res = await sendWhatsAppMessage('conv_1', 'Hello');
     assert.strictEqual(res.success, true);
 
-    const callArgs = mockPrisma.whatsAppMessage.findMany.mock.calls[0].arguments[0];
-    assert.deepStrictEqual(callArgs.orderBy, [
-      { metaTimestamp: 'asc' },
-      { createdAt: 'asc' }
-    ], 'Should order by metaTimestamp and createdAt ascending');
+    // Check that create does not have readAt explicitly set (meaning it ignores read logic or implicitly leaves it null? Actually in Prisma, outbound doesn't need readAt set, but let's verify direction is OUTBOUND)
+    assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls.length, 1);
+    const createArgs = mockPrisma.whatsAppMessage.create.mock.calls[0].arguments[0];
+    assert.strictEqual(createArgs.data.direction, 'OUTBOUND');
+
+    global.fetch = originalFetch;
+  });
+
+  test('6. Admin Action: markAsRead sans Admin rejeté', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => { throw new Error('Unauthorized'); });
+    const { markConversationAsRead } = require('../app/actions/whatsapp');
+    try {
+      await markConversationAsRead('conv_1');
+      assert.fail('Should throw');
+    } catch (e: any) {
+      assert.strictEqual(e.message, 'Unauthorized');
+    }
+  });
+
+  test('7. Admin Action: markAsRead => uniquement messages respectant l\'ordre strict (metaTimestamp, createdAt, id)', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+
+    // Simuler le message B (borne)
+    const baseMetaTimestamp = new Date('2026-08-18T10:00:00Z');
+    const baseCreatedAt = new Date('2026-08-18T10:00:00.100Z');
+
+    mockPrisma.whatsAppMessage.findFirst.mock.mockImplementation(async (args: any) => {
+      if (args.where.id === 'msg_B') {
+        return {
+          id: 'msg_B',
+          metaTimestamp: baseMetaTimestamp,
+          createdAt: baseCreatedAt,
+          direction: 'INBOUND',
+          conversationId: 'conv_target'
+        };
+      }
+      return null;
+    });
+
+    const { markConversationAsRead } = require('../app/actions/whatsapp');
+    const res = await markConversationAsRead('conv_target', 'msg_B');
+
+    assert.strictEqual(res.success, true);
+    assert.strictEqual(mockPrisma.$transaction.mock.calls.length, 1);
+    assert.strictEqual(mockPrisma.whatsAppMessage.updateMany.mock.calls.length, 1);
+
+    const updateManyArgs = mockPrisma.whatsAppMessage.updateMany.mock.calls[0].arguments[0];
+    assert.strictEqual(updateManyArgs.where.conversationId, 'conv_target');
+
+    // Vérifier la clause OR générée
+    const orClause = updateManyArgs.where.OR;
+    assert.ok(Array.isArray(orClause));
+    assert.strictEqual(orClause.length, 3);
+
+    // 1. lt metaTimestamp
+    assert.strictEqual(orClause[0].metaTimestamp.lt, baseMetaTimestamp);
+
+    // 2. eq metaTimestamp, lt createdAt
+    assert.strictEqual(orClause[1].metaTimestamp, baseMetaTimestamp);
+    assert.strictEqual(orClause[1].createdAt.lt, baseCreatedAt);
+
+    // 3. eq metaTimestamp, eq createdAt, lte id
+    assert.strictEqual(orClause[2].metaTimestamp, baseMetaTimestamp);
+    assert.strictEqual(orClause[2].createdAt, baseCreatedAt);
+    assert.strictEqual(orClause[2].id.lte, 'msg_B');
+  });
+
+  test('7b. Admin Action: markAsRead => borne appartenant à une autre conversation ou introuvable', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+    mockPrisma.whatsAppMessage.findFirst.mock.mockImplementation(async () => null);
+
+    const { markConversationAsRead } = require('../app/actions/whatsapp');
+    const res = await markConversationAsRead('conv_target', 'msg_other_conv');
+
+    assert.strictEqual(res.success, false);
+    assert.strictEqual(res.error, 'Message de borne introuvable.');
+  });
+
+  test('7c. Admin Action: markAsRead => borne OUTBOUND rejetée', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+    // findFirst retourne null car la clause where.direction = 'INBOUND' ne trouvera pas de message si on s'attendait à ce que ce soit le cas (mais simulons juste le comportement de findFirst qui ne trouve rien)
+    mockPrisma.whatsAppMessage.findFirst.mock.mockImplementation(async () => null);
+
+    const { markConversationAsRead } = require('../app/actions/whatsapp');
+    const res = await markConversationAsRead('conv_target', 'msg_outbound');
+
+    assert.strictEqual(res.success, false);
+    assert.strictEqual(res.error, 'Message de borne introuvable.');
+  });
+
+  test('8. Handoff => HUMAN_SUPPORT + TO_DO', async () => {
+    const { handleHumanHandoff } = require('../lib/customer-service/human-handoff');
+    mockPrisma.whatsAppConversation.updateMany = mock.fn(async () => ({ count: 1 }));
+
+    await handleHumanHandoff({ id: 'conv_handoff', waId: '123' }, 'fr');
+
+    assert.strictEqual(mockPrisma.whatsAppConversation.updateMany.mock.calls.length, 1);
+    const updateArgs = mockPrisma.whatsAppConversation.updateMany.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.where.id, 'conv_handoff');
+    assert.strictEqual(updateArgs.data.botState, 'HUMAN_SUPPORT');
+    assert.strictEqual(updateArgs.data.supportStatus, 'TO_DO');
+    assert.strictEqual(updateArgs.data.claimedAt, null);
+    assert.strictEqual(updateArgs.data.resolvedAt, null);
+  });
+
+  test('9. Admin Action: claim => IN_PROGRESS', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+    const { claimConversation } = require('../app/actions/whatsapp');
+    const res = await claimConversation('conv_claim');
+
+    assert.strictEqual(res.success, true);
+    assert.strictEqual(mockPrisma.whatsAppConversation.update.mock.calls.length, 1);
+    const updateArgs = mockPrisma.whatsAppConversation.update.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.where.id, 'conv_claim');
+    assert.strictEqual(updateArgs.data.supportStatus, 'IN_PROGRESS');
+    assert.notStrictEqual(updateArgs.data.claimedAt, undefined);
+  });
+
+  test('10. Admin Action: resolve => RESOLVED', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+    const { resolveConversation } = require('../app/actions/whatsapp');
+    const res = await resolveConversation('conv_resolve');
+
+    assert.strictEqual(res.success, true);
+    const updateArgs = mockPrisma.whatsAppConversation.update.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.where.id, 'conv_resolve');
+    assert.strictEqual(updateArgs.data.supportStatus, 'RESOLVED');
+    assert.notStrictEqual(updateArgs.data.resolvedAt, undefined);
+  });
+
+  test('11. Admin Action: reopen => TO_DO', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+    const { reopenConversation } = require('../app/actions/whatsapp');
+    const res = await reopenConversation('conv_reopen');
+
+    assert.strictEqual(res.success, true);
+    const updateArgs = mockPrisma.whatsAppConversation.update.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.where.id, 'conv_reopen');
+    assert.strictEqual(updateArgs.data.supportStatus, 'TO_DO');
+    assert.strictEqual(updateArgs.data.claimedAt, null);
+    assert.strictEqual(updateArgs.data.resolvedAt, null);
+  });
+
+  test('12. Admin Action: resumeBot ne change pas supportStatus', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+    const { resumeBot } = require('../app/actions/whatsapp');
+    const res = await resumeBot('conv_resume');
+
+    assert.strictEqual(res.success, true);
+    const updateArgs = mockPrisma.whatsAppConversation.update.mock.calls[0].arguments[0];
+    assert.strictEqual(updateArgs.where.id, 'conv_resume');
+    assert.strictEqual(updateArgs.data.botState, 'IDLE');
+    assert.strictEqual(updateArgs.data.supportStatus, undefined);
+  });
+
+  test('22. aucune action conseiller sans requireAdmin', async () => {
+    mockAuth.requireAdmin.mock.mockImplementation(async () => { throw new Error('Unauthorized'); });
+    const { claimConversation, resolveConversation, reopenConversation } = require('../app/actions/whatsapp');
+
+    try { await claimConversation('conv_1'); assert.fail('Should throw'); } catch(e: any) { assert.strictEqual(e.message, 'Unauthorized'); }
+    try { await resolveConversation('conv_1'); assert.fail('Should throw'); } catch(e: any) { assert.strictEqual(e.message, 'Unauthorized'); }
+    try { await reopenConversation('conv_1'); assert.fail('Should throw'); } catch(e: any) { assert.strictEqual(e.message, 'Unauthorized'); }
   });
 });

@@ -125,6 +125,12 @@ model Transaction {
   client      User            @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
+enum WhatsAppSupportStatus {
+  TO_DO
+  IN_PROGRESS
+  RESOLVED
+}
+
 model PasswordResetChallenge {
   id                  String    @id @default(cuid())
   userId              String
@@ -156,12 +162,18 @@ model WhatsAppConversation {
   lastMessageAt DateTime
   lastInboundAt DateTime?
   language      String?
-  botState      WhatsAppBotState  @default(IDLE)
+  botState      WhatsAppBotState      @default(IDLE)
   draftQuote    Json?
   trackingContext Json?
   messages      WhatsAppMessage[]
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+
+  supportStatus WhatsAppSupportStatus @default(RESOLVED)
+  claimedAt     DateTime?
+  resolvedAt    DateTime?
+  lastReadAt    DateTime?
+
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
 }
 
 enum WhatsAppMessageStatus {
@@ -190,7 +202,11 @@ model WhatsAppMessage {
 
   autoReplyToId  String?                  @unique
 
+  readAt         DateTime?
+
   createdAt      DateTime                 @default(now())
+
+  @@index([conversationId, direction, readAt])
 }
 
 model PushSubscription {

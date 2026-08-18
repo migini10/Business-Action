@@ -87,31 +87,37 @@ export async function POST(req: NextRequest) {
                   }
 
                   try {
-                    const conversation = await prisma.whatsAppConversation.upsert({
-                      where: { waId },
-                      update: {
-                        lastMessageAt: timestamp,
-                        lastInboundAt: timestamp,
-                        ...(displayName ? { displayName } : {})
-                      },
-                      create: {
-                        waId,
-                        displayName,
-                        lastMessageAt: timestamp,
-                        lastInboundAt: timestamp,
-                      }
+                    const result = await prisma.$transaction(async (tx) => {
+                      const conversation = await tx.whatsAppConversation.upsert({
+                        where: { waId },
+                        update: {
+                          lastMessageAt: timestamp,
+                          lastInboundAt: timestamp,
+                          ...(displayName ? { displayName } : {})
+                        },
+                        create: {
+                          waId,
+                          displayName,
+                          lastMessageAt: timestamp,
+                          lastInboundAt: timestamp,
+                        }
+                      });
+
+                      const inboundMessage = await tx.whatsAppMessage.create({
+                        data: {
+                          waMessageId,
+                          direction: 'INBOUND',
+                          content,
+                          status: 'RECEIVED',
+                          metaTimestamp: timestamp,
+                          conversationId: conversation.id,
+                        }
+                      });
+
+                      return { conversation, inboundMessage };
                     });
 
-                    const inboundMessage = await prisma.whatsAppMessage.create({
-                      data: {
-                        waMessageId,
-                        direction: 'INBOUND',
-                        content,
-                        status: 'RECEIVED',
-                        metaTimestamp: timestamp,
-                        conversationId: conversation.id,
-                      }
-                    });
+                    const { conversation, inboundMessage } = result;
 
                     const truncatedMessage = content.length > 50 ? content.substring(0, 50) + '...' : content;
                     const contactName = conversation.displayName || conversation.waId;
@@ -140,6 +146,7 @@ export async function POST(req: NextRequest) {
                       // Doublon de webhook pour un même waMessageId => ignorer silencieusement
                     } else {
                       console.error("Error inserting inbound WhatsApp message:", err);
+                      throw err;
                     }
                   }
                 }

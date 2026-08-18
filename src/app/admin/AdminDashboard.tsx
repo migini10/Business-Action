@@ -7,11 +7,12 @@ import { updateDossierStatus, uploadAndSendDevis, addTransaction, getClientTrans
 import { calculateClientBalance, getTransactionSign } from '@/lib/finance';
 import { registerClient } from '@/app/actions/auth';
 import { logoutAdmin } from '@/app/actions/admin-auth-actions';
-import { getWhatsAppConversations, getWhatsAppMessages, sendWhatsAppMessage, resumeBot } from '@/app/actions/whatsapp';
+import { getWhatsAppConversations, getWhatsAppMessages, sendWhatsAppMessage, resumeBot, markConversationAsRead, claimConversation, resolveConversation, reopenConversation } from '@/app/actions/whatsapp';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getSidebarClasses, getWhatsappGridClasses, shouldAutoScroll } from '@/lib/mobile-ui';
 import { getMessageDayKey, formatMessageDate, formatMessageTime } from '@/lib/date-utils';
+import { InboxFilter, filterWhatsAppConversations, sortWhatsAppConversations, getActionCount } from '@/lib/whatsapp-inbox';
 
 export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
   const [dossiers, setDossiers] = useState(initialDossiers);
@@ -46,6 +47,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [waReplyText, setWaReplyText] = useState('');
   const [isSendingWa, setIsSendingWa] = useState(false);
   const [waError, setWaError] = useState('');
+  const [waFilter, setWaFilter] = useState<InboxFilter>('ALL');
 
   // Search & Notifications State
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,13 +62,19 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
     </div>
   );
 
+  const waActionCount = getActionCount(waConversations);
+
   const renderNotifications = (isMobile: boolean = false) => (
     <button style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', color: '#64748B', display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '0', padding: 0 }}>
       <div style={{ position: 'relative' }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-        <span style={{ position: 'absolute', top: '-2px', right: '-2px', width: '10px', height: '10px', backgroundColor: '#EF4444', borderRadius: '50%', border: '2px solid #fff' }}></span>
+        {waActionCount > 0 && (
+          <span style={{ position: 'absolute', top: '-6px', right: '-6px', minWidth: '18px', height: '18px', backgroundColor: '#EF4444', color: 'white', borderRadius: '9px', fontSize: '10px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', border: '2px solid #fff' }}>
+            {waActionCount}
+          </span>
+        )}
       </div>
-      {isMobile && <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Notifications</span>}
+      {isMobile && <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Notifications {waActionCount > 0 ? `(${waActionCount})` : ''}</span>}
     </button>
   );
 
@@ -128,24 +136,50 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
     }
   };
 
+  const loadConversations = async () => {
+    const res = await getWhatsAppConversations();
+    if (res.success && res.conversations) {
+      setWaConversations(sortWhatsAppConversations(res.conversations));
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'whatsapp') {
-      getWhatsAppConversations().then(res => {
-        if (res.success) setWaConversations(res.conversations || []);
-      });
+      loadConversations();
     }
   }, [activeTab]);
 
+  const loadMessages = async (convId: string) => {
+    const res = await getWhatsAppMessages(convId);
+    if (res.success) {
+      setWaMessages(res.messages || []);
+      return res.messages || [];
+    }
+    return [];
+  };
+
   useEffect(() => {
     if (selectedWaConv) {
-      getWhatsAppMessages(selectedWaConv.id).then(res => {
-        if (res.success) setWaMessages(res.messages || []);
+      loadMessages(selectedWaConv.id).then((messages) => {
+        if ((selectedWaConv.unreadCount || 0) > 0 && messages && messages.length > 0) {
+          const inboundMessages = messages.filter((m: any) => m.direction === 'INBOUND');
+          if (inboundMessages.length > 0) {
+            const lastInbound = inboundMessages[inboundMessages.length - 1];
+            markConversationAsRead(selectedWaConv.id, lastInbound.id).then((r) => {
+              if (r.success) {
+                // Update local state to 0 unread
+                setWaConversations(prev => sortWhatsAppConversations(prev.map(c => c.id === selectedWaConv.id ? { ...c, unreadCount: 0 } : c)));
+                setSelectedWaConv((prev: any) => prev ? { ...prev, unreadCount: 0 } : prev);
+              }
+            });
+          }
+        }
       });
     } else {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setWaMessages([]);
     }
-  }, [selectedWaConv]);
+  }, [selectedWaConv?.id]); // Note: only depend on ID to avoid infinite re-renders if object updates
 
   const handleSendWaReply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1296,8 +1330,36 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                   Messagerie
                 </h2>
               </div>
+
+              <div style={{ padding: '0.5rem', backgroundColor: '#fff', borderBottom: '1px solid #E2E8F0', overflowX: 'auto', display: 'flex', gap: '0.5rem', WebkitOverflowScrolling: 'touch' }}>
+                {(['ALL', 'UNREAD', 'HUMAN_SUPPORT', 'TO_DO', 'IN_PROGRESS', 'RESOLVED'] as InboxFilter[]).map(filter => (
+                  <button
+                    key={filter}
+                    onClick={() => setWaFilter(filter)}
+                    style={{
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '999px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      border: waFilter === filter ? 'none' : '1px solid #E2E8F0',
+                      backgroundColor: waFilter === filter ? 'var(--color-primary)' : 'transparent',
+                      color: waFilter === filter ? '#fff' : '#64748B',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {filter === 'ALL' && 'Toutes'}
+                    {filter === 'UNREAD' && 'Non lues'}
+                    {filter === 'HUMAN_SUPPORT' && 'Conseiller requis'}
+                    {filter === 'TO_DO' && 'À traiter'}
+                    {filter === 'IN_PROGRESS' && 'En cours'}
+                    {filter === 'RESOLVED' && 'Traitées'}
+                  </button>
+                ))}
+              </div>
+
               <div style={{ overflowY: 'auto', flex: 1 }}>
-                {waConversations.map(conv => {
+                {filterWhatsAppConversations(waConversations, waFilter, searchQuery).map(conv => {
                   const isActive = selectedWaConv?.id === conv.id;
                   const date = new Date(conv.lastMessageAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
                   return (
@@ -1307,19 +1369,36 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #E2E8F0', cursor: 'pointer', backgroundColor: isActive ? '#EFF6FF' : 'transparent', transition: 'background-color 0.2s' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
-                        <span style={{ fontWeight: 600, color: '#0F172A' }}>{conv.displayName || conv.waId.replace(/(\d{2})(\d{4})(\d{4})/, '+$1 *** $3')}</span>
+                        <span style={{ fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {conv.displayName || conv.waId.replace(/(\d{2})(\d{4})(\d{4})/, '+$1 *** $3')}
+                          {(conv.unreadCount || 0) > 0 && (
+                            <span style={{ backgroundColor: '#EF4444', color: '#fff', borderRadius: '9px', fontSize: '10px', padding: '2px 6px', display: 'inline-flex', alignItems: 'center' }}>
+                              {conv.unreadCount}
+                            </span>
+                          )}
+                        </span>
                         <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{date}</span>
                       </div>
                       <div style={{ fontSize: '0.875rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {conv._count?.messages} messages
                       </div>
-                      {conv.botState === 'HUMAN_SUPPORT' && (
-                        <div style={{ marginTop: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                        {conv.botState === 'HUMAN_SUPPORT' && (
                           <span style={{ backgroundColor: '#FEE2E2', color: '#DC2626', padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
                             Conseiller requis
                           </span>
-                        </div>
-                      )}
+                        )}
+                        {conv.supportStatus === 'TO_DO' && (
+                          <span style={{ backgroundColor: '#FEF3C7', color: '#D97706', padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                            À traiter
+                          </span>
+                        )}
+                        {conv.supportStatus === 'IN_PROGRESS' && (
+                          <span style={{ backgroundColor: '#DBEAFE', color: '#2563EB', padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                            En cours
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -1350,23 +1429,67 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       </p>
                     </div>
                   </div>
-                  {selectedWaConv.botState === 'HUMAN_SUPPORT' && (
-                    <button
-                      onClick={async () => {
-                        const res = await resumeBot(selectedWaConv.id);
-                        if (res.success) {
-                          setSelectedWaConv({ ...selectedWaConv, botState: 'IDLE' });
-                          // Also update in list
-                          setWaConversations(prev => prev.map(c => c.id === selectedWaConv.id ? { ...c, botState: 'IDLE' } : c));
-                        } else {
-                          setWaError(res.error || 'Erreur lors de la reprise.');
-                        }
-                      }}
-                      style={{ padding: '0.5rem 1rem', backgroundColor: '#3B82F6', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem', flexShrink: 0, whiteSpace: 'nowrap' }}
-                    >
-                      Rendre la main au bot
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {selectedWaConv.supportStatus === 'TO_DO' && (
+                      <button
+                        onClick={async () => {
+                          const res = await claimConversation(selectedWaConv.id);
+                          if (res.success) {
+                            setSelectedWaConv({ ...selectedWaConv, supportStatus: 'IN_PROGRESS' });
+                            setWaConversations(prev => sortWhatsAppConversations(prev.map(c => c.id === selectedWaConv.id ? { ...c, supportStatus: 'IN_PROGRESS' } : c)));
+                          }
+                        }}
+                        style={{ padding: '0.5rem 1rem', backgroundColor: '#D97706', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+                      >
+                        Prendre en charge
+                      </button>
+                    )}
+                    {selectedWaConv.supportStatus === 'IN_PROGRESS' && (
+                      <button
+                        onClick={async () => {
+                          const res = await resolveConversation(selectedWaConv.id);
+                          if (res.success) {
+                            setSelectedWaConv({ ...selectedWaConv, supportStatus: 'RESOLVED' });
+                            setWaConversations(prev => sortWhatsAppConversations(prev.map(c => c.id === selectedWaConv.id ? { ...c, supportStatus: 'RESOLVED' } : c)));
+                          }
+                        }}
+                        style={{ padding: '0.5rem 1rem', backgroundColor: '#10B981', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+                      >
+                        Marquer comme traité
+                      </button>
+                    )}
+                    {selectedWaConv.supportStatus === 'RESOLVED' && (
+                      <button
+                        onClick={async () => {
+                          const res = await reopenConversation(selectedWaConv.id);
+                          if (res.success) {
+                            setSelectedWaConv({ ...selectedWaConv, supportStatus: 'TO_DO' });
+                            setWaConversations(prev => sortWhatsAppConversations(prev.map(c => c.id === selectedWaConv.id ? { ...c, supportStatus: 'TO_DO' } : c)));
+                          }
+                        }}
+                        style={{ padding: '0.5rem 1rem', backgroundColor: '#64748B', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+                      >
+                        Remettre à traiter
+                      </button>
+                    )}
+                    {selectedWaConv.botState === 'HUMAN_SUPPORT' && (
+                      <button
+                        onClick={async () => {
+                          const res = await resumeBot(selectedWaConv.id);
+                          if (res.success) {
+                            setSelectedWaConv({ ...selectedWaConv, botState: 'IDLE' });
+                            // Also update in list
+                            setWaConversations(prev => sortWhatsAppConversations(prev.map(c => c.id === selectedWaConv.id ? { ...c, botState: 'IDLE' } : c)));
+                          } else {
+                            setWaError(res.error || 'Erreur lors de la reprise.');
+                          }
+                        }}
+                        style={{ padding: '0.5rem 1rem', backgroundColor: '#3B82F6', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem', flexShrink: 0, whiteSpace: 'nowrap' }}
+                      >
+                        Rendre la main au bot
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div ref={waScrollContainerRef} onScroll={handleWaScroll} className="wa-messages" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0, padding: '1.5rem', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
