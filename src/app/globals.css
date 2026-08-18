@@ -444,6 +444,36 @@ a {
     position: sticky;
     top: 0;
     z-index: 10;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+    padding: 1rem !important;
+  }
+
+  .wa-conversation-header-identity {
+    width: 100% !important;
+    align-items: flex-start !important;
+  }
+
+  .wa-conversation-header-identity .identity-text {
+    width: 100% !important;
+  }
+
+  .wa-conversation-header-identity h3,
+  .wa-conversation-header-identity p {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    word-break: break-word !important;
+  }
+
+  .wa-conversation-header-actions {
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+
+  .wa-conversation-header-actions button {
+    flex: 1 1 auto;
   }
 
   .wa-messages {

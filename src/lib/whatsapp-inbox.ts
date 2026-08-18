@@ -39,7 +39,7 @@ export function sortWhatsAppConversations(conversations: InboxConversation[]) {
   });
 }
 
-export type InboxFilter = 'ALL' | 'UNREAD' | 'HUMAN_SUPPORT' | 'TO_DO' | 'IN_PROGRESS' | 'RESOLVED';
+export type InboxFilter = 'ALL' | 'ACTION_REQUIRED' | 'UNREAD' | 'HUMAN_SUPPORT' | 'TO_DO' | 'IN_PROGRESS' | 'RESOLVED';
 
 export function filterWhatsAppConversations(
   conversations: InboxConversation[],
@@ -64,6 +64,9 @@ export function filterWhatsAppConversations(
     case 'RESOLVED':
       filtered = filtered.filter(c => c.supportStatus === 'RESOLVED');
       break;
+    case 'ACTION_REQUIRED':
+      filtered = filtered.filter(isActionRequired);
+      break;
     case 'ALL':
     default:
       break;
@@ -80,8 +83,19 @@ export function filterWhatsAppConversations(
   return filtered;
 }
 
+export function isActionRequired(c: InboxConversation): boolean {
+  return c.supportStatus !== 'RESOLVED' || (c.unreadCount || 0) > 0;
+}
+
 export function getActionCount(conversations: InboxConversation[]): number {
-  return conversations.filter(c => 
-    c.supportStatus !== 'RESOLVED' || (c.unreadCount || 0) > 0
-  ).length;
+  return conversations.filter(isActionRequired).length;
+}
+
+export function getAdvisorActions(supportStatus: string | undefined, botState: string | undefined) {
+  return {
+    showClaim: supportStatus === 'TO_DO',
+    showResolve: supportStatus === 'IN_PROGRESS',
+    showReopen: supportStatus === 'IN_PROGRESS' || supportStatus === 'RESOLVED',
+    showResumeBot: botState === 'HUMAN_SUPPORT',
+  };
 }
