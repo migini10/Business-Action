@@ -102,9 +102,45 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isMobileDrawerOpen]);
 
+
+
+  useEffect(() => {
+    if (activeTab === 'whatsapp' && typeof window !== 'undefined' && window.innerWidth <= 1024) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'none';
+      document.documentElement.style.overscrollBehavior = 'none';
+      document.body.style.height = '100dvh';
+      document.body.style.maxHeight = '100dvh';
+      document.documentElement.style.height = '100dvh';
+      document.documentElement.style.maxHeight = '100dvh';
+    } else {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehavior = '';
+      document.documentElement.style.overscrollBehavior = '';
+      document.body.style.height = '';
+      document.body.style.maxHeight = '';
+      document.documentElement.style.height = '';
+      document.documentElement.style.maxHeight = '';
+    }
+
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehavior = '';
+      document.documentElement.style.overscrollBehavior = '';
+      document.body.style.height = '';
+      document.body.style.maxHeight = '';
+      document.documentElement.style.height = '';
+      document.documentElement.style.maxHeight = '';
+    };
+  }, [activeTab]);
+
   // First open auto-scroll
   const initialScrolledConversationIdRef = React.useRef<string | null>(null);
   const isNearBottomRef = React.useRef<boolean>(true);
+  const waTextareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   const lastMessageId = waMessages.length > 0 ? waMessages[waMessages.length - 1].id : null;
 
@@ -191,6 +227,10 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
     setIsSendingWa(false);
     if (res.success) {
       setWaReplyText('');
+      if (waTextareaRef.current) {
+        waTextareaRef.current.style.height = 'auto';
+        waTextareaRef.current.style.overflowY = 'hidden';
+      }
       // Reload messages
       const msgsRes = await getWhatsAppMessages(selectedWaConv.id);
       if (msgsRes.success) setWaMessages(msgsRes.messages || []);
@@ -309,7 +349,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const rejectedDossiers = dossiers.filter(d => d.statut === 'REJETE').length;
 
   return (
-    <div className="admin-container" style={{ display: 'flex', minHeight: '100vh', ...(activeTab === 'whatsapp' ? { height: '100vh', overflow: 'hidden' } : { overflowX: 'hidden' }), backgroundColor: 'var(--color-gray-light)' }}>
+    <div className="admin-container" style={{ display: 'flex', minHeight: 'var(--app-height, 100dvh)', ...(activeTab === 'whatsapp' ? { height: 'var(--app-height, 100dvh)', overflow: 'hidden' } : { overflowX: 'hidden' }), backgroundColor: 'var(--color-gray-light)' }}>
       {/* Sidebar */}
       {/* Mobile Backdrop */}
       <div
@@ -394,9 +434,9 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
       </aside>
 
       {/* Main Content */}
-      <main className="admin-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', ...(activeTab === 'whatsapp' ? { height: '100vh', overflow: 'hidden' } : {}) }}>
+      <main className="admin-main" style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', width: '100%', ...(activeTab === 'whatsapp' ? { minHeight: 0, height: 'auto', overflow: 'hidden', position: 'relative' } : {}) }}>
         {/* Topbar */}
-        <header style={{ height: '70px', backgroundColor: '#ffffff', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', position: 'sticky', top: 0, zIndex: 30 }}>
+        <header style={{ height: '70px', flexShrink: 0, backgroundColor: '#ffffff', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', position: 'sticky', top: 0, zIndex: 30 }}>
           <div className="mobile-only" style={{ display: 'flex', alignItems: 'center' }}>
             <Image
               src="/Logo Business Action.png"
@@ -1562,18 +1602,54 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
 
                 <div className="wa-composer" style={{ flexShrink: 0, padding: '1.5rem', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))', backgroundColor: '#fff', borderTop: '1px solid #E2E8F0', width: '100%', minWidth: 0 }}>
                   {waError && <div style={{ color: '#DC2626', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: 500 }}>{waError}</div>}
-                  <form onSubmit={handleSendWaReply} style={{ display: 'flex', gap: '0.5rem', width: '100%', minWidth: 0 }}>
-                    <input
-                      type="text"
+                  <form onSubmit={handleSendWaReply} style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', width: '100%', minWidth: 0 }}>
+                    <textarea
+                      ref={waTextareaRef}
                       value={waReplyText}
-                      onChange={(e) => setWaReplyText(e.target.value)}
+                      onChange={(e) => {
+                        setWaReplyText(e.target.value);
+                        e.target.style.height = 'auto';
+                        e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+                        e.target.style.overflowY = e.target.scrollHeight > 100 ? 'auto' : 'hidden';
+                      }}
+
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (!isSendingWa && waReplyText.trim()) {
+                            handleSendWaReply({ preventDefault: () => {} } as React.FormEvent);
+                          }
+                        }
+                      }}
                       placeholder="Écrire un message..."
-                      style={{ flex: 1, minWidth: 0, padding: '0.875rem 1.25rem', borderRadius: '999px', border: '1px solid #E2E8F0', outline: 'none', backgroundColor: '#F8FAFC' }}
+                      rows={1}
+                      wrap="soft"
+                      style={{
+                        flex: '1 1 0%',
+                        width: '100%',
+                        minWidth: 0,
+                        maxWidth: '100%',
+                        padding: '0.875rem 1.25rem',
+                        borderRadius: '1.25rem',
+                        border: '1px solid #E2E8F0',
+                        outline: 'none',
+                        backgroundColor: '#F8FAFC',
+                        resize: 'none',
+                        whiteSpace: 'pre-wrap',
+                        overflowWrap: 'anywhere',
+                        wordBreak: 'break-word',
+                        overflowX: 'hidden',
+                        overflowY: 'hidden',
+                        lineHeight: '1.5',
+                        minHeight: '48px',
+                        maxHeight: '100px',
+                        fontFamily: 'inherit'
+                      }}
                     />
                     <button
                       type="submit"
                       disabled={isSendingWa || !waReplyText.trim()}
-                      style={{ padding: '0 1rem', flexShrink: 0, borderRadius: '999px', border: 'none', backgroundColor: '#10B981', color: '#fff', fontWeight: 600, cursor: isSendingWa ? 'not-allowed' : 'pointer', opacity: (isSendingWa || !waReplyText.trim()) ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                      style={{ height: '48px', padding: '0 1rem', flexShrink: 0, borderRadius: '999px', border: 'none', backgroundColor: '#10B981', color: '#fff', fontWeight: 600, cursor: isSendingWa ? 'not-allowed' : 'pointer', opacity: (isSendingWa || !waReplyText.trim()) ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                     >
                       {isSendingWa ? '...' : (
                         <>

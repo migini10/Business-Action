@@ -407,12 +407,15 @@ a {
     z-index: 2000;
   }
 
-  /* WhatsApp Responsive */
   .whatsapp-grid {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
     width: 100%;
     min-width: 0;
-    height: calc(100dvh - 70px); /* Fill the rest of the screen minus topbar */
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
   }
 
   /* When a conversation is NOT selected, show list, hide conv */
@@ -422,7 +425,8 @@ a {
   .whatsapp-grid:not(.has-conv) .wa-list-container {
     display: flex;
     width: 100%;
-    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
   }
 
@@ -434,7 +438,7 @@ a {
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: 100%;
+    flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
   }

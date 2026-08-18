@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Topbar from "@/components/Topbar";
@@ -25,8 +25,11 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   themeColor: "#0ea5e9",
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
@@ -36,9 +39,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', margin: 0 }}>
+      <body style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', margin: 0 }}>
         <Topbar />
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {children}
         </div>
         <PwaInit />
