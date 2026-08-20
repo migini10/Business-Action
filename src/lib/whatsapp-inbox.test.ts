@@ -1,10 +1,10 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { 
-  InboxConversation, 
-  sortWhatsAppConversations, 
-  filterWhatsAppConversations, 
-  getActionCount 
+import {
+  InboxConversation,
+  sortWhatsAppConversations,
+  filterWhatsAppConversations,
+  getActionCount
 } from './whatsapp-inbox';
 
 describe('WhatsApp Inbox Helper Tests (AUTO-006)', () => {

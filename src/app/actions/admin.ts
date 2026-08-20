@@ -10,7 +10,12 @@ export async function getDossiers() {
   await requireAdmin();
   try {
     const dossiers = await prisma.dossier.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        documents: {
+          select: { id: true, type: true, side: true, expiresAt: true, deletedAt: true }
+        }
+      }
     });
     return { success: true, dossiers };
   } catch (error) {
@@ -27,7 +32,7 @@ export async function updateDossierStatus(id: string, statut: string) {
       where: { id },
       data: { statut: validStatut }
     });
-    
+
     // Rafraîchir le cache pour afficher les nouvelles données
     revalidatePath('/admin');
     return { success: true };
@@ -50,7 +55,7 @@ export async function uploadAndSendDevis(formData: FormData) {
   await requireAdmin();
   const dossierId = formData.get('dossierId') as string;
   const devisFile = formData.get('devis') as File | null;
-  
+
   if (!dossierId || !devisFile) {
     return { success: false, error: "Dossier ou fichier manquant." };
   }
@@ -67,7 +72,7 @@ export async function uploadAndSendDevis(formData: FormData) {
     const buffer = Buffer.from(await devisFile.arrayBuffer());
     const ext = devisFile.name.split('.').pop() || 'pdf';
     const fileName = `devis_${dossier.numeroDossier}_${Date.now()}.${ext}`;
-    
+
     // On utilise le même bucket ou un bucket "devis" s'il existe (ici on réutilise cartes_grises pour simplifier ou on peut en créer un "documents")
     // Note: Idéalement, créez un bucket "documents" dans Supabase
     const { data, error } = await supabase.storage.from('cartes_grises').upload(fileName, buffer, {
@@ -86,9 +91,9 @@ export async function uploadAndSendDevis(formData: FormData) {
     // 2. Mise à jour du dossier dans la base de données
     await prisma.dossier.update({
       where: { id: dossierId },
-      data: { 
+      data: {
         devisUrl,
-        statut: StatutDossier.OFFRE_ENVOYEE 
+        statut: StatutDossier.OFFRE_ENVOYEE
       }
     });
 
@@ -116,7 +121,7 @@ export async function uploadAndSendDevis(formData: FormData) {
             </div>
           `
         });
-        
+
         if (error) {
           console.error("Erreur API Resend:", error);
         } else {
@@ -151,7 +156,7 @@ export async function getClients() {
       },
       orderBy: { createdAt: 'desc' }
     });
-    
+
     const formattedClients = users.map(user => {
       const solde = calculateClientBalance(user.transactions);
       return {

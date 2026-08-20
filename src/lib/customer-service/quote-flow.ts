@@ -14,7 +14,7 @@ export async function handleQuoteFlow(
 ): Promise<string | null> {
   const normalizedText = text.toLowerCase().trim();
   const responses = QUOTE_RESPONSES[lang];
-  
+
   // Interruption logic (human transfer, cancel, restart)
   const isHuman = ['humain', 'agent', 'conseiller', 'human', 'nit'].some(k => normalizedText.includes(k));
   if (isHuman) {
@@ -55,7 +55,7 @@ export async function handleQuoteFlow(
       if (!vehicleType) {
         return responses.SERVICE_INVALID;
       }
-      
+
       if (vehicleType === 'HUMAN_SUPPORT') {
         const response = await handleHumanHandoff(conversation, lang);
         return response;
@@ -63,12 +63,12 @@ export async function handleQuoteFlow(
 
       await prisma.whatsAppConversation.update({
         where: { id: conversation.id },
-        data: { 
-          botState: 'QUOTE_CONFIRM', 
-          draftQuote: { typeVehicule: vehicleType } 
+        data: {
+          botState: 'QUOTE_CONFIRM',
+          draftQuote: { typeVehicule: vehicleType }
         }
       });
-      
+
       const vehicleName = getVehicleTypeName(vehicleType, lang);
       return responses.CONFIRM_PROMPT(vehicleName);
 

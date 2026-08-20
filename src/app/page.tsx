@@ -8,22 +8,22 @@ export default function Home() {
       <main>
         {/* Hero Section */}
         <section className="animate-fade-in" style={{ position: 'relative', overflow: 'hidden', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '60vh', marginBottom: '4rem', backgroundColor: '#000' }}>
-          <Image 
-            src="/hero-african-woman.png" 
-            alt="Femme africaine professionnelle conductrice" 
+          <Image
+            src="/hero-african-woman.png"
+            alt="Femme africaine professionnelle conductrice"
             fill
-            style={{ objectFit: 'cover', zIndex: -2 }} 
+            style={{ objectFit: 'cover', zIndex: -2 }}
             priority
           />
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.65)', zIndex: -1 }}></div>
 
-          <span style={{ 
-            background: 'rgba(255, 255, 255, 0.15)', 
+          <span style={{
+            background: 'rgba(255, 255, 255, 0.15)',
             backdropFilter: 'blur(10px)',
-            color: '#fff', 
-            padding: '0.5rem 1rem', 
-            borderRadius: '2rem', 
-            fontWeight: 600, 
+            color: '#fff',
+            padding: '0.5rem 1rem',
+            borderRadius: '2rem',
+            fontWeight: 600,
             fontSize: '0.875rem',
             marginBottom: '1.5rem',
             display: 'inline-block',
@@ -31,15 +31,15 @@ export default function Home() {
           }}>
             Rapide, Sécurisé, Transparent
           </span>
-          
+
           <h1 style={{ fontSize: '3.5rem', fontWeight: 800, color: '#ffffff', marginBottom: '1.5rem', maxWidth: '800px', lineHeight: 1.1, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
             Obtenez votre <span style={{ color: 'var(--color-primary-light)' }}>devis assurance automobile</span> rapidement
           </h1>
-          
+
           <p style={{ fontSize: '1.25rem', color: 'rgba(255, 255, 255, 0.9)', marginBottom: '2.5rem', maxWidth: '600px', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
             Envoyez simplement votre carte grise et recevez votre devis personnalisé. Gérez également vos factures et paiements en toute transparence.
           </p>
-          
+
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/demande-devis" className="btn btn-primary" style={{ border: 'none', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
@@ -55,7 +55,7 @@ export default function Home() {
         {/* Social Proof / Trusted By */}
         <section style={{ padding: '3rem 0', borderTop: '1px solid var(--color-gray-light)', borderBottom: '1px solid var(--color-gray-light)', backgroundColor: '#ffffff', textAlign: 'center', marginBottom: '4rem', overflow: 'hidden' }}>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem' }}>Ils nous font confiance</p>
-          
+
           <div className="marquee-container" style={{ opacity: 0.6 }}>
             {/* First Track */}
             <div className="marquee-content">
@@ -81,7 +81,7 @@ export default function Home() {
         <div className="container" style={{ maxWidth: '1400px' }}>
           {/* Feature Cards Section */}
           <section style={{ padding: '2rem 0 6rem 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '2rem', animationDelay: '0.2s' }} className="animate-fade-in">
-            
+
             <div className="card feature-card" style={{ padding: '2rem' }}>
               <div className="icon-box" style={{ background: 'var(--color-primary-light)', width: '56px', height: '56px', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', color: 'var(--color-primary)' }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
@@ -132,7 +132,7 @@ export default function Home() {
               <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-main)', marginBottom: '1rem' }}>Comment ça marche ?</h2>
               <p style={{ fontSize: '1.25rem', color: 'var(--color-text-muted)', maxWidth: '600px', margin: '0 auto' }}>Un processus simple, transparent et 100% digitalisé pour votre confort.</p>
             </div>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '3rem', position: 'relative' }}>
               <div style={{ textAlign: 'center', zIndex: 1 }}>
                 <div style={{ width: '80px', height: '80px', backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800, margin: '0 auto 1.5rem auto' }}>1</div>
@@ -161,7 +161,7 @@ export default function Home() {
             <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
               <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-main)', marginBottom: '1rem' }}>Ce que disent nos clients</h2>
             </div>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
               <div className="card" style={{ padding: '2rem', backgroundColor: '#fff', borderRadius: 'var(--radius-xl)' }}>
                 <div style={{ display: 'flex', color: '#F59E0B', marginBottom: '1rem', gap: '0.2rem' }}>
@@ -222,7 +222,7 @@ export default function Home() {
               </div>
               <p style={{ color: '#94A3B8', fontSize: '1rem', lineHeight: 1.6, maxWidth: '400px' }}>La plateforme SaaS de référence pour la gestion de devis d'assurance et de paiements. Rapide, sécurisée et totalement transparente.</p>
             </div>
-            
+
             <div>
               <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', color: '#F8FAFC' }}>Produit</h4>
               <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1rem', color: '#94A3B8' }}>
@@ -251,7 +251,7 @@ export default function Home() {
               </ul>
             </div>
           </div>
-          
+
           <div style={{ borderTop: '1px solid #1E293B', paddingTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', color: '#64748B', fontSize: '0.875rem' }}>
             <p>&copy; {new Date().getFullYear()} AFRODEV SaaS. Tous droits réservés.</p>
             <div style={{ display: 'flex', gap: '1.5rem' }}>

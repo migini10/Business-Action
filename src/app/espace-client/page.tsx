@@ -36,7 +36,7 @@ function EspaceClientContent() {
   const [visibleCount, setVisibleCount] = useState(15);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorField, setErrorField] = useState<string | null>(null);
-  
+
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'month' | 'year' | 'custom'>('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -57,7 +57,7 @@ function EspaceClientContent() {
       if (authRes.success && authRes.user) {
         setIsLoggedIn(true);
         setClientData(authRes.user);
-        
+
         getClientDashboardData().then(res => {
           if (res.success) {
             setDossiers(res.dossiers || []);
@@ -126,11 +126,11 @@ function EspaceClientContent() {
     setIsSubmitting(true);
     setErrorMessage('');
     setErrorField(null);
-    
+
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
 
-    const result = isLogin 
+    const result = isLogin
       ? await loginClient(formData)
       : await registerClient(formData);
 
@@ -139,7 +139,7 @@ function EspaceClientContent() {
     if (result.success && result.user) {
       setIsLoggedIn(true);
       setClientData(result.user);
-      
+
       const dashRes = await getClientDashboardData();
       if (dashRes.success) {
         setDossiers(dashRes.dossiers || []);
@@ -301,10 +301,10 @@ function EspaceClientContent() {
                   </button>
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>Historique des Créances et Dettes</h2>
                 </div>
-                
+
                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <select 
-                    value={filterPeriod} 
+                  <select
+                    value={filterPeriod}
                     onChange={e => setFilterPeriod(e.target.value as any)}
                     style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC' }}
                   >
@@ -317,16 +317,16 @@ function EspaceClientContent() {
 
                   {filterPeriod === 'custom' && (
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <input 
-                        type="date" 
-                        value={customStartDate} 
+                      <input
+                        type="date"
+                        value={customStartDate}
                         onChange={e => setCustomStartDate(e.target.value)}
                         style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1' }}
                       />
                       <span style={{ color: 'var(--color-text-muted)' }}>au</span>
-                      <input 
-                        type="date" 
-                        value={customEndDate} 
+                      <input
+                        type="date"
+                        value={customEndDate}
                         onChange={e => setCustomEndDate(e.target.value)}
                         style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1' }}
                       />
@@ -366,14 +366,14 @@ function EspaceClientContent() {
                             {item.commentaire && <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>{item.commentaire}</div>}
                           </td>
                           <td style={{ padding: '1rem' }}>
-                            <span style={{ 
-                              padding: '0.25rem 0.75rem', 
-                              borderRadius: '2rem', 
-                              fontSize: '0.75rem', 
-                              fontWeight: 700, 
-                              backgroundColor: item.type === 'DETTE' ? '#FEF2F2' : '#F0FDF4', 
-                              color: item.type === 'DETTE' ? '#DC2626' : '#16A34A', 
-                              textTransform: 'uppercase' 
+                            <span style={{
+                              padding: '0.25rem 0.75rem',
+                              borderRadius: '2rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              backgroundColor: item.type === 'DETTE' ? '#FEF2F2' : '#F0FDF4',
+                              color: item.type === 'DETTE' ? '#DC2626' : '#16A34A',
+                              textTransform: 'uppercase'
                             }}>
                               {item.type}
                             </span>
@@ -412,7 +412,7 @@ function EspaceClientContent() {
 
               {visibleCount < financesData.length && (
                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', marginBottom: '1.5rem' }}>
-                  <button 
+                  <button
                     onClick={() => setVisibleCount(prev => prev + 15)}
                     className="btn btn-secondary"
                     style={{ padding: '0.75rem 2rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#F3F4F6', color: '#4B5563', border: '1px solid #D1D5DB' }}
@@ -476,7 +476,7 @@ function EspaceClientContent() {
                 Nouvelle Demande
               </Link>
             </div>
-            
+
             {dossiers.length === 0 ? (
               <p style={{ color: 'var(--color-text-muted)' }}>Aucune demande pour le moment.</p>
             ) : (
@@ -490,7 +490,7 @@ function EspaceClientContent() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <span style={{ padding: '0.5rem 1rem', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--color-warning)', borderRadius: '2rem', fontWeight: 600, fontSize: '0.875rem' }}>{dossier.statut}</span>
-                    <button 
+                    <button
                       onClick={() => setSelectedDossier(dossier)}
                       style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: '#fff', border: '1px solid #E2E8F0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
                       title="Voir les détails"
@@ -514,7 +514,7 @@ function EspaceClientContent() {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', color: '#0F172A' }}>Détails de la demande</h3>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
                     <span style={{ color: '#64748B', fontWeight: 600 }}>N° de Dossier</span>
@@ -539,13 +539,29 @@ function EspaceClientContent() {
                     Télécharger mon devis
                   </a>
                 )}
-                
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  {selectedDossier.rectoUrl && (
-                    <a href={selectedDossier.rectoUrl} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>Carte Grise (Recto)</a>
-                  )}
-                  {selectedDossier.versoUrl && (
-                    <a href={selectedDossier.versoUrl} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>Carte Grise (Verso)</a>
+
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  {selectedDossier.documents && selectedDossier.documents.length > 0 ? (
+                    selectedDossier.documents.map((doc: any) => (
+                      doc.deletedAt ? (
+                        <span key={doc.id} style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#94A3B8', textDecoration: 'line-through', fontSize: '0.875rem', fontWeight: 600, cursor: 'not-allowed' }} title="Document expiré et supprimé">
+                          {doc.type} ({doc.side})
+                        </span>
+                      ) : (
+                        <a key={doc.id} href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>
+                          {doc.type} ({doc.side})
+                        </a>
+                      )
+                    ))
+                  ) : (
+                    <>
+                      {selectedDossier.rectoUrl && (
+                        <a href={selectedDossier.rectoUrl} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>Carte Grise (Recto)</a>
+                      )}
+                      {selectedDossier.versoUrl && (
+                        <a href={selectedDossier.versoUrl} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>Carte Grise (Verso)</a>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -584,23 +600,23 @@ function EspaceClientContent() {
             <>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Nom Complet</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   name="name"
                   required
-                  placeholder="Ex: Amadou Diallo" 
-                  style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
+                  placeholder="Ex: Amadou Diallo"
+                  style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
                 />
               </div>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Adresse email (facultatif)</label>
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   name="email"
                   autoComplete="email"
-                  placeholder="Ex: contact@email.com" 
+                  placeholder="Ex: contact@email.com"
                   onChange={() => { if (errorField === 'email') { setErrorField(null); setErrorMessage(''); } }}
-                  style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
+                  style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
                 />
                 {errorField === 'email' && (
                   <div style={{ color: '#DC2626', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>
@@ -613,13 +629,13 @@ function EspaceClientContent() {
 
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Numéro de Téléphone (WhatsApp)</label>
-            <input 
-              type="tel" 
+            <input
+              type="tel"
               name="phone"
               required
-              placeholder="Ex: +221 77 123 45 67" 
+              placeholder="Ex: +221 77 123 45 67"
               onChange={() => { if (errorField === 'phone') { setErrorField(null); setErrorMessage(''); } }}
-              style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
+              style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
             />
             {errorField === 'phone' && (
               <div style={{ color: '#DC2626', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>
@@ -635,19 +651,19 @@ function EspaceClientContent() {
                 <Link href="/mot-de-passe-oublie" style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 600 }}>Oublié ?</Link>
               )}
             </div>
-            <input 
-              type="password" 
+            <input
+              type="password"
               name="password"
               required
-              placeholder="••••••••" 
-              style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
+              placeholder="••••••••"
+              style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isSubmitting}
-            className="btn btn-primary" 
+            className="btn btn-primary"
             style={{ width: '100%', padding: '1.25rem', fontSize: '1.125rem', borderRadius: 'var(--radius-lg)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
           >
             {isSubmitting ? (
@@ -665,7 +681,7 @@ function EspaceClientContent() {
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', margin: 0 }}>
             {isLogin ? "Vous n'avez pas de compte ?" : "Vous avez déjà un compte ?"}
             <br />
-            <button 
+            <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
               style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer', marginTop: '0.5rem', fontSize: '0.875rem', transition: 'color 0.2s' }}

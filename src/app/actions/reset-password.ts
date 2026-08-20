@@ -29,7 +29,7 @@ export async function _requestPasswordReset(phone: string, deps: any) {
   try {
     const secret = getOtpSecret(deps.otpSecret);
     const user = await deps.db.user.findUnique({ where: { phone } });
-    
+
     const successMessage = {
       success: true,
       message: 'Si un compte correspondant existe, les instructions de récupération ont été envoyées.',
@@ -152,7 +152,7 @@ export async function _updatePassword(newPassword: string, deps: any) {
   try {
     const secret = getOtpSecret(deps.otpSecret);
     const tokenCookie = await deps.getCookie('password_reset_token');
-    
+
     if (!tokenCookie) {
       return { success: false, error: 'Session de réinitialisation invalide ou expirée' };
     }
@@ -226,26 +226,26 @@ export async function requestPasswordReset(phone: string) {
               <p style="font-size: 16px; line-height: 1.5; text-align: center; color: #4b5563;">
                 Nous avons reçu une demande de réinitialisation du mot de passe de votre Espace Client Business Action.
               </p>
-              
+
               <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
                 <p style="margin: 0; font-size: 14px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Votre code de sécurité</p>
                 <div style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #111827; margin-top: 10px;">${otp}</div>
               </div>
-              
+
               <p style="font-size: 14px; color: #4b5563; text-align: center; font-weight: 600;">
                 Ce code est valable pendant 15 minutes.
               </p>
-              
+
               <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin-top: 30px;">
                 <p style="margin: 0; font-size: 13px; color: #991b1b; line-height: 1.5;">
                   <strong>Attention :</strong> Ne communiquez jamais ce code à une autre personne. Business Action ne vous demandera jamais ce code par téléphone, WhatsApp ou email.
                 </p>
               </div>
-              
+
               <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
                 Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email. Votre mot de passe restera inchangé.
               </p>
-              
+
               <div style="margin-top: 30px; text-align: center;">
                 <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1f2937;">L'équipe Business Action</p>
                 <a href="https://www.businessaction.sn" style="color: #2563eb; text-decoration: none; font-size: 13px;">www.businessaction.sn</a>

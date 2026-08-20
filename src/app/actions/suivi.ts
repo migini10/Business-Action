@@ -5,8 +5,8 @@ import prisma from '@/lib/prisma'
 export async function getDossier(identifier: string, method: 'telephone' | 'dossier') {
   try {
     const dossier = await prisma.dossier.findFirst({
-      where: method === 'telephone' 
-        ? { phone: identifier } 
+      where: method === 'telephone'
+        ? { phone: identifier }
         : { numeroDossier: identifier },
       orderBy: { createdAt: 'desc' } // Retourne le plus récent si recherche par téléphone
     });

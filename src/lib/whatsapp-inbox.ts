@@ -74,7 +74,7 @@ export function filterWhatsAppConversations(
 
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase().trim();
-    filtered = filtered.filter(c => 
+    filtered = filtered.filter(c =>
       (c.displayName?.toLowerCase().includes(q) || false) ||
       (c.waId.includes(q))
     );

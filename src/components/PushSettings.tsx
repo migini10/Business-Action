@@ -12,7 +12,7 @@ export default function PushSettings() {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsSupported(true);
-      
+
       // Check if iOS (requires Add to Home Screen sometimes)
       const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
@@ -35,21 +35,21 @@ export default function PushSettings() {
     try {
       setIsLoading(true);
       const reg = await navigator.serviceWorker.ready;
-      
+
       const res = await fetch('/api/webhooks/push/vapid-public-key');
       const { publicKey } = await res.json();
-      
+
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: publicKey
       });
-      
+
       await fetch('/api/webhooks/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sub)
       });
-      
+
       setIsSubscribed(true);
     } catch (err) {
       console.error('Failed to subscribe:', err);
@@ -106,7 +106,7 @@ export default function PushSettings() {
   return (
     <div style={{ padding: '2rem', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
       <h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 600 }}>Notifications Push</h2>
-      
+
       {isIosPrompt && (
         <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '8px' }}>
           Pour recevoir les notifications sur iPhone/iPad, ajoutez d’abord Business Action à l’écran d’accueil via le menu Partager.
@@ -120,7 +120,7 @@ export default function PushSettings() {
 
       <div style={{ display: 'flex', gap: '1rem' }}>
         {!isSubscribed ? (
-          <button 
+          <button
             onClick={subscribe}
             disabled={isLoading || isIosPrompt}
             style={{ padding: '0.75rem 1.5rem', backgroundColor: isIosPrompt ? '#d1d5db' : '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: isIosPrompt ? 'not-allowed' : 'pointer' }}
@@ -129,14 +129,14 @@ export default function PushSettings() {
           </button>
         ) : (
           <>
-            <button 
+            <button
               onClick={unsubscribe}
               disabled={isLoading}
               style={{ padding: '0.75rem 1.5rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
             >
               Désactiver
             </button>
-            <button 
+            <button
               onClick={testPush}
               disabled={isLoading}
               style={{ padding: '0.75rem 1.5rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}

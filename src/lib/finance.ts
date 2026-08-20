@@ -16,7 +16,7 @@ export function normalizeTransactionAmount(montant: number): number {
  * Retourne le signe comptable métier d'une transaction.
  * +1 = Le client me doit (augmente le solde du client)
  * -1 = Le client paie ou je dois au client (diminue le solde du client)
- * 
+ *
  * Convention :
  * Le solde = Reste dû par le client.
  * CREANCE       (+1)
@@ -40,7 +40,7 @@ export function getTransactionSign(type: TypeTransaction): number {
 
 /**
  * Calcule le solde (position financière nette) d'un client à partir de ses transactions.
- * Pour garantir la compatibilité avec l'historique potentiellement corrompu, 
+ * Pour garantir la compatibilité avec l'historique potentiellement corrompu,
  * on utilise Math.abs() sur le montant avant d'appliquer le signe correct basé sur le type.
  */
 export function calculateClientBalance(transactions: { type: TypeTransaction; montant: number }[]): number {

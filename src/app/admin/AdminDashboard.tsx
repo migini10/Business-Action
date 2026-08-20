@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { getSidebarClasses, getWhatsappGridClasses, shouldAutoScroll } from '@/lib/mobile-ui';
 import { getMessageDayKey, formatMessageDate, formatMessageTime } from '@/lib/date-utils';
 import { InboxFilter, filterWhatsAppConversations, sortWhatsAppConversations, getActionCount, getAdvisorActions } from '@/lib/whatsapp-inbox';
+import AdminEnhanceModal from './AdminEnhanceModal';
 
 export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
   const [dossiers, setDossiers] = useState(initialDossiers);
@@ -27,6 +28,8 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [transactionType, setTransactionType] = useState('paiement');
   const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
+  const [documentVersion, setDocumentVersion] = useState<'enhanced' | 'original'>('enhanced');
+  const [enhancingDoc, setEnhancingDoc] = useState<any | null>(null);
 
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'month' | 'year' | 'custom'>('all');
   const [customStartDate, setCustomStartDate] = useState('');
@@ -583,9 +586,21 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                                 {dossier.typeVehicule.toLowerCase().replace('_', ' ')}
                               </span>
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                {dossier.rectoUrl && <a href={dossier.rectoUrl} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 Carte Grise (Recto)</a>}
-                                {dossier.versoUrl && <a href={dossier.versoUrl} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 Carte Grise (Verso)</a>}
+                              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                {dossier.documents && dossier.documents.length > 0 ? (
+                                  dossier.documents.map((doc: any) => (
+                                    doc.deletedAt ? (
+                                      <span key={doc.id} style={{...docLinkStyle, color: '#94a3b8', textDecoration: 'line-through', cursor: 'not-allowed'}} title="Document expiré et supprimé">📄 {doc.type} ({doc.side})</span>
+                                    ) : (
+                                      <a key={doc.id} href={`/api/documents/${doc.id}?version=${documentVersion}`} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 {doc.type} ({doc.side})</a>
+                                    )
+                                  ))
+                                ) : (
+                                  <>
+                                    {dossier.rectoUrl && <a href={dossier.rectoUrl} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 Carte Grise (Recto)</a>}
+                                    {dossier.versoUrl && <a href={dossier.versoUrl} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 Carte Grise (Verso)</a>}
+                                  </>
+                                )}
                               </div>
                             </td>
                             <td style={{ ...tdStyle, color: '#64748B' }}>
@@ -938,13 +953,19 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                 </div>
 
                 {/* Documents */}
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                  Documents Justificatifs
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Documents Justificatifs
+                  </h3>
+                  <div style={{ display: 'flex', backgroundColor: '#F1F5F9', borderRadius: '0.5rem', padding: '0.25rem' }}>
+                    <button onClick={() => setDocumentVersion('enhanced')} style={{ padding: '0.25rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: documentVersion === 'enhanced' ? '#fff' : 'transparent', color: documentVersion === 'enhanced' ? '#0F172A' : '#64748B', boxShadow: documentVersion === 'enhanced' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none' }}>Amélioré</button>
+                    <button onClick={() => setDocumentVersion('original')} style={{ padding: '0.25rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: documentVersion === 'original' ? '#fff' : 'transparent', color: documentVersion === 'original' ? '#0F172A' : '#64748B', boxShadow: documentVersion === 'original' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none' }}>Original</button>
+                  </div>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                   {(() => {
-                    const renderFilePreview = (url: string, label: string) => {
+                    const renderFilePreview = (url: string, label: string, docObj?: any) => {
                       if (!url) {
                         return (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', backgroundColor: '#F1F5F9', border: '2px dashed #E2E8F0', borderRadius: '1rem', color: '#94A3B8' }}>
@@ -955,7 +976,14 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       const isPdfDocument = url.toLowerCase().includes('.pdf');
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>{label}</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>{label}</span>
+                            {docObj && !isPdfDocument && (
+                              <button onClick={() => setEnhancingDoc(docObj)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary)', backgroundColor: 'var(--color-primary-light)', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                ✨ Améliorer
+                              </button>
+                            )}
+                          </div>
                           <a href={url} target="_blank" rel="noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #E2E8F0', height: '200px', backgroundColor: '#F8FAFC', position: 'relative', textDecoration: 'none', color: '#0F172A' }}>
                             {isPdfDocument ? (
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
@@ -978,8 +1006,26 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
 
                     return (
                       <>
-                        {renderFilePreview(selectedDossier.rectoUrl, 'Recto')}
-                        {renderFilePreview(selectedDossier.versoUrl, 'Verso')}
+                        {selectedDossier.documents && selectedDossier.documents.length > 0 ? (
+                          selectedDossier.documents.map((doc: any) => (
+                            doc.deletedAt ? (
+                              <div key={doc.id} style={{ flex: 1, minWidth: '300px', backgroundColor: '#F8FAFC', borderRadius: '1rem', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', border: '1px solid #E2E8F0', height: '100%', minHeight: '300px' }}>
+                                <div style={{ width: '4rem', height: '4rem', borderRadius: '50%', backgroundColor: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                </div>
+                                <p style={{ color: '#64748B', fontWeight: 600, margin: 0 }}>{doc.type} ({doc.side})</p>
+                                <p style={{ color: '#94A3B8', fontSize: '0.875rem', margin: 0 }}>Document supprimé après expiration.</p>
+                              </div>
+                            ) : (
+                              renderFilePreview(`/api/documents/${doc.id}?version=${documentVersion}`, `${doc.type} (${doc.side})`, doc)
+                            )
+                          ))
+                        ) : (
+                          <>
+                            {renderFilePreview(selectedDossier.rectoUrl, 'Recto')}
+                            {renderFilePreview(selectedDossier.versoUrl, 'Verso')}
+                          </>
+                        )}
                       </>
                     );
                   })()}
@@ -1674,6 +1720,28 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
         )}
 
       </main>
+      <AdminEnhanceModal
+        isOpen={!!enhancingDoc}
+        onClose={() => setEnhancingDoc(null)}
+        document={enhancingDoc}
+        onSuccess={(documentId, newPath) => {
+          setDossiers(prev => prev.map(d => {
+            if (d.id === selectedDossier?.id) {
+              return {
+                ...d,
+                documents: d.documents.map((doc: any) => doc.id === documentId ? { ...doc, enhancedStoragePath: newPath } : doc)
+              };
+            }
+            return d;
+          }));
+          if (selectedDossier) {
+            setSelectedDossier({
+              ...selectedDossier,
+              documents: selectedDossier.documents.map((doc: any) => doc.id === documentId ? { ...doc, enhancedStoragePath: newPath } : doc)
+            });
+          }
+        }}
+      />
     </div>
   );
 }

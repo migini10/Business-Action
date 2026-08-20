@@ -11,19 +11,24 @@
     "test": "tsx --test src/lib/*.test.ts"
   },
   "dependencies": {
+    "@google-cloud/vision": "^5.3.7",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@supabase/supabase-js": "^2.106.2",
     "bcryptjs": "^3.0.3",
+    "blueimp-load-image": "^5.16.0",
+    "heic-to": "^1.5.2",
     "next": "^16.2.11",
     "pg": "^8.21.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.12.4",
+    "sharp": "^0.35.3",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/blueimp-load-image": "^5.16.6",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

@@ -7,7 +7,7 @@ export async function POST() {
     await requireAdmin();
     // This will send to ALL admins, which is acceptable for a test push,
     // though in a multi-admin setup we might filter by endpoint if provided.
-    
+
     await sendPushNotificationSafe({
       title: 'Business Action',
       body: 'Ceci est une notification de test de Business Action.',

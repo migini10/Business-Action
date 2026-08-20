@@ -4,8 +4,8 @@ import { _registerClient } from '../app/actions/auth';
 
 function createMockDeps(overrides = {}) {
   const db: any = {
-    user: { 
-      findUnique: async () => null, 
+    user: {
+      findUnique: async () => null,
       create: async (args: any) => ({
         id: 'user-123',
         fullName: args.data.fullName,

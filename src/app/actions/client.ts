@@ -12,7 +12,12 @@ export async function getClientDashboardData() {
 
     const dossiers = await prisma.dossier.findMany({
       where: { clientId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        documents: {
+          select: { id: true, type: true, side: true, expiresAt: true, deletedAt: true }
+        }
+      }
     });
 
     const transactions = await prisma.transaction.findMany({

@@ -72,6 +72,6 @@ export function normalizeText(text: string): string {
     .replace(/[^\w\s]/g, ' ') // Punctuation to space
     .replace(/\s+/g, ' ')
     .trim();
-    
+
   return normalized;
 }

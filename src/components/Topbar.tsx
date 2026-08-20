@@ -58,7 +58,7 @@ export default function Topbar() {
             Administration
           </Link>
         </div>
-        
+
         <div style={{ marginTop: 'auto', padding: '1.5rem', backgroundColor: 'var(--color-primary-light)', borderRadius: '1rem', textAlign: 'center' }}>
           <h4 style={{ color: 'var(--color-primary-dark)', fontSize: '1rem', fontWeight: 800, margin: '0 0 0.5rem 0' }}>Besoin d'aide ?</h4>
           <p style={{ color: 'var(--color-primary)', fontSize: '0.875rem', margin: '0 0 1rem 0' }}>Contactez notre support via WhatsApp.</p>
@@ -91,16 +91,16 @@ export default function Topbar() {
               <Link href="/admin" className="btn btn-secondary hide-mobile" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }} prefetch={false}>
                 Accès Admin
               </Link>
-              <button 
+              <button
                 onClick={() => setIsMenuOpen(true)}
-                style={{ 
-                background: 'var(--color-primary-light)', 
-                border: 'none', 
-                borderRadius: '0.5rem', 
-                width: '40px', 
-                height: '40px', 
-                display: 'flex', 
-                alignItems: 'center', 
+                style={{
+                background: 'var(--color-primary-light)',
+                border: 'none',
+                borderRadius: '0.5rem',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
                 color: 'var(--color-primary)'

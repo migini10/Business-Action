@@ -68,8 +68,8 @@ export async function _registerClient(formData: FormData, deps: { db: any; hash:
         await deps.createSession(user.id);
       }
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         user: {
           id: user.id,
           name: user.fullName,
@@ -97,8 +97,8 @@ export async function _registerClient(formData: FormData, deps: { db: any; hash:
 }
 
 export async function registerClient(formData: FormData) {
-  return _registerClient(formData, { 
-    db: prisma, 
+  return _registerClient(formData, {
+    db: prisma,
     hash: (p: string) => bcrypt.hash(p, 10),
     createSession: createClientSession
   });
@@ -130,8 +130,8 @@ export async function loginClient(formData: FormData) {
 
     await createClientSession(user.id);
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       user: {
         id: user.id,
         name: user.fullName,

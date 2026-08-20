@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { createDossier } from '@/app/actions/dossier';
+import DocumentScanner from '@/components/DocumentScanner';
 
 export default function DemandeDevis() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -10,6 +11,10 @@ export default function DemandeDevis() {
   const [dossierNum, setDossierNum] = useState('');
   const [rectoFile, setRectoFile] = useState<File | null>(null);
   const [versoFile, setVersoFile] = useState<File | null>(null);
+  const [cmcFile, setCmcFile] = useState<File | null>(null);
+  const [situation, setSituation] = useState('immatricule');
+  const [serverError, setServerError] = useState<string | null>(null);
+
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -67,28 +72,32 @@ export default function DemandeDevis() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     const formData = new FormData(e.currentTarget);
-    
-    // Compress images before sending to prevent Vercel 4.5MB payload limit error
+    formData.set('situationVehicule', situation);
+
+    // Compression et recadrage déjà gérés par DocumentScanner pour recto/verso/cmc (JPEG)
+    // Sauf si c'est un PDF, on l'envoie tel quel.
     if (rectoFile) {
-      const compressedRecto = await compressImage(rectoFile);
-      formData.set('recto', compressedRecto); // using set to override original if it exists
+      formData.set(situation === 'non_immatricule' ? 'cmc' : 'recto', rectoFile);
     }
-    if (versoFile) {
-      const compressedVerso = await compressImage(versoFile);
-      formData.set('verso', compressedVerso);
+    if (versoFile && situation === 'immatricule') {
+      formData.set('verso', versoFile);
+    }
+    if (situation === 'non_immatricule' && cmcFile) {
+      formData.set('cmc', cmcFile);
     }
 
     try {
       const result = await createDossier(formData);
       setIsSubmitting(false);
-      
+
       if (result.success && result.numeroDossier) {
         setSuccess(true);
         setDossierNum(result.numeroDossier);
+        setServerError(null);
       } else {
-        alert(result.error || "Une erreur s'est produite côté serveur.");
+        setServerError(result.error || "Une erreur inconnue s'est produite.");
       }
     } catch (err: any) {
       setIsSubmitting(false);
@@ -125,6 +134,7 @@ export default function DemandeDevis() {
   return (
     <main style={{ minHeight: '80vh', padding: '4rem 2rem' }}>
       <div className="container" style={{ maxWidth: '800px' }}>
+
         <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
           <h1 style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--color-text-main)', marginBottom: '1rem' }}>Demande de Devis</h1>
           <p style={{ fontSize: '1.25rem', color: 'var(--color-text-muted)', maxWidth: '600px', margin: '0 auto' }}>
@@ -133,36 +143,41 @@ export default function DemandeDevis() {
         </div>
 
         <form onSubmit={handleSubmit} className="card animate-fade-in" style={{ padding: '3rem', borderRadius: 'var(--radius-2xl)', backgroundColor: '#fff' }}>
-          
+
+          {serverError && (
+            <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '2rem', border: '1px solid #f87171' }}>
+              <strong>Erreur lors de l'envoi : </strong> {serverError}
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Numéro WhatsApp</label>
-              <input 
-                type="tel" 
+              <input
+                type="tel"
                 name="phone"
                 required
-                placeholder="Ex: +221 77 123 45 67" 
-                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }} 
+                placeholder="Ex: +221 77 123 45 67"
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Adresse Email</label>
-              <input 
-                type="email" 
+              <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Adresse Email (Optionnel)</label>
+              <input
+                type="email"
                 name="email"
-                required
-                placeholder="Ex: contact@votremail.com" 
-                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }} 
+                placeholder="Ex: contact@votremail.com"
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }}
               />
             </div>
           </div>
 
           <div style={{ marginBottom: '2rem' }}>
             <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Type de Véhicule</label>
-            <select 
+            <select
               name="typeVehicule"
               required
-              style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', cursor: 'pointer' }} 
+              style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', cursor: 'pointer' }}
             >
               <option value="">Sélectionnez un type</option>
               <option value="particulier">Véhicule Particulier</option>
@@ -172,47 +187,56 @@ export default function DemandeDevis() {
             </select>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
-            <div>
-              <span style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Carte Grise (Recto)</span>
-              <label style={{ display: 'block', border: '2px dashed var(--color-gray)', borderRadius: 'var(--radius-lg)', padding: '2.5rem 1rem', textAlign: 'center', cursor: 'pointer', backgroundColor: rectoFile ? 'rgba(59, 130, 246, 0.05)' : 'var(--color-gray-light)', borderColor: rectoFile ? 'var(--color-primary)' : 'var(--color-gray)', transition: 'all 0.2s' }}>
-                <input 
-                  type="file" 
-                  accept=".jpg,.jpeg,.png,.pdf" 
-                  style={{ display: 'none' }} 
-                  onChange={(e) => setRectoFile(e.target.files?.[0] || null)}
-                />
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', margin: 0 }}>
-                  {rectoFile ? (
-                    <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{rectoFile.name}</span>
-                  ) : (
-                    <>Cliquez pour uploader<br/><span style={{ fontSize: '0.75rem' }}>(JPG, PNG, PDF)</span></>
-                  )}
-                </p>
+          <div style={{ marginBottom: '2rem' }}>
+            <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Situation du véhicule</label>
+            <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input type="radio" name="situationVehicule" value="immatricule" checked={situation === 'immatricule'} onChange={(e) => { setSituation(e.target.value); setRectoFile(null); setVersoFile(null); }} />
+                <span>Véhicule déjà immatriculé (Carte Grise)</span>
               </label>
-            </div>
-
-            <div>
-              <span style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Carte Grise (Verso)</span>
-              <label style={{ display: 'block', border: '2px dashed var(--color-gray)', borderRadius: 'var(--radius-lg)', padding: '2.5rem 1rem', textAlign: 'center', cursor: 'pointer', backgroundColor: versoFile ? 'rgba(59, 130, 246, 0.05)' : 'var(--color-gray-light)', borderColor: versoFile ? 'var(--color-primary)' : 'var(--color-gray)', transition: 'all 0.2s' }}>
-                <input 
-                  type="file" 
-                  accept=".jpg,.jpeg,.png,.pdf" 
-                  style={{ display: 'none' }} 
-                  onChange={(e) => setVersoFile(e.target.files?.[0] || null)}
-                />
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', margin: 0 }}>
-                  {versoFile ? (
-                    <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{versoFile.name}</span>
-                  ) : (
-                    <>Cliquez pour uploader<br/><span style={{ fontSize: '0.75rem' }}>(JPG, PNG, PDF)</span></>
-                  )}
-                </p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input type="radio" name="situationVehicule" value="non_immatricule" checked={situation === 'non_immatricule'} onChange={(e) => { setSituation(e.target.value); setRectoFile(null); setVersoFile(null); }} />
+                <span>Véhicule pas encore immatriculé (CMC)</span>
               </label>
             </div>
           </div>
+
+          {situation === 'non_immatricule' ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
+              <div style={{ minHeight: '200px' }}>
+                <DocumentScanner
+                  name="cmc"
+                  label="Document CMC (Taille max: 4MB. Formats: JPG, PNG, PDF)"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  onFileAccepted={setCmcFile}
+                  isPdfOk={true}
+                  errorMsg={serverError?.includes('CMC') ? serverError : undefined}
+                />
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
+              <div style={{ minHeight: '200px' }}>
+                <DocumentScanner
+                  name="recto"
+                  label="Carte Grise (Recto)"
+                  accept=".jpg,.jpeg,.png"
+                  onFileAccepted={setRectoFile}
+                  errorMsg={serverError?.includes('recto') ? serverError : undefined}
+                />
+              </div>
+
+              <div style={{ minHeight: '200px' }}>
+                <DocumentScanner
+                  name="verso"
+                  label="Carte Grise (Verso)"
+                  accept=".jpg,.jpeg,.png"
+                  onFileAccepted={setVersoFile}
+                  errorMsg={serverError?.includes('verso') ? serverError : undefined}
+                />
+              </div>
+            </div>
+          )}
 
           <style>{`
             .btn-submit {
@@ -261,9 +285,9 @@ export default function DemandeDevis() {
               40% { transform: scale(1); opacity: 1; }
             }
           `}</style>
-          
-          <button 
-            type="submit" 
+
+          <button
+            type="submit"
             disabled={isSubmitting}
             className={`btn btn-primary btn-submit ${isSubmitting ? 'loading' : ''}`}
             style={{ width: '100%', height: '64px', padding: '0', borderRadius: 'var(--radius-lg)', position: 'relative', border: 'none', color: 'white', cursor: isSubmitting ? 'not-allowed' : 'pointer' }}

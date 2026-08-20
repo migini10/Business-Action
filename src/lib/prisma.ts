@@ -29,13 +29,13 @@ o/bKiIz+Fq8=
 const prismaClientSingleton = () => {
   // Retire les guillemets si l'utilisateur les a copiés par erreur sur Vercel
   const connectionString = (process.env.DATABASE_URL || '').replace(/^"|"$/g, '').trim()
-  
-  const pool = new Pool({ 
+
+  const pool = new Pool({
     connectionString,
     // Configuration TLS stricte requise par Supabase
-    ssl: { 
+    ssl: {
       ca: SUPABASE_CA,
-      rejectUnauthorized: true 
+      rejectUnauthorized: true
     }
   })
   const adapter = new PrismaPg(pool)

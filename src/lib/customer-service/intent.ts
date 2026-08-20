@@ -1,6 +1,6 @@
 import { matchAnyKeyword, normalizeText } from './fuzzy-match';
 
-export type CustomerIntent = 
+export type CustomerIntent =
   | 'QUOTE_REQUEST'
   | 'FAQ_QUOTE'
   | 'FAQ_SERVICES'
@@ -16,7 +16,7 @@ export function detectIntent(text: string): CustomerIntent {
   // Quote request: devis, quote, prix, price, combien, naata, cost, tarif
   // Adding explicit start commands to quote request as well
   const quoteKeywords = ['devis', 'quote', 'prix', 'price', 'combien', 'naata', 'cost', 'tarif', 'tarifs', 'commencer', 'start', 'tambali', 'much'];
-  
+
   // Status request: statut, status, suivi, where, quand, etat, track
   const statusKeywords = ['statut', 'status', 'statu', 'staus', 'suivi', 'suivre', 'where', 'quand', 'etat', 'track', 'requst'];
 

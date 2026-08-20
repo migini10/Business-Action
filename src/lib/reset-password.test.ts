@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { 
-  _requestPasswordReset, 
-  _verifyOTP, 
+import {
+  _requestPasswordReset,
+  _verifyOTP,
   _updatePassword
 } from '../app/actions/reset-password';
 import crypto from 'crypto';
@@ -62,7 +62,7 @@ test('Business Logic: requestPasswordReset', async (t) => {
   await t.test('Numéro existant => réponse neutre', async () => {
     const deps = createMockDeps();
     deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
-    
+
     let createdChallenge = false;
     deps.db.passwordResetChallenge.create = async () => { createdChallenge = true; };
 
@@ -88,7 +88,7 @@ test('Business Logic: verifyOTP', async (t) => {
   await t.test('OTP invalide', async () => {
     const deps = createMockDeps();
     deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
-    
+
     // Valid challenge in DB, but with different OTP hash
     deps.db.passwordResetChallenge.findFirst = async () => ({
       id: 'chal1',
@@ -112,7 +112,7 @@ test('Business Logic: verifyOTP', async (t) => {
   await t.test('OTP expiré', async () => {
     const deps = createMockDeps();
     deps.db.user.findUnique = async () => ({ id: 'user1' });
-    
+
     deps.db.passwordResetChallenge.findFirst = async () => ({
       id: 'chal1',
       otpHash: hashString('123456', mockSecret),
@@ -128,7 +128,7 @@ test('Business Logic: verifyOTP', async (t) => {
   await t.test('3 tentatives => bloqué', async () => {
     const deps = createMockDeps();
     deps.db.user.findUnique = async () => ({ id: 'user1' });
-    
+
     deps.db.passwordResetChallenge.findFirst = async () => ({
       id: 'chal1',
       otpHash: hashString('123456', mockSecret),
@@ -150,7 +150,7 @@ test('Business Logic: verifyOTP', async (t) => {
   await t.test('OTP valide => verified + cookie set', async () => {
     const deps = createMockDeps();
     deps.db.user.findUnique = async () => ({ id: 'user1' });
-    
+
     deps.db.passwordResetChallenge.findFirst = async () => ({
       id: 'chal1',
       otpHash: hashString('123456', mockSecret),

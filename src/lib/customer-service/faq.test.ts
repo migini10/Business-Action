@@ -4,7 +4,7 @@ import { getFaqResponse } from './knowledge/faq';
 import { detectIntent } from './intent';
 
 describe('Customer Service Auto - FAQ (CUSTOMER-SERVICE-AUTO-003)', () => {
-  
+
   describe('Intent Resolution', () => {
     it('FR - FAQ_SERVICES', () => {
       assert.strictEqual(detectIntent('quels sont vos services'), 'FAQ_SERVICES');

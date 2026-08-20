@@ -6,7 +6,7 @@ export function detectLanguage(text: string): SupportedLanguage | null {
     .replace(/[^\w\s]/g, ' ') // Replace punctuation with space
     .replace(/\s+/g, ' ')
     .trim();
-  
+
   const words = normalizedText.split(' ');
 
   // Discriminant keywords for each language

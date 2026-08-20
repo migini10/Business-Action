@@ -69,6 +69,35 @@ model ClientSession {
 }
 
 
+enum DossierDocumentType {
+  CARTE_GRISE
+  CMC
+}
+
+enum DossierDocumentSide {
+  RECTO
+  VERSO
+  SINGLE
+}
+
+model DossierDocument {
+  id          String              @id @default(cuid())
+  dossierId   String
+  type        DossierDocumentType
+  side                DossierDocumentSide
+  storagePath         String
+  enhancedStoragePath String?
+  mimeType            String
+  uploadedAt          DateTime            @default(now())
+  expiresAt           DateTime
+  deletedAt           DateTime?
+
+  dossier     Dossier @relation(fields: [dossierId], references: [id], onDelete: Restrict)
+
+  @@index([dossierId])
+  @@index([expiresAt, deletedAt])
+}
+
 model Dossier {
   id            String        @id @default(cuid())
   numeroDossier String        @unique // Ex: DOS-1234-SN
@@ -79,6 +108,8 @@ model Dossier {
   versoUrl      String? // URL de la carte grise verso
   devisUrl      String? // URL du devis envoyé au client
   statut        StatutDossier @default(EN_ATTENTE)
+
+  documents     DossierDocument[]
 
   // Relation optionnelle si l'utilisateur a un compte
   clientId String?

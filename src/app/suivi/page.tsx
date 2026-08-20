@@ -13,12 +13,12 @@ export default function Suivi() {
   const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSearching(true);
-    
+
     const formData = new FormData(e.currentTarget);
     const identifier = formData.get('identifier') as string;
-    
+
     const result = await getDossier(identifier, method);
-    
+
     setIsSearching(false);
     if (result.success && result.dossier) {
       setDossierData(result.dossier);
@@ -40,16 +40,16 @@ export default function Suivi() {
 
         {!hasResult ? (
           <form onSubmit={handleSearch} className="card animate-fade-in" style={{ padding: '3rem', borderRadius: 'var(--radius-2xl)', backgroundColor: '#fff', maxWidth: '600px', margin: '0 auto' }}>
-            
+
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', backgroundColor: 'var(--color-gray-light)', padding: '0.5rem', borderRadius: 'var(--radius-lg)' }}>
-              <button 
+              <button
                 type="button"
                 onClick={() => setMethod('telephone')}
                 style={{ flex: 1, padding: '0.75rem', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', backgroundColor: method === 'telephone' ? '#fff' : 'transparent', color: method === 'telephone' ? 'var(--color-primary)' : 'var(--color-text-muted)', boxShadow: method === 'telephone' ? '0 2px 10px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.2s' }}
               >
                 Par Téléphone
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => setMethod('dossier')}
                 style={{ flex: 1, padding: '0.75rem', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', backgroundColor: method === 'dossier' ? '#fff' : 'transparent', color: method === 'dossier' ? 'var(--color-primary)' : 'var(--color-text-muted)', boxShadow: method === 'dossier' ? '0 2px 10px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.2s' }}
@@ -62,32 +62,32 @@ export default function Suivi() {
               {method === 'telephone' ? (
                 <>
                   <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Votre numéro WhatsApp</label>
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     name="identifier"
                     required
-                    placeholder="Ex: +221 77 123 45 67" 
-                    style={{ width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1.125rem', outline: 'none', backgroundColor: '#fff' }} 
+                    placeholder="Ex: +221 77 123 45 67"
+                    style={{ width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1.125rem', outline: 'none', backgroundColor: '#fff' }}
                   />
                 </>
               ) : (
                 <>
                   <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Votre Numéro de Dossier</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     name="identifier"
                     required
-                    placeholder="Ex: DOS-1234-SN" 
-                    style={{ width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1.125rem', outline: 'none', backgroundColor: '#fff', textTransform: 'uppercase' }} 
+                    placeholder="Ex: DOS-1234-SN"
+                    style={{ width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1.125rem', outline: 'none', backgroundColor: '#fff', textTransform: 'uppercase' }}
                   />
                 </>
               )}
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isSearching}
-              className="btn btn-primary" 
+              className="btn btn-primary"
               style={{ width: '100%', padding: '1.25rem', fontSize: '1.125rem', borderRadius: 'var(--radius-lg)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', opacity: isSearching ? 0.7 : 1, cursor: isSearching ? 'not-allowed' : 'pointer' }}
             >
               {isSearching ? (
@@ -115,7 +115,7 @@ export default function Suivi() {
 
             <div style={{ position: 'relative', paddingLeft: '2rem', margin: '3rem 0' }}>
               <div style={{ position: 'absolute', left: '7px', top: 0, bottom: 0, width: '2px', backgroundColor: 'var(--color-gray)' }}></div>
-              
+
               <div style={{ position: 'relative', marginBottom: '2.5rem' }}>
                 <div style={{ position: 'absolute', left: '-2rem', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--color-success)', border: '4px solid #fff', outline: '2px solid var(--color-success)', zIndex: 1 }}></div>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--color-text-main)' }}>Demande reçue</h3>
@@ -132,7 +132,7 @@ export default function Suivi() {
                 <div style={{ position: 'absolute', left: '-2rem', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: ['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-success)' : 'var(--color-gray)', border: '4px solid #fff', outline: `2px solid ${['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-success)' : 'var(--color-gray)'}`, zIndex: 1 }}></div>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: ['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'var(--color-text-main)' : 'var(--color-text-muted)' }}>Offre prête</h3>
                 <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.875rem', marginBottom: dossierData?.devisUrl ? '1rem' : '0' }}>{['OFFRE_ENVOYEE', 'VALIDE'].includes(dossierData?.statut) ? 'Votre devis est prêt. Vous pouvez le consulter ci-dessous.' : 'À venir'}</p>
-                
+
                 {dossierData?.devisUrl && (
                   <div style={{ marginTop: '1rem' }}>
                     <a href={dossierData.devisUrl} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', fontSize: '1rem', backgroundColor: 'var(--color-primary)', color: 'white', borderRadius: '0.5rem', textDecoration: 'none', fontWeight: 600 }}>

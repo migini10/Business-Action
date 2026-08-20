@@ -17,25 +17,25 @@ export function getMessageDayKey(timestamp: Date | string): string {
 
 export function formatMessageDate(timestamp: Date | string): string {
   const d = new Date(timestamp);
-  
+
   const now = new Date();
   const todayKey = getMessageDayKey(now);
-  
+
   // Use a precise yesterday calculation in the target timezone
   // A simple `- 24 hours` works well enough for day keys unless there is a DST change,
   // but Dakar (Africa/Dakar) does not observe DST.
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const yesterdayKey = getMessageDayKey(yesterday);
-  
+
   const targetKey = getMessageDayKey(d);
-  
+
   if (targetKey === todayKey) {
     return 'Aujourd’hui';
   }
   if (targetKey === yesterdayKey) {
     return 'Hier';
   }
-  
+
   return new Intl.DateTimeFormat('fr-FR', {
     timeZone: 'Africa/Dakar',
     year: 'numeric',

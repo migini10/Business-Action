@@ -45,7 +45,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     const result = await handleQuoteFlow(conv, '2', 'fr');
     assert.match(result as string, /véhicule utilitaire/);
     assert.match(result as string, /Souhaitez-vous envoyer/);
-    
+
     const updateArgs = p.whatsAppConversation.update.mock.calls[0].arguments[0];
     assert.strictEqual(updateArgs.data.botState, 'QUOTE_CONFIRM');
     assert.strictEqual(updateArgs.data.draftQuote.typeVehicule, 'UTILITAIRE');
@@ -60,22 +60,22 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
   test('Confirm and create (QUOTE_CONFIRM -> IDLE)', async () => {
     p.whatsAppConversation.updateMany.mock.resetCalls();
     p.dossier.create.mock.resetCalls();
-    
-    const conv = { 
-      ...baseConv, 
+
+    const conv = {
+      ...baseConv,
       botState: 'QUOTE_CONFIRM',
       draftQuote: { typeVehicule: 'UTILITAIRE' }
     } as unknown as WhatsAppConversation;
-    
+
     const result = await handleQuoteFlow(conv, 'oui', 'fr');
     assert.match(result as string, /DOS-TEST-SN/);
-    
+
     // Check updateMany was called (atomic lock)
     assert.strictEqual(p.whatsAppConversation.updateMany.mock.calls.length, 1);
     const updateManyArgs = p.whatsAppConversation.updateMany.mock.calls[0].arguments[0];
     assert.strictEqual(updateManyArgs.where.botState, 'QUOTE_CONFIRM');
     assert.strictEqual(updateManyArgs.data.botState, 'IDLE');
-    
+
     // Check dossier creation
     assert.strictEqual(p.dossier.create.mock.calls.length, 1);
     const createArgs = p.dossier.create.mock.calls[0].arguments[0];
@@ -85,7 +85,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
 
   test('Idempotency / Concurrency on Confirm (Two simultaneous YES)', async () => {
     p.whatsAppConversation.updateMany.mock.resetCalls();
-    
+
     let callCount = 0;
     p.whatsAppConversation.updateMany.mock.mockImplementation(async () => {
       callCount++;
@@ -93,12 +93,12 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
       return { count: 0 }; // Second one fails
     });
 
-    const conv = { 
-      ...baseConv, 
+    const conv = {
+      ...baseConv,
       botState: 'QUOTE_CONFIRM',
       draftQuote: { typeVehicule: 'UTILITAIRE' }
     } as unknown as WhatsAppConversation;
-    
+
     const [res1, res2] = await Promise.all([
       handleQuoteFlow(conv, 'oui', 'fr'),
       handleQuoteFlow(conv, 'oui', 'fr')
@@ -107,7 +107,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     // One succeeds, one says already processed
     const successResult = [res1, res2].find(r => r?.includes('DOS-TEST-SN'));
     const concurrentResult = [res1, res2].find(r => r?.includes('déjà en cours'));
-    
+
     assert.ok(successResult);
     assert.ok(concurrentResult);
 

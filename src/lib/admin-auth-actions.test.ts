@@ -52,20 +52,20 @@ describe('loginAdmin (Fail-Closed Auth)', () => {
   test('variables valides => login possible', async () => {
     process.env.ADMIN_USER = 'testadmin';
     process.env.ADMIN_PASSWORD = 'testpassword';
-    
+
     const fd = createFormData('testadmin', 'testpassword');
     const result = await loginAdmin(fd);
-    
+
     assert.strictEqual(result.success, true);
   });
 
   test('mot de passe incorrect => refus', async () => {
     process.env.ADMIN_USER = 'testadmin';
     process.env.ADMIN_PASSWORD = 'testpassword';
-    
+
     const fd = createFormData('testadmin', 'wrongpassword');
     const result = await loginAdmin(fd);
-    
+
     assert.strictEqual(result.success, false);
     assert.strictEqual(result.error, 'Identifiants incorrects');
   });
@@ -73,10 +73,10 @@ describe('loginAdmin (Fail-Closed Auth)', () => {
   test('utilisateur incorrect => refus', async () => {
     process.env.ADMIN_USER = 'testadmin';
     process.env.ADMIN_PASSWORD = 'testpassword';
-    
+
     const fd = createFormData('wrongadmin', 'testpassword');
     const result = await loginAdmin(fd);
-    
+
     assert.strictEqual(result.success, false);
     assert.strictEqual(result.error, 'Identifiants incorrects');
   });
@@ -84,10 +84,10 @@ describe('loginAdmin (Fail-Closed Auth)', () => {
   test('ADMIN_USER absent => refus (Fail-closed)', async () => {
     delete process.env.ADMIN_USER;
     process.env.ADMIN_PASSWORD = 'testpassword';
-    
+
     const fd = createFormData('admin', 'testpassword');
     const result = await loginAdmin(fd);
-    
+
     assert.strictEqual(result.success, false);
     assert.strictEqual(result.error, 'Identifiants incorrects');
   });
@@ -95,10 +95,10 @@ describe('loginAdmin (Fail-Closed Auth)', () => {
   test('ADMIN_PASSWORD absent => refus (Fail-closed)', async () => {
     process.env.ADMIN_USER = 'testadmin';
     delete process.env.ADMIN_PASSWORD;
-    
+
     const fd = createFormData('testadmin', 'bizness2026');
     const result = await loginAdmin(fd);
-    
+
     assert.strictEqual(result.success, false);
     assert.strictEqual(result.error, 'Identifiants incorrects');
   });
@@ -106,10 +106,10 @@ describe('loginAdmin (Fail-Closed Auth)', () => {
   test('les deux absents => refus (Fail-closed)', async () => {
     delete process.env.ADMIN_USER;
     delete process.env.ADMIN_PASSWORD;
-    
+
     const fd = createFormData('admin', 'bizness2026');
     const result = await loginAdmin(fd);
-    
+
     assert.strictEqual(result.success, false);
     assert.strictEqual(result.error, 'Identifiants incorrects');
   });
@@ -117,10 +117,10 @@ describe('loginAdmin (Fail-Closed Auth)', () => {
   test('aucun fallback historique ne fonctionne', async () => {
     delete process.env.ADMIN_USER;
     delete process.env.ADMIN_PASSWORD;
-    
+
     const fd = createFormData('admin', 'bizness2026');
     const result = await loginAdmin(fd);
-    
+
     assert.strictEqual(result.success, false);
     assert.strictEqual(result.error, 'Identifiants incorrects');
   });
@@ -128,7 +128,7 @@ describe('loginAdmin (Fail-Closed Auth)', () => {
   test('formulaire vide => refus', async () => {
     const fd = createFormData();
     const result = await loginAdmin(fd);
-    
+
     assert.strictEqual(result.success, false);
     assert.strictEqual(result.error, 'Identifiants requis');
   });

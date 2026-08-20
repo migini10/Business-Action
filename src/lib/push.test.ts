@@ -85,7 +85,7 @@ describe('PWA Push Notifications (PWA-001)', () => {
     mockPrisma.pushSubscription.delete.mock.resetCalls();
     mockPrisma.adminSession.findUnique.mock.resetCalls();
     mockCookieStore.get.mock.resetCalls();
-    
+
     // Set VAPID vars for tests
     process.env.WEB_PUSH_PUBLIC_KEY = 'test-public';
     process.env.WEB_PUSH_PRIVATE_KEY = 'test-private';
@@ -104,7 +104,7 @@ describe('PWA Push Notifications (PWA-001)', () => {
   test('VAPID route: returns public key avec session admin', async () => {
     mockCookieStore.get.mock.mockImplementationOnce(() => ({ value: 'valid-token' }));
     mockPrisma.adminSession.findUnique.mock.mockImplementationOnce(async () => ({ id: '1', expiresAt: new Date(Date.now() + 10000) }));
-    
+
     const res = await vapidGet();
     const data = await res.json();
     assert.strictEqual(res.status, 200);
@@ -120,7 +120,7 @@ describe('PWA Push Notifications (PWA-001)', () => {
   test('Subscribe: requires endpoint and keys', async () => {
     mockCookieStore.get.mock.mockImplementationOnce(() => ({ value: 'valid-token' }));
     mockPrisma.adminSession.findUnique.mock.mockImplementationOnce(async () => ({ id: '1', expiresAt: new Date(Date.now() + 10000) }));
-    
+
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({ endpoint: 'https://push.com' }) });
     const res = await subscribePost(req);
     assert.strictEqual(res.status, 400); // Missing keys
@@ -129,7 +129,7 @@ describe('PWA Push Notifications (PWA-001)', () => {
   test('Unsubscribe: supprime avec endpoint', async () => {
     mockCookieStore.get.mock.mockImplementationOnce(() => ({ value: 'valid-token' }));
     mockPrisma.adminSession.findUnique.mock.mockImplementationOnce(async () => ({ id: '1', expiresAt: new Date(Date.now() + 10000) }));
-    
+
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({ endpoint: 'https://push.com' }) });
     const res = await unsubscribePost(req);
     assert.strictEqual(res.status, 200);
@@ -139,7 +139,7 @@ describe('PWA Push Notifications (PWA-001)', () => {
   test('Test Push: envoie via web-push', async () => {
     mockCookieStore.get.mock.mockImplementationOnce(() => ({ value: 'valid-token' }));
     mockPrisma.adminSession.findUnique.mock.mockImplementationOnce(async () => ({ id: '1', expiresAt: new Date(Date.now() + 10000) }));
-    
+
     mockPrisma.pushSubscription.findMany.mock.mockImplementationOnce(async () => [{
       id: 'sub-1',
       endpoint: 'https://test.com',
@@ -148,12 +148,12 @@ describe('PWA Push Notifications (PWA-001)', () => {
     }]);
 
     await testPost(new Request('http://localhost', { method: 'POST' }));
-    
+
     assert.strictEqual(mockWebPush.sendNotification.mock.callCount(), 1);
     const callArgs = mockWebPush.sendNotification.mock.calls[0].arguments;
     assert.strictEqual(callArgs[0].endpoint, 'https://test.com');
   });
-  
+
   test('sendPushNotificationSafe: handles 410 Gone en supprimant subscription', async () => {
     mockPrisma.pushSubscription.findMany.mock.mockImplementationOnce(async () => [{
       id: 'sub-expired',

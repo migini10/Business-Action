@@ -22,12 +22,12 @@ export default async function AdminPage() {
     getDossiers(),
     getClients()
   ]);
-  
+
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#F8FAFC' }}>
-      <AdminDashboard 
-        initialDossiers={dossiersResult.dossiers || []} 
-        initialClients={clientsResult.clients || []} 
+      <AdminDashboard
+        initialDossiers={dossiersResult.dossiers || []}
+        initialClients={clientsResult.clients || []}
       />
     </main>
   );

@@ -8,7 +8,7 @@ const SESSION_EXPIRATION_MS = 8 * 60 * 60 * 1000; // 8 heures
 export async function createAdminSession() {
   const token = crypto.randomBytes(32).toString('hex');
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-  
+
   const expiresAt = new Date(Date.now() + SESSION_EXPIRATION_MS);
 
   await prisma.adminSession.create({
@@ -57,7 +57,7 @@ export async function requireAdmin() {
 export async function revokeAdminSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-  
+
   if (token) {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     await prisma.adminSession.update({

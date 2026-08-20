@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 
 test('Finance Logic', async (t) => {
-  
+
   await t.test('normalizeTransactionAmount', () => {
     assert.strictEqual(normalizeTransactionAmount(100000), 100000);
     assert.strictEqual(normalizeTransactionAmount(-40000), 40000);
@@ -81,7 +81,7 @@ test('Finance Logic', async (t) => {
       { type: TypeTransaction.DETTE, montant: 50000 }
     ];
     const b1 = calculateClientBalance(txs);
-    
+
     // Ordre inversé
     const txsReversed = [...txs].reverse();
     const b2 = calculateClientBalance(txsReversed);

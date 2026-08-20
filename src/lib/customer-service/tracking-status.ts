@@ -3,7 +3,7 @@ import { SupportedLanguage } from './language';
 
 export function getTrackingStatusName(statut: StatutDossier, lang: SupportedLanguage | null): string {
   const language = lang || 'fr';
-  
+
   switch (statut) {
     case 'EN_ATTENTE':
       return language === 'wo' ? 'Ci xaar lay nekk' : language === 'en' ? 'Pending' : 'En attente';

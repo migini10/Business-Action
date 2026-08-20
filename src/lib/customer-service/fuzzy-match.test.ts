@@ -31,7 +31,7 @@ describe('Customer Service Auto - Fuzzy Match (CUSTOMER-SERVICE-AUTO-003.1)', ()
       assert.strictEqual(detectIntent('je veux un devi'), 'QUOTE_REQUEST');
       assert.strictEqual(detectIntent('je ve un devis'), 'QUOTE_REQUEST');
     });
-    
+
     it('detects FAQ_QUOTE with typos', () => {
       assert.strictEqual(detectIntent('coment demander un devis'), 'FAQ_QUOTE');
     });
@@ -50,14 +50,14 @@ describe('Customer Service Auto - Fuzzy Match (CUSTOMER-SERVICE-AUTO-003.1)', ()
       assert.strictEqual(detectIntent('dama beg devis'), 'QUOTE_REQUEST');
       assert.strictEqual(detectIntent('dama beug devis'), 'QUOTE_REQUEST');
     });
-    
+
     it('detects FAQ_SERVICES with typos', () => {
       assert.strictEqual(detectIntent('ban servis ngeen di def'), 'FAQ_SERVICES');
     });
 
     it('handles special characters normalization', () => {
-      assert.strictEqual(detectIntent('naka laay def'), 'FAQ_SERVICES'); 
-      assert.strictEqual(detectIntent('wax ak nit'), 'UNKNOWN'); 
+      assert.strictEqual(detectIntent('naka laay def'), 'FAQ_SERVICES');
+      assert.strictEqual(detectIntent('wax ak nit'), 'UNKNOWN');
     });
   });
 
@@ -66,7 +66,7 @@ describe('Customer Service Auto - Fuzzy Match (CUSTOMER-SERVICE-AUTO-003.1)', ()
       assert.strictEqual(detectIntent('i ned a quote'), 'QUOTE_REQUEST');
       assert.strictEqual(detectIntent('i want a qoute'), 'QUOTE_REQUEST');
     });
-    
+
     it('detects FAQ_QUOTE with typos', () => {
       assert.strictEqual(detectIntent('how can i requst a quote'), 'FAQ_QUOTE');
     });
@@ -98,7 +98,7 @@ describe('Customer Service Auto - Fuzzy Match (CUSTOMER-SERVICE-AUTO-003.1)', ()
     it('parses CONFIRM modifiers with typos', () => {
       assert.strictEqual(parseConfirmSelection('modifer'), 'MODIFY');
       assert.strictEqual(parseConfirmSelection('anuler'), 'CANCEL');
-      assert.strictEqual(parseConfirmSelection('recomencer'), 'MODIFY'); 
+      assert.strictEqual(parseConfirmSelection('recomencer'), 'MODIFY');
       assert.strictEqual(parseConfirmSelection('conseller'), 'HUMAN_SUPPORT');
     });
 
@@ -112,7 +112,7 @@ describe('Customer Service Auto - Fuzzy Match (CUSTOMER-SERVICE-AUTO-003.1)', ()
       assert.strictEqual(parseConfirmSelection('2'), 'MODIFY');
       assert.strictEqual(parseConfirmSelection('3'), 'CANCEL');
       assert.strictEqual(parseConfirmSelection('4'), 'HUMAN_SUPPORT');
-      
+
       assert.strictEqual(parseVehicleSelection('1'), 'PARTICULIER');
       assert.strictEqual(parseVehicleSelection('2'), 'UTILITAIRE');
     });

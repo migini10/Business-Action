@@ -17,7 +17,7 @@ test('Date Utils - getMessageDayKey in Africa/Dakar', () => {
 
 test('Date Utils - formatMessageDate with Today/Yesterday', () => {
   const now = new Date();
-  
+
   // Today
   assert.strictEqual(formatMessageDate(now), 'Aujourd’hui');
 
@@ -27,11 +27,11 @@ test('Date Utils - formatMessageDate with Today/Yesterday', () => {
 
   // Past date
   const past = new Date('2026-08-16T12:00:00Z');
-  
+
   const pastKey = getMessageDayKey(past);
   const todayKey = getMessageDayKey(now);
   const yesterdayKey = getMessageDayKey(yesterday);
-  
+
   if (pastKey !== todayKey && pastKey !== yesterdayKey) {
     assert.strictEqual(formatMessageDate(past), '16 août 2026');
   }

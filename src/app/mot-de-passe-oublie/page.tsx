@@ -12,7 +12,7 @@ export default function MotDePasseOublie() {
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,7 +78,7 @@ export default function MotDePasseOublie() {
   return (
     <main style={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', padding: '4rem 1rem 2rem 1rem' }}>
       <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '450px', padding: '2.5rem 1.5rem', borderRadius: 'var(--radius-xl)', backgroundColor: '#fff', margin: '0 auto', boxShadow: 'var(--shadow-lg)' }}>
-        
+
         {/* En-tête */}
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ width: '64px', height: '64px', backgroundColor: 'var(--color-primary-light)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', color: 'var(--color-primary)' }}>
@@ -150,19 +150,19 @@ export default function MotDePasseOublie() {
           <form onSubmit={handleRequestReset}>
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Numéro de téléphone (WhatsApp)</label>
-              <input 
-                type="tel" 
+              <input
+                type="tel"
                 required
-                placeholder="Ex: 221770000000" 
+                placeholder="Ex: 221770000000"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
               />
             </div>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading}
-              className="btn-primary" 
+              className="btn-primary"
               style={{ width: '100%', padding: '1rem', fontSize: '1rem', borderRadius: 'var(--radius-lg)', opacity: isLoading ? 0.7 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
             >
               {isLoading ? 'Envoi en cours...' : 'Recevoir le code'}
@@ -175,21 +175,21 @@ export default function MotDePasseOublie() {
           <form onSubmit={handleVerifyOtp}>
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Code de vérification</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 maxLength={6}
                 pattern="\d{6}"
-                placeholder="000000" 
+                placeholder="000000"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
-                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1.5rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s', textAlign: 'center', letterSpacing: '0.5em', fontWeight: 700 }} 
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1.5rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s', textAlign: 'center', letterSpacing: '0.5em', fontWeight: 700 }}
               />
             </div>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading || otp.length !== 6}
-              className="btn-primary" 
+              className="btn-primary"
               style={{ width: '100%', padding: '1rem', fontSize: '1rem', borderRadius: 'var(--radius-lg)', opacity: (isLoading || otp.length !== 6) ? 0.7 : 1, cursor: (isLoading || otp.length !== 6) ? 'not-allowed' : 'pointer', marginBottom: '1rem' }}
             >
               {isLoading ? 'Vérification...' : 'Vérifier le code'}
@@ -207,28 +207,28 @@ export default function MotDePasseOublie() {
           <form onSubmit={handleUpdatePassword}>
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Nouveau mot de passe</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
               />
             </div>
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Confirmer le mot de passe</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }} 
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
               />
             </div>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading}
-              className="btn-primary" 
+              className="btn-primary"
               style={{ width: '100%', padding: '1rem', fontSize: '1rem', borderRadius: 'var(--radius-lg)', opacity: isLoading ? 0.7 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
             >
               {isLoading ? 'Enregistrement...' : 'Modifier mon mot de passe'}

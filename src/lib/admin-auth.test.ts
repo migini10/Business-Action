@@ -65,7 +65,7 @@ describe('Admin Authentication', () => {
 
   test('token invalide - getAdminSession returns null', async () => {
     mockCookieStore.get.mock.mockImplementation(() => ({ value: 'invalid_token' }));
-    
+
     const session = await getAdminSession();
     assert.strictEqual(session, null);
   });
@@ -78,7 +78,7 @@ describe('Admin Authentication', () => {
       expiresAt: new Date(Date.now() - 10000),
       revokedAt: null
     }));
-    
+
     const session = await getAdminSession();
     assert.strictEqual(session, null);
   });
@@ -91,7 +91,7 @@ describe('Admin Authentication', () => {
       expiresAt: new Date(Date.now() + 10000),
       revokedAt: new Date()
     }));
-    
+
     const session = await getAdminSession();
     assert.strictEqual(session, null);
   });
@@ -105,7 +105,7 @@ describe('Admin Authentication', () => {
       revokedAt: null
     };
     mockPrisma.adminSession.findUnique.mock.mockImplementation(async () => validSession);
-    
+
     const session = await getAdminSession();
     assert.deepStrictEqual(session, validSession);
   });
@@ -119,7 +119,7 @@ describe('Admin Authentication', () => {
     mockCookieStore.get.mock.mockImplementation(() => ({ value: 'valid_token' }));
     const validSession = { id: '1', expiresAt: new Date(Date.now() + 10000), revokedAt: null };
     mockPrisma.adminSession.findUnique.mock.mockImplementation(async () => validSession);
-    
+
     const session = await requireAdmin();
     assert.deepStrictEqual(session, validSession);
   });
@@ -127,12 +127,12 @@ describe('Admin Authentication', () => {
   test('logout révoque session et supprime le cookie', async () => {
     mockCookieStore.get.mock.mockImplementation(() => ({ value: 'valid_token' }));
     await revokeAdminSession();
-    
+
     assert.strictEqual(mockPrisma.adminSession.update.mock.calls.length, 1);
     assert.strictEqual(mockCookieStore.delete.mock.calls.length, 1);
     assert.strictEqual(mockCookieStore.delete.mock.calls[0].arguments[0], 'admin_session');
   });
-  
+
   test('session CLIENT/localStorage ne donne aucun accès admin', async () => {
     mockCookieStore.get.mock.mockImplementation((name: string) => {
       if (name === 'client_token') return { value: 'client_stuff' };

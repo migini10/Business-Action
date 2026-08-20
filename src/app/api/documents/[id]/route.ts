@@ -1,0 +1,48 @@
+import { NextResponse } from 'next/server'
+import { getAdminSession } from '@/lib/admin-auth'
+import { getCurrentClient } from '@/lib/client-auth'
+import prisma from '@/lib/prisma'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  if (!supabase) return new NextResponse("Supabase config error", { status: 500 })
+
+  const doc = await prisma.dossierDocument.findUnique({
+    where: { id },
+    include: { dossier: true }
+  })
+
+  if (!doc) return new NextResponse("Not Found", { status: 404 })
+  if (doc.deletedAt) return new NextResponse("Document supprimé après expiration de la période de conservation.", { status: 410 })
+  if (doc.expiresAt < new Date()) return new NextResponse("Document expiré", { status: 410 })
+
+  const adminSession = await getAdminSession()
+
+  if (!adminSession) {
+    const client = await getCurrentClient()
+    if (!client || doc.dossier.clientId !== client.id) {
+      return new NextResponse("Unauthorized", { status: 403 })
+    }
+  }
+
+  const url = new URL(request.url);
+  const versionParam = url.searchParams.get('version');
+
+  let targetPath = doc.storagePath;
+  if (versionParam === 'enhanced' && doc.enhancedStoragePath) {
+    targetPath = doc.enhancedStoragePath;
+  }
+
+  const { data, error } = await supabase.storage
+    .from('dossier_documents')
+    .createSignedUrl(targetPath, 5 * 60) // 5 minutes
+
+  if (error || !data) return new NextResponse("Signed URL error", { status: 500 })
+
+  return NextResponse.redirect(data.signedUrl)
+}
