@@ -10,12 +10,35 @@ import { logoutAdmin } from '@/app/actions/admin-auth-actions';
 import { getWhatsAppConversations, getWhatsAppMessages, sendWhatsAppMessage, resumeBot, markConversationAsRead, claimConversation, resolveConversation, reopenConversation } from '@/app/actions/whatsapp';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { getSidebarClasses, getWhatsappGridClasses, shouldAutoScroll } from '@/lib/mobile-ui';
 import { getMessageDayKey, formatMessageDate, formatMessageTime } from '@/lib/date-utils';
 import { InboxFilter, filterWhatsAppConversations, sortWhatsAppConversations, getActionCount, getAdvisorActions } from '@/lib/whatsapp-inbox';
 import AdminEnhanceModal from './AdminEnhanceModal';
 
 export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      const res = await logoutAdmin();
+      if (res?.success) {
+        router.replace('/admin/login');
+        router.refresh();
+      } else {
+        alert('Erreur lors de la déconnexion');
+        setIsLoggingOut(false);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Erreur lors de la déconnexion');
+      setIsLoggingOut(false);
+    }
+  };
+
   const [dossiers, setDossiers] = useState(initialDossiers);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -428,7 +451,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
               <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>admin@business-action.com</p>
             </div>
           </div>
-          <button onClick={() => { logoutAdmin(); setIsMobileDrawerOpen(false); }} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: '#FEE2E2', color: '#DC2626', border: 'none', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={() => { handleLogout(); setIsMobileDrawerOpen(false); }} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: '#FEE2E2', color: '#DC2626', border: 'none', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
             Déconnexion
           </button>
@@ -472,7 +495,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                 A
               </div>
             </div>
-            <button onClick={() => logoutAdmin()} title="Déconnexion" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#FEE2E2', color: '#DC2626', transition: 'all 0.2s', marginLeft: '0.5rem', cursor: 'pointer', border: 'none' }}>
+            <button onClick={handleLogout} title="Déconnexion" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#FEE2E2', color: '#DC2626', transition: 'all 0.2s', marginLeft: '0.5rem', cursor: 'pointer', border: 'none' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
             </button>
           </div>

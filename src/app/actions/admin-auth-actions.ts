@@ -47,5 +47,5 @@ export async function loginAdmin(formData: FormData) {
 
 export async function logoutAdmin() {
   await revokeAdminSession();
-  redirect('/admin/login');
+  return { success: true };
 }
