@@ -1,10 +1,11 @@
-'use server'
+import { NextRequest, NextResponse } from 'next/server';
+import { getAdminSession } from '@/lib/admin-auth';
+import prisma from '@/lib/prisma';
+import { createClient } from '@supabase/supabase-js';
+import { enhanceImageBuffer } from '@/lib/image-enhancer';
+import crypto from 'crypto';
 
-import { getAdminSession } from '@/lib/admin-auth'
-import prisma from '@/lib/prisma'
-import { createClient } from '@supabase/supabase-js'
-import { enhanceImageBuffer } from '@/lib/image-enhancer'
-import crypto from 'crypto'
+export const runtime = 'nodejs';
 
 let supabaseInstance: any = null;
 function getSupabase() {
@@ -16,39 +17,39 @@ function getSupabase() {
   return supabaseInstance;
 }
 
-export async function applyImageEnhancement(
-  documentId: string,
-  mode: string,
-  brightness: number,
-  contrast: number,
-  sharpness: number
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const adminSession = await getAdminSession();
-  if (!adminSession) {
-    return { success: false, error: "Unauthorized" };
-  }
-
-  const supabase = getSupabase();
-  if (!supabase) {
-    return { success: false, error: "Supabase config error" };
-  }
-
-  const doc = await prisma.dossierDocument.findUnique({
-    where: { id: documentId }
-  });
-
-  if (!doc) return { success: false, error: "Not Found" };
-  if (doc.deletedAt) return { success: false, error: "Document supprimé" };
-  if (doc.expiresAt < new Date()) return { success: false, error: "Document expiré" };
-
   try {
+    const adminSession = await getAdminSession();
+    if (!adminSession) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const supabase = getSupabase();
+    if (!supabase) {
+      return NextResponse.json({ success: false, error: "Supabase config error" }, { status: 500 });
+    }
+
+    const { id: documentId } = await params;
+    const { mode, brightness, contrast, sharpness } = await request.json();
+
+    const doc = await prisma.dossierDocument.findUnique({
+      where: { id: documentId }
+    });
+
+    if (!doc) return NextResponse.json({ success: false, error: "Not Found" }, { status: 404 });
+    if (doc.deletedAt) return NextResponse.json({ success: false, error: "Document supprimé" }, { status: 400 });
+    if (doc.expiresAt < new Date()) return NextResponse.json({ success: false, error: "Document expiré" }, { status: 400 });
+
     // 1. Download original
     const { data: fileData, error: fileError } = await supabase.storage
       .from('dossier_documents')
       .download(doc.storagePath);
 
     if (fileError || !fileData) {
-      return { success: false, error: "Original non trouvé" };
+      return NextResponse.json({ success: false, error: "Original non trouvé" }, { status: 404 });
     }
 
     const buffer = Buffer.from(await fileData.arrayBuffer());
@@ -59,14 +60,14 @@ export async function applyImageEnhancement(
     const s = Number(sharpness);
 
     if (isNaN(b) || isNaN(c) || isNaN(s)) {
-      return { success: false, error: "Paramètres invalides" };
+      return NextResponse.json({ success: false, error: "Paramètres invalides" }, { status: 400 });
     }
 
     const modeTyped = mode as 'Auto' | 'Clair' | 'Noir & Blanc';
     const processedBuffer = await enhanceImageBuffer(buffer, b, c, s, modeTyped, false);
 
     if (processedBuffer.length > 4 * 1024 * 1024) {
-      return { success: false, error: "L'image améliorée dépasse 4MB" };
+      return NextResponse.json({ success: false, error: "L'image améliorée dépasse 4MB" }, { status: 400 });
     }
 
     // 3. Upload new enhanced image
@@ -84,7 +85,7 @@ export async function applyImageEnhancement(
       .upload(newEnhancedStoragePath, processedBuffer, { contentType: 'image/jpeg' });
 
     if (eErr || !eData) {
-      return { success: false, error: "Erreur lors de l'upload de l'image améliorée" };
+      return NextResponse.json({ success: false, error: "Erreur lors de l'upload de l'image améliorée" }, { status: 500 });
     }
 
     // 4. Update Prisma
@@ -99,15 +100,15 @@ export async function applyImageEnhancement(
         await supabase.storage.from('dossier_documents').remove([oldEnhancedPath]).catch((err: any) => console.error("Error cleaning old enhanced", err));
       }
 
-      return { success: true, enhancedStoragePath: newEnhancedStoragePath };
+      return NextResponse.json({ success: true, enhancedStoragePath: newEnhancedStoragePath });
     } catch (dbError) {
       // 6. Prisma failed -> rollback newly uploaded file
       await supabase.storage.from('dossier_documents').remove([newEnhancedStoragePath]).catch((err: any) => console.error("Error rollback new enhanced", err));
-      return { success: false, error: "Erreur lors de la mise à jour en base de données" };
+      return NextResponse.json({ success: false, error: "Erreur lors de la mise à jour en base de données" }, { status: 500 });
     }
 
   } catch (error: any) {
-    console.error("applyImageEnhancement error:", error);
-    return { success: false, error: "Erreur interne serveur" };
+    console.error("enhance-apply error:", error);
+    return NextResponse.json({ success: false, error: "Erreur interne serveur" }, { status: 500 });
   }
 }

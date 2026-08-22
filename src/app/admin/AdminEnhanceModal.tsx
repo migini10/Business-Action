@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { applyImageEnhancement } from '@/app/actions/admin-image';
 
 export default function AdminEnhanceModal({
   isOpen,
@@ -110,13 +109,29 @@ export default function AdminEnhanceModal({
   const handleApply = async () => {
     if (!document) return;
     setIsApplyingEnhance(true);
-    const res = await applyImageEnhancement(document.id, enhanceMode, enhanceBrightness, enhanceContrast, enhanceSharpness);
-    setIsApplyingEnhance(false);
-    if (res.success && res.enhancedStoragePath) {
-      onSuccess(document.id, res.enhancedStoragePath);
-      onClose();
-    } else {
-      alert(res.error || "Erreur lors de l'application.");
+    try {
+      const response = await fetch(`/api/admin/documents/${document.id}/enhance-apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: enhanceMode,
+          brightness: enhanceBrightness,
+          contrast: enhanceContrast,
+          sharpness: enhanceSharpness
+        })
+      });
+      const res = await response.json();
+      if (response.ok && res.success && res.enhancedStoragePath) {
+        onSuccess(document.id, res.enhancedStoragePath);
+        onClose();
+      } else {
+        alert(res.error || "Erreur lors de l'application.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erreur réseau lors de l'application.");
+    } finally {
+      setIsApplyingEnhance(false);
     }
   };
 
