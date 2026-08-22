@@ -19,6 +19,7 @@ export default function AdminEnhanceModal({
   const [enhanceSharpness, setEnhanceSharpness] = useState(0.5);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [isPreviewError, setIsPreviewError] = useState(false);
   const [isApplyingEnhance, setIsApplyingEnhance] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -32,6 +33,7 @@ export default function AdminEnhanceModal({
       setEnhanceContrast(1.05);
       setEnhanceSharpness(0);
       setPreviewUrl(null);
+      setIsPreviewError(false);
     }
   }, [isOpen, document]);
 
@@ -57,6 +59,7 @@ export default function AdminEnhanceModal({
 
     const fetchPreview = async () => {
       setIsPreviewLoading(true);
+      setIsPreviewError(false);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -91,6 +94,7 @@ export default function AdminEnhanceModal({
         if (err.name !== 'AbortError' && seq === previewSequenceRef.current) {
           console.error(err);
           setIsPreviewLoading(false);
+          setIsPreviewError(true);
         }
       }
     };
@@ -165,18 +169,26 @@ export default function AdminEnhanceModal({
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#475569', textAlign: 'center' }}>Aperçu</h3>
               <div style={{ flex: 1, backgroundColor: '#fff', borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid #E2E8F0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {previewUrl ? (
+                {isPreviewLoading ? (
                   <>
-                    <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain', transition: 'opacity 0.2s', opacity: isPreviewLoading ? 0.5 : 1 }} />
-                    {isPreviewLoading && (
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.7)', gap: '0.5rem' }}>
-                        <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
-                        <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>Génération de l'aperçu...</span>
-                      </div>
-                    )}
+                    {previewUrl && <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: 0.5 }} />}
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.7)', gap: '0.5rem' }}>
+                      <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                      <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>Génération...</span>
+                    </div>
                   </>
+                ) : isPreviewError ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', color: '#EF4444' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <span style={{ fontWeight: 600 }}>Impossible de générer l'aperçu.</span>
+                    <button onClick={() => setEnhanceBrightness(prev => prev + 0.001)} style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', backgroundColor: '#FEE2E2', color: '#B91C1C', border: '1px solid #FCA5A5', fontWeight: 600, cursor: 'pointer' }}>
+                      Réessayer
+                    </button>
+                  </div>
+                ) : previewUrl ? (
+                  <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
-                  <div style={{ color: '#94A3B8' }}>Génération...</div>
+                  <div style={{ color: '#94A3B8' }}>Aucun aperçu</div>
                 )}
               </div>
             </div>
