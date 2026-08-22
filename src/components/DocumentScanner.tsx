@@ -61,6 +61,7 @@ export default function DocumentScanner({ name, label, onFileAccepted, errorMsg,
   const [rectifiedPreviewSrc, setRectifiedPreviewSrc] = useState<string | null>(null);
 
   const [imgSize, setImgSize] = useState({ width: 0, height: 0 });
+  const [renderedDims, setRenderedDims] = useState({ width: 0, height: 0 });
   const [zoom, setZoom] = useState(1);
 
   const [corners, setCorners] = useState<Point[]>([
@@ -136,6 +137,40 @@ export default function DocumentScanner({ name, label, onFileAccepted, errorMsg,
   useEffect(() => {
     setClientMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (scanMode !== 'CROP' && scanMode !== 'PREVIEW') return;
+
+    const handleResize = () => {
+      if (!viewportRef.current || imgSize.width === 0 || imgSize.height === 0) return;
+      const viewportWidth = viewportRef.current.clientWidth;
+      const viewportHeight = viewportRef.current.clientHeight;
+
+      const fitScale = Math.min(
+        viewportWidth / imgSize.width,
+        viewportHeight / imgSize.height
+      );
+
+      setRenderedDims({
+        width: imgSize.width * fitScale,
+        height: imgSize.height * fitScale
+      });
+    };
+
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    let ro: ResizeObserver | null = null;
+    if (viewportRef.current && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(handleResize);
+      ro.observe(viewportRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (ro) ro.disconnect();
+    };
+  }, [scanMode, imgSize]);
 
 
   useEffect(() => {
@@ -550,14 +585,14 @@ export default function DocumentScanner({ name, label, onFileAccepted, errorMsg,
             {/* PAN WRAPPER */}
             <div style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}>
               {/* ZOOM WRAPPER */}
-              <div style={{ transform: `scale(${zoom})`, transformOrigin: 'center', transition: isPanning ? 'none' : 'transform 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', maxWidth: '100%', maxHeight: '100%' }}>
-                <div ref={imageWrapperRef} style={{ position: 'relative', display: 'inline-block', minHeight: 0, maxWidth: '100%', maxHeight: '100%' }}>
+              <div style={{ transform: `scale(${zoom})`, transformOrigin: 'center', transition: isPanning ? 'none' : 'transform 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                <div ref={imageWrapperRef} style={{ position: 'relative', display: 'block', width: renderedDims.width > 0 ? renderedDims.width : '100%', height: renderedDims.height > 0 ? renderedDims.height : '100%' }}>
 
                   {scanMode === 'PREVIEW' && rectifiedPreviewSrc ? (
-                    <img src={rectifiedPreviewSrc} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', pointerEvents: 'none' }} alt="Preview" />
+                    <img src={rectifiedPreviewSrc} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} alt="Preview" />
                   ) : (
                     <>
-                      <img src={previewSrc} onLoad={(e) => setImgSize({width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight})} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', pointerEvents: 'none' }} alt="Scanner preview" />
+                      <img src={previewSrc} onLoad={(e) => setImgSize({width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight})} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} alt="Scanner preview" />
 
                       {imgSize.width > 0 && imgSize.height > 0 && (
                         <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} viewBox={`0 0 ${imgSize.width} ${imgSize.height}`}>

@@ -57,6 +57,40 @@ test('DocumentScanner Automated Checks Post-Audit', async (t) => {
   });
 });
 
+test('DocumentScanner Fit Contain Logic', async (t) => {
+  const computeFit = (vw: number, vh: number, sw: number, sh: number) => {
+    const fitScale = Math.min(vw / sw, vh / sh);
+    return { w: sw * fitScale, h: sh * fitScale };
+  };
+
+  await t.test('image portrait dans viewport paysage', () => {
+    const res = computeFit(800, 400, 1000, 2000); // viewport large, image tall
+    assert.strictEqual(res.w, 200); // 1000 * (400/2000)
+    assert.strictEqual(res.h, 400); // max height
+    assert.ok(res.w <= 800 && res.h <= 400, 'must fit within viewport');
+  });
+
+  await t.test('image paysage dans viewport portrait', () => {
+    const res = computeFit(400, 800, 2000, 1000); // viewport tall, image wide
+    assert.strictEqual(res.w, 400); // max width
+    assert.strictEqual(res.h, 200); // 1000 * (400/2000)
+    assert.ok(res.w <= 400 && res.h <= 800, 'must fit within viewport');
+  });
+
+  await t.test('image carrée', () => {
+    const res = computeFit(300, 500, 1000, 1000);
+    assert.strictEqual(res.w, 300);
+    assert.strictEqual(res.h, 300);
+    assert.ok(res.w <= 300 && res.h <= 500, 'must fit within viewport');
+  });
+
+  await t.test('aucun rendu > viewport', () => {
+    const res = computeFit(390, 844, 4000, 3000);
+    assert.ok(res.w <= 390);
+    assert.ok(res.h <= 844);
+  });
+});
+
 test('Demande Devis page integration checks', async (t) => {
   const pagePath = path.join(process.cwd(), 'src/app/demande-devis/page.tsx');
   const pageCode = fs.readFileSync(pagePath, 'utf8');
