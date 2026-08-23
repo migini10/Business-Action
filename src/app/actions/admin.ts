@@ -13,7 +13,7 @@ export async function getDossiers() {
       orderBy: { createdAt: 'desc' },
       include: {
         documents: {
-          select: { id: true, type: true, side: true, expiresAt: true, deletedAt: true }
+          select: { id: true, type: true, side: true, expiresAt: true, deletedAt: true, mimeType: true }
         }
       }
     });

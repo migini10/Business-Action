@@ -15,6 +15,7 @@ import { getSidebarClasses, getWhatsappGridClasses, shouldAutoScroll } from '@/l
 import { getMessageDayKey, formatMessageDate, formatMessageTime } from '@/lib/date-utils';
 import { InboxFilter, filterWhatsAppConversations, sortWhatsAppConversations, getActionCount, getAdvisorActions } from '@/lib/whatsapp-inbox';
 import AdminEnhanceModal from './AdminEnhanceModal';
+import DocumentViewerModal from '@/components/ui/DocumentViewerModal';
 
 export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const [clientTransactions, setClientTransactions] = useState<any[]>([]);
   const [documentVersion, setDocumentVersion] = useState<'enhanced' | 'original'>('enhanced');
   const [enhancingDoc, setEnhancingDoc] = useState<any | null>(null);
+  const [viewerDoc, setViewerDoc] = useState<{ url: string, title: string, mimeType?: string } | null>(null);
 
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'month' | 'year' | 'custom'>('all');
   const [customStartDate, setCustomStartDate] = useState('');
@@ -615,13 +617,13 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                     doc.deletedAt ? (
                                       <span key={doc.id} style={{...docLinkStyle, color: '#94a3b8', textDecoration: 'line-through', cursor: 'not-allowed'}} title="Document expiré et supprimé">📄 {doc.type} ({doc.side})</span>
                                     ) : (
-                                      <a key={doc.id} href={`/api/documents/${doc.id}?version=${documentVersion}`} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 {doc.type} ({doc.side})</a>
+                                      <button type="button" key={doc.id} onClick={() => setViewerDoc({ url: `/api/documents/${doc.id}?version=${documentVersion}`, title: `${doc.type} (${doc.side})`, mimeType: doc.mimeType })} style={docLinkStyle}>📄 {doc.type} ({doc.side})</button>
                                     )
                                   ))
                                 ) : (
                                   <>
-                                    {dossier.rectoUrl && <a href={dossier.rectoUrl} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 Carte Grise (Recto)</a>}
-                                    {dossier.versoUrl && <a href={dossier.versoUrl} target="_blank" rel="noreferrer" style={docLinkStyle}>📄 Carte Grise (Verso)</a>}
+                                    {dossier.rectoUrl && <button type="button" onClick={() => setViewerDoc({ url: dossier.rectoUrl, title: 'Carte Grise (Recto)' })} style={docLinkStyle}>📄 Carte Grise (Recto)</button>}
+                                    {dossier.versoUrl && <button type="button" onClick={() => setViewerDoc({ url: dossier.versoUrl, title: 'Carte Grise (Verso)' })} style={docLinkStyle}>📄 Carte Grise (Verso)</button>}
                                   </>
                                 )}
                               </div>
@@ -996,7 +998,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                           </div>
                         );
                       }
-                      const isPdfDocument = url.toLowerCase().includes('.pdf');
+                      const isPdfDocument = docObj?.mimeType === 'application/pdf' || url.toLowerCase().includes('.pdf');
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1007,22 +1009,30 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                               </button>
                             )}
                           </div>
-                          <a href={url} target="_blank" rel="noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #E2E8F0', height: '200px', backgroundColor: '#F8FAFC', position: 'relative', textDecoration: 'none', color: '#0F172A' }}>
+                          <div style={{ position: 'relative', height: '200px', backgroundColor: '#F8FAFC', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #E2E8F0', width: '100%' }}>
                             {isPdfDocument ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                                <span style={{ fontWeight: 600 }}>Ouvrir le PDF</span>
-                              </div>
+                              <object data={`${url}#toolbar=0&navpanes=0&scrollbar=0`} type="application/pdf" style={{ width: '100%', height: '100%', pointerEvents: 'none' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', gap: '1rem' }}>
+                                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                  <span style={{ fontWeight: 600, color: '#0F172A', textAlign: 'center' }}>Document PDF<br /><span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 'normal' }}>Cliquer pour ouvrir</span></span>
+                                </div>
+                              </object>
                             ) : (
                               <>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={url} alt={`Carte Grise ${label}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={url} alt={`Carte Grise ${label}`} style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#F1F5F9' }} />
                                 <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.3)'; e.currentTarget.style.opacity = '1'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0)'; e.currentTarget.style.opacity = '0'; }}>
                                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                 </div>
                               </>
                             )}
-                          </a>
+                            <button
+                              type="button"
+                              onClick={() => setViewerDoc({ url, title: label, mimeType: docObj?.mimeType })}
+                              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10 }}
+                              aria-label={`Ouvrir ${label}`}
+                            />
+                          </div>
                         </div>
                       );
                     };
@@ -1083,9 +1093,9 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                           WhatsApp
                         </a>
-                        <a href={selectedDossier.devisUrl === 'uploaded' ? '#' : selectedDossier.devisUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: 'white', color: '#166534', border: '1px solid #BBF7D0' }}>
+                        <button type="button" onClick={() => { if (selectedDossier.devisUrl !== 'uploaded') setViewerDoc({ url: selectedDossier.devisUrl, title: 'Devis' }) }} className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: 'white', color: '#166534', border: '1px solid #BBF7D0', cursor: selectedDossier.devisUrl === 'uploaded' ? 'not-allowed' : 'pointer' }}>
                           Voir le devis
-                        </a>
+                        </button>
                       </div>
                     </div>
                   ) : (
@@ -1742,6 +1752,13 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
           </div>
         )}
 
+        <DocumentViewerModal
+          open={!!viewerDoc}
+          onClose={() => setViewerDoc(null)}
+          documentUrl={viewerDoc?.url || ''}
+          mimeType={viewerDoc?.mimeType}
+          title={viewerDoc?.title || 'Document'}
+        />
       </main>
       <AdminEnhanceModal
         isOpen={!!enhancingDoc}
