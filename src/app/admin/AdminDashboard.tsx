@@ -16,9 +16,13 @@ import { getMessageDayKey, formatMessageDate, formatMessageTime } from '@/lib/da
 import { InboxFilter, filterWhatsAppConversations, sortWhatsAppConversations, getActionCount, getAdvisorActions } from '@/lib/whatsapp-inbox';
 import AdminEnhanceModal from './AdminEnhanceModal';
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal';
+import { useToast } from '@/components/ui/ToastProvider';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
   const router = useRouter();
+  const { toast } = useToast();
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ dossierId: string, oldStatut: string, newStatut: string } | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -30,12 +34,12 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
         router.replace('/admin/login');
         router.refresh();
       } else {
-        alert('Erreur lors de la déconnexion');
+        toast({ type: 'error', message: 'Erreur lors de la déconnexion' });
         setIsLoggingOut(false);
       }
     } catch (e) {
       console.error(e);
-      alert('Erreur lors de la déconnexion');
+      toast({ type: 'error', message: 'Erreur lors de la déconnexion' });
       setIsLoggingOut(false);
     }
   };
@@ -335,28 +339,44 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
     setIsUploadingDevis(false);
 
     if (result.success) {
-      alert(result.message);
+      toast({ type: 'success', message: result.message || 'Succès' });
       setDevisFile(null);
       // Update local state to reflect the new status
       setDossiers(dossiers.map(d => d.id === selectedDossier.id ? { ...d, statut: 'OFFRE_ENVOYEE', devisUrl: result.devisUrl } : d));
       setSelectedDossier({ ...selectedDossier, statut: 'OFFRE_ENVOYEE', devisUrl: result.devisUrl });
     } else {
-      alert(result.error || "Erreur lors de l'upload du devis.");
+      toast({ type: 'error', message: result.error || "Erreur lors de l'upload du devis." });
     }
   };
 
-  const handleStatusChange = async (id: string, newStatut: string) => {
-    const isConfirmed = window.confirm(`Êtes-vous sûr de vouloir changer le statut de ce dossier à "${newStatut.replace('_', ' ')}" ?`);
-    if (!isConfirmed) return;
+  const handleStatusChange = (id: string, newStatut: string) => {
+    const oldStatut = dossiers.find(d => d.id === id)?.statut || '';
+    setPendingStatusChange({ dossierId: id, oldStatut, newStatut });
+  };
 
-    setIsUpdating(id);
-    const result = await updateDossierStatus(id, newStatut);
+  const confirmStatusChange = async () => {
+    if (!pendingStatusChange) return;
+    const { dossierId, newStatut } = pendingStatusChange;
+
+    setIsUpdating(dossierId);
+    const result = await updateDossierStatus(dossierId, newStatut);
+
     if (result.success) {
-      setDossiers(dossiers.map(d => d.id === id ? { ...d, statut: newStatut } : d));
+      setDossiers(dossiers.map(d => d.id === dossierId ? { ...d, statut: newStatut } : d));
+      if (selectedDossier?.id === dossierId) {
+        setSelectedDossier({ ...selectedDossier, statut: newStatut });
+      }
+      toast({ type: 'success', message: 'Statut mis à jour' });
     } else {
-      alert("Erreur lors de la mise à jour");
+      toast({ type: 'error', message: "Erreur lors de la mise à jour" });
     }
+
     setIsUpdating(null);
+    setPendingStatusChange(null);
+  };
+
+  const cancelStatusChange = () => {
+    setPendingStatusChange(null);
   };
 
   const getStatusColor = (statut: string) => {
@@ -789,7 +809,10 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                       <input type="text" placeholder="Téléphone (ex: 77 000 00 00)" value={newClient.phone} onChange={(e) => setNewClient({...newClient, phone: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
                       <input type="email" placeholder="Email" value={newClient.email} onChange={(e) => setNewClient({...newClient, email: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
                       <button onClick={async () => {
-                        if (!newClient.name || !newClient.phone) return alert("Le nom et le téléphone sont obligatoires.");
+                        if (!newClient.name || !newClient.phone) {
+                          toast({ type: 'error', message: "Le nom et le téléphone sont obligatoires." });
+                          return;
+                        }
                         const formData = new FormData();
                         formData.append('name', newClient.name);
                         formData.append('phone', newClient.phone);
@@ -802,7 +825,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                            setNewClient({ name: '', phone: '', email: '' });
                            setShowAddClientForm(false);
                         } else {
-                           alert(res.error || 'Erreur');
+                           toast({ type: 'error', message: res.error || 'Erreur' });
                         }
                       }} className="btn btn-primary" style={{ border: 'none' }}>
                         Enregistrer
@@ -1268,7 +1291,7 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                             setTransactionCommentaire('');
                             setTransactionType('paiement');
                           } else {
-                            alert("Erreur lors de l'ajout de la transaction.");
+                            toast({ type: 'error', message: "Erreur lors de l'ajout de la transaction." });
                           }
                           setIsSubmitting(false);
                         }}
@@ -1402,16 +1425,16 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                                         commentaire: transactionCommentaire.trim() || undefined
                                       });
                                       if (res.success) {
-                                        alert(res.message);
+                                        toast({ type: 'success', message: res.message || 'Succès' });
                                         setEditingTransaction(null);
-                                        // Refresh transactions
-                                        const fetchRes = await getClientTransactions(selectedClient.id);
-                                        if (fetchRes.success) setClientTransactions(fetchRes.transactions);
+                                        const txx = await getClientTransactions(selectedClient.id);
+                                        setClientTransactions(txx.transactions || []);
                                       } else {
-                                        alert(res.error);
+                                        toast({ type: 'error', message: res.error || 'Erreur' });
                                       }
+                                      setIsSubmitting(false);
                                     }} style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>
-                                      Sauvegarder
+                                      {isSubmitting ? '...' : 'Sauvegarder'}
                                     </button>
                                     <button onClick={() => setEditingTransaction(null)} style={{ padding: '0.5rem 1rem', backgroundColor: '#E2E8F0', color: '#475569', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>
                                       Annuler
@@ -1781,6 +1804,14 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
             });
           }
         }}
+      />
+      <ConfirmDialog
+        open={pendingStatusChange !== null}
+        title="Changement de statut"
+        message={`Êtes-vous sûr de vouloir changer le statut de ce dossier à "${pendingStatusChange?.newStatut?.replace('_', ' ')}" ?`}
+        onConfirm={confirmStatusChange}
+        onCancel={cancelStatusChange}
+        loading={!!isUpdating}
       />
     </div>
   );

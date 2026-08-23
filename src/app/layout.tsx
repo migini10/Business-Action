@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Topbar from "@/components/Topbar";
 import PwaInit from "@/components/PwaInit";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 
 
 const geistSans = Geist({
@@ -40,11 +41,13 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', margin: 0 }}>
-        <Topbar />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {children}
-        </div>
-        <PwaInit />
+        <ToastProvider>
+          <Topbar />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {children}
+          </div>
+          <PwaInit />
+        </ToastProvider>
       </body>
     </html>
   );
