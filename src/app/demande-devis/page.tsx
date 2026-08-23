@@ -51,6 +51,37 @@ export default function DemandeDevis() {
     const formData = new FormData(e.currentTarget);
     formData.set('situationVehicule', situation);
 
+    const MAX_SIZE = 4 * 1024 * 1024;
+    let hasSizeError = false;
+    const sizeErrors: Record<string, string> = {};
+
+    if (situation === 'immatricule') {
+      if (rectoFile && rectoFile.size > MAX_SIZE) {
+        sizeErrors.recto = "Le fichier ne doit pas dépasser 4 MB.";
+        hasSizeError = true;
+      }
+      if (versoFile && versoFile.size > MAX_SIZE) {
+        sizeErrors.verso = "Le fichier ne doit pas dépasser 4 MB.";
+        hasSizeError = true;
+      }
+    } else {
+      if (cmcFile && cmcFile.size > MAX_SIZE) {
+        sizeErrors.cmc = "Le fichier ne doit pas dépasser 4 MB.";
+        hasSizeError = true;
+      }
+      // Fallback si rectoFile est utilisé pour cmc par erreur de l'ancien code
+      if (rectoFile && rectoFile.size > MAX_SIZE) {
+        sizeErrors.cmc = "Le fichier ne doit pas dépasser 4 MB.";
+        hasSizeError = true;
+      }
+    }
+
+    if (hasSizeError) {
+      setFieldErrors(prev => ({ ...prev, ...sizeErrors }));
+      setIsSubmitting(false);
+      return;
+    }
+
     if (rectoFile) {
       formData.set(situation === 'non_immatricule' ? 'cmc' : 'recto', rectoFile);
     }

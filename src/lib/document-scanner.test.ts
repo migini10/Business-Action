@@ -105,3 +105,39 @@ test('Demande Devis page integration checks', async (t) => {
     assert.match(pageCode, /onFileAccepted=\{\(f\) => \{ setVersoFile\(f\); clearFieldError\('verso'\); \}\}/);
   });
 });
+
+test('DocumentScanner PDF and Size Limits Logic', async (t) => {
+  const componentPath = path.join(process.cwd(), 'src/components/DocumentScanner.tsx');
+  const componentCode = fs.readFileSync(componentPath, 'utf8');
+
+  await t.test('CMC PDF 5 MB => rejet client immédiat, onFileAccepted NON appelé', () => {
+    assert.match(componentCode, /if \(f\.type === 'application\/pdf' && isPdfOk\)/);
+    assert.match(componentCode, /if \(f\.size > 4 \* 1024 \* 1024\)/);
+    assert.match(componentCode, /setLocalError\("Le fichier ne doit pas dépasser 4 MB\."\)/);
+    // Checking it returns before onFileAccepted
+    assert.match(componentCode, /e\.target\.value = '';\s*return;/);
+  });
+
+  await t.test('JPEG/PNG source >4 MB mais <15 MB => toujours autorisé au scanner', () => {
+    assert.match(componentCode, /if \(originalFile\.size > MAX_SOURCE_FILE_SIZE\)/);
+    // 15 MB is MAX_SOURCE_FILE_SIZE
+  });
+
+  await t.test('image finale >4 MB => toujours rejetée', () => {
+    assert.match(componentCode, /if \(blob\.size > MAX_FINAL_FILE_SIZE\)/);
+  });
+});
+
+test('Pre-Submit Guard in page.tsx', async (t) => {
+  const pagePath = path.join(process.cwd(), 'src/app/demande-devis/page.tsx');
+  const pageCode = fs.readFileSync(pagePath, 'utf8');
+
+  await t.test('pre-submit checks files > 4MB and prevents submit', () => {
+    assert.match(pageCode, /const MAX_SIZE = 4 \* 1024 \* 1024;/);
+    assert.match(pageCode, /sizeErrors\.cmc = "Le fichier ne doit pas dépasser 4 MB\."/);
+    assert.match(pageCode, /sizeErrors\.recto = "Le fichier ne doit pas dépasser 4 MB\."/);
+    assert.match(pageCode, /setFieldErrors\(prev => \(\{ \.\.\.prev, \.\.\.sizeErrors \}\)\);/);
+    assert.match(pageCode, /setIsSubmitting\(false\);/);
+    assert.match(pageCode, /return;/);
+  });
+});

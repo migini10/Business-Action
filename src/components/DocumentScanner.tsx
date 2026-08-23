@@ -306,6 +306,11 @@ export default function DocumentScanner({ name, label, onFileAccepted, errorMsg,
     resetState();
 
     if (f.type === 'application/pdf' && isPdfOk) {
+      if (f.size > 4 * 1024 * 1024) {
+        setLocalError("Le fichier ne doit pas dépasser 4 MB.");
+        e.target.value = '';
+        return;
+      }
       setCurrentFile(f);
       onFileAccepted(f);
       return;
