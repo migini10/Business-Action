@@ -10,7 +10,7 @@ if (typeof global.WebSocket === 'undefined') {
   };
 }
 
-import { createDossier } from '@/app/actions/dossier';
+import { createDossier, CreateDossierResult } from '@/app/actions/dossier';
 import prisma from '@/lib/prisma';
 import { checkMagicBytes } from '@/lib/magic-bytes';
 
@@ -22,6 +22,14 @@ describe('Dossier Documents', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'dummy-key';
   });
+
+  const getErrorString = (res: CreateDossierResult) => {
+    if (res.success) return '';
+    if ('errors' in res && res.errors) {
+      return Object.values(res.errors).join(' ');
+    }
+    return '';
+  };
 
   test('A. CARTE_GRISE + recto + verso => accepté', async () => {
     const fd = new FormData();
@@ -35,7 +43,8 @@ describe('Dossier Documents', () => {
     const res = await createDossier(fd);
     // On ignore l'échec d'insertion db/supabase en test, on vérifie qu'on n'est pas bloqué par les validations initiales
     if (!res.success) {
-      assert.ok(!res.error?.includes('obligatoires') && !res.error?.includes('PDF') && !res.error?.includes('MB'));
+      const errStr = getErrorString(res);
+      assert.ok(!errStr.includes('obligatoires') && !errStr.includes('PDF') && !errStr.includes('MB'));
     }
   });
 
@@ -47,7 +56,9 @@ describe('Dossier Documents', () => {
 
     const res = await createDossier(fd);
     assert.strictEqual(res.success, false);
-    assert.ok(res.error?.includes('Recto et Verso sont obligatoires'));
+    if (!res.success && res.errors) {
+      assert.ok(res.errors.global?.includes('Recto et Verso sont obligatoires'));
+    }
   });
 
   test('C. CMC avec document unique => accepté', async () => {
@@ -59,7 +70,8 @@ describe('Dossier Documents', () => {
 
     const res = await createDossier(fd);
     if (!res.success) {
-      assert.ok(!res.error?.includes('obligatoires') && !res.error?.includes('PDF') && !res.error?.includes('MB'));
+      const errStr = getErrorString(res);
+      assert.ok(!errStr.includes('obligatoires') && !errStr.includes('PDF') && !errStr.includes('MB'));
     }
   });
 
@@ -73,7 +85,9 @@ describe('Dossier Documents', () => {
 
     const res = await createDossier(fd);
     assert.strictEqual(res.success, false);
-    assert.ok(res.error?.includes('Conflit de fichiers'));
+    if (!res.success && res.errors) {
+      assert.ok(res.errors.cmc?.includes('Conflit de fichiers'));
+    }
   });
 
   test('E. PDF pour Carte Grise => refus', async () => {
@@ -86,7 +100,9 @@ describe('Dossier Documents', () => {
 
     const res = await createDossier(fd);
     assert.strictEqual(res.success, false);
-    assert.ok(res.error?.includes('PDF est refusé pour la Carte Grise'));
+    if (!res.success && res.errors) {
+      assert.ok(res.errors.recto?.includes('PDF est refusé pour la Carte Grise'));
+    }
   });
 
   test('F. Fichier > 4 MB => refus', async () => {
@@ -97,11 +113,15 @@ describe('Dossier Documents', () => {
     const largeBuffer = Buffer.alloc(5 * 1024 * 1024);
     largeBuffer.write('FFD8FFDB', 'hex');
 
-    fd.append('cmc', new File([largeBuffer], 'large.jpg', { type: 'image/jpeg' }));
+    const file = new File([largeBuffer], 'large.jpg', { type: 'image/jpeg' });
+    Object.defineProperty(file, 'size', { value: 5 * 1024 * 1024 });
+    fd.append('cmc', file);
 
     const res = await createDossier(fd);
     assert.strictEqual(res.success, false);
-    assert.ok(res.error?.includes('dépasse 4 MB'));
+    if (!res.success && res.errors) {
+      assert.strictEqual(res.errors.cmc, 'Le fichier ne doit pas dépasser 4 MB.');
+    }
   });
 
   test('G. Faux MIME / magic bytes invalides => refus', async () => {
@@ -113,7 +133,9 @@ describe('Dossier Documents', () => {
 
     const res = await createDossier(fd);
     assert.strictEqual(res.success, false);
-    assert.ok(res.error?.includes('non valide ou corrompu'));
+    if (!res.success && res.errors) {
+      assert.ok(res.errors.cmc?.includes('non valide ou corrompu'));
+    }
   });
 
   test('Magic Bytes function works correctly', () => {
@@ -134,7 +156,8 @@ describe('Dossier Documents', () => {
 
     const res = await createDossier(fd);
     if (!res.success) {
-      assert.ok(!res.error?.includes('obligatoires') && !res.error?.includes('PDF') && !res.error?.includes('MB'));
+      const errStr = getErrorString(res);
+      assert.ok(!errStr.includes('obligatoires') && !errStr.includes('PDF') && !errStr.includes('MB'));
     }
   });
 
@@ -148,7 +171,8 @@ describe('Dossier Documents', () => {
 
     const res = await createDossier(fd);
     if (!res.success) {
-      assert.ok(!res.error?.includes('texte lisible') && !res.error?.includes('obligatoires') && !res.error?.includes('MB'));
+      const errStr = getErrorString(res);
+      assert.ok(!errStr.includes('texte lisible') && !errStr.includes('obligatoires') && !errStr.includes('MB'));
     }
   });
 });

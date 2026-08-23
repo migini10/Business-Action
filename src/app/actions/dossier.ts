@@ -6,6 +6,13 @@ import { createClient } from '@supabase/supabase-js'
 import { sendPushNotificationSafe } from '@/lib/push/send-push'
 import { checkMagicBytes } from '@/lib/magic-bytes'
 import { evaluateDocumentReadability } from '@/lib/google-document-ocr'
+
+export type FormField = 'phone' | 'email' | 'cmc' | 'recto' | 'verso' | 'global';
+
+export type CreateDossierResult =
+  | { success: true; numeroDossier: string }
+  | { success: false; errors: Partial<Record<FormField, string>> };
+
 let supabaseInstance: any = null;
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -16,7 +23,7 @@ function getSupabase() {
   return supabaseInstance;
 }
 
-export async function createDossier(formData: FormData) {
+export async function createDossier(formData: FormData): Promise<CreateDossierResult> {
   const phone = formData.get('phone') as string
   const emailRaw = formData.get('email') as string
   const email = emailRaw ? emailRaw : null;
@@ -33,18 +40,18 @@ export async function createDossier(formData: FormData) {
 
   const supabase = getSupabase();
   if (!supabase) {
-    return { success: false, error: "Configuration Supabase manquante sur le serveur." };
+    return { success: false, errors: { global: "Configuration Supabase manquante sur le serveur." } };
   }
 
   // Validations frontend vs serveur
   if (situationVehicule === 'immatricule') {
-    if (!rectoFile || !versoFile) return { success: false, error: "Recto et Verso sont obligatoires pour un véhicule immatriculé." }
-    if (cmcFile) return { success: false, error: "Conflit de fichiers: CMC fourni pour un véhicule immatriculé." }
+    if (!rectoFile || !versoFile) return { success: false, errors: { global: "Recto et Verso sont obligatoires pour un véhicule immatriculé." } }
+    if (cmcFile) return { success: false, errors: { cmc: "Conflit de fichiers: CMC fourni pour un véhicule immatriculé." } }
   } else if (situationVehicule === 'non_immatricule') {
-    if (!cmcFile) return { success: false, error: "Le document CMC est obligatoire." }
-    if (rectoFile || versoFile) return { success: false, error: "Conflit de fichiers: Carte Grise fournie pour un véhicule non immatriculé." }
+    if (!cmcFile) return { success: false, errors: { cmc: "Le document CMC est obligatoire." } }
+    if (rectoFile || versoFile) return { success: false, errors: { recto: "Conflit de fichiers: Carte Grise fournie pour un véhicule non immatriculé." } }
   } else {
-    return { success: false, error: "Situation du véhicule invalide." }
+    return { success: false, errors: { global: "Situation du véhicule invalide." } }
   }
 
   // Génération d'un numéro de dossier unique pour affichage client
@@ -53,12 +60,12 @@ export async function createDossier(formData: FormData) {
   // Génération d'un UUID opaque pour le stockage
   const uploadUuid = crypto.randomUUID();
 
-  const filesToUpload: { file: File, type: DossierDocumentType, side: DossierDocumentSide }[] = [];
+  const filesToUpload: { file: File, type: DossierDocumentType, side: DossierDocumentSide, field: FormField }[] = [];
   if (situationVehicule === 'immatricule') {
-    filesToUpload.push({ file: rectoFile!, type: DossierDocumentType.CARTE_GRISE, side: DossierDocumentSide.RECTO });
-    filesToUpload.push({ file: versoFile!, type: DossierDocumentType.CARTE_GRISE, side: DossierDocumentSide.VERSO });
+    filesToUpload.push({ file: rectoFile!, type: DossierDocumentType.CARTE_GRISE, side: DossierDocumentSide.RECTO, field: 'recto' });
+    filesToUpload.push({ file: versoFile!, type: DossierDocumentType.CARTE_GRISE, side: DossierDocumentSide.VERSO, field: 'verso' });
   } else {
-    filesToUpload.push({ file: cmcFile!, type: DossierDocumentType.CMC, side: DossierDocumentSide.SINGLE });
+    filesToUpload.push({ file: cmcFile!, type: DossierDocumentType.CMC, side: DossierDocumentSide.SINGLE, field: 'cmc' });
   }
 
   const MAX_SIZE = 4 * 1024 * 1024;
@@ -70,14 +77,27 @@ export async function createDossier(formData: FormData) {
 
   try {
     for (const item of filesToUpload) {
-      if (item.file.size > MAX_SIZE) return { success: false, error: "Un fichier dépasse 4 MB." };
+      if (item.file.size > MAX_SIZE) {
+        if (uploadedPaths.length > 0) {
+          await getSupabase().storage.from('dossier_documents').remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
+        }
+        return { success: false, errors: { [item.field]: "Le fichier ne doit pas dépasser 4 MB." } };
+      }
 
       const buffer = Buffer.from(await item.file.arrayBuffer());
       const verifiedMime = checkMagicBytes(buffer);
-      if (!verifiedMime) return { success: false, error: "Format de fichier non valide ou corrompu." };
+      if (!verifiedMime) {
+        if (uploadedPaths.length > 0) {
+          await getSupabase().storage.from('dossier_documents').remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
+        }
+        return { success: false, errors: { [item.field]: "Format de fichier non valide ou corrompu." } };
+      }
 
       if (item.type === DossierDocumentType.CARTE_GRISE && verifiedMime === 'application/pdf') {
-        return { success: false, error: "Le format PDF est refusé pour la Carte Grise." };
+        if (uploadedPaths.length > 0) {
+          await getSupabase().storage.from('dossier_documents').remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
+        }
+        return { success: false, errors: { [item.field]: "Le format PDF est refusé pour la Carte Grise." } };
       }
 
       const fileUuid = crypto.randomUUID();
@@ -88,7 +108,10 @@ export async function createDossier(formData: FormData) {
       if (ext !== 'pdf') {
         const readability = await evaluateDocumentReadability(buffer);
         if (!readability.isReadable) {
-          throw new Error(`Le document ${item.side === DossierDocumentSide.SINGLE ? 'CMC' : item.side.toLowerCase()} ne contient pas suffisamment de texte lisible.`);
+          if (uploadedPaths.length > 0) {
+            await getSupabase().storage.from('dossier_documents').remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
+          }
+          return { success: false, errors: { [item.field]: "Le document ne contient pas suffisamment de texte lisible." } };
         }
       }
 
@@ -114,6 +137,6 @@ export async function createDossier(formData: FormData) {
     if (uploadedPaths.length > 0) {
       await getSupabase().storage.from('dossier_documents').remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
     }
-    return { success: false, error: err.message || "Erreur interne." };
+    return { success: false, errors: { global: err.message || "Erreur interne." } };
   }
 }

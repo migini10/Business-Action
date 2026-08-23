@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { createDossier } from '@/app/actions/dossier';
+import { createDossier, FormField, CreateDossierResult } from '@/app/actions/dossier';
 import DocumentScanner from '@/components/DocumentScanner';
 
 export default function DemandeDevis() {
@@ -13,8 +13,9 @@ export default function DemandeDevis() {
   const [versoFile, setVersoFile] = useState<File | null>(null);
   const [cmcFile, setCmcFile] = useState<File | null>(null);
   const [situation, setSituation] = useState('immatricule');
-  const [serverError, setServerError] = useState<string | null>(null);
 
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FormField, string>>>({});
+  const [globalError, setGlobalError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -33,51 +34,23 @@ export default function DemandeDevis() {
     }
   }, []);
 
-  const compressImage = async (file: File): Promise<File> => {
-    if (!file.type.startsWith('image/')) return file;
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const MAX_SIZE = 1200;
-          if (width > height && width > MAX_SIZE) {
-            height *= MAX_SIZE / width;
-            width = MAX_SIZE;
-          } else if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height;
-            height = MAX_SIZE;
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (blob) {
-              resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-            } else {
-              resolve(file);
-            }
-          }, 'image/jpeg', 0.8);
-        };
-      };
+  const clearFieldError = (field: FormField) => {
+    setFieldErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
     });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setFieldErrors({});
+    setGlobalError(null);
 
     const formData = new FormData(e.currentTarget);
     formData.set('situationVehicule', situation);
 
-    // Compression et recadrage déjà gérés par DocumentScanner pour recto/verso/cmc (JPEG)
-    // Sauf si c'est un PDF, on l'envoie tel quel.
     if (rectoFile) {
       formData.set(situation === 'non_immatricule' ? 'cmc' : 'recto', rectoFile);
     }
@@ -89,20 +62,24 @@ export default function DemandeDevis() {
     }
 
     try {
-      const result = await createDossier(formData);
+      const result = await createDossier(formData) as CreateDossierResult;
       setIsSubmitting(false);
 
-      if (result.success && result.numeroDossier) {
+      if (result.success && 'numeroDossier' in result) {
         setSuccess(true);
         setDossierNum(result.numeroDossier);
-        setServerError(null);
+      } else if (!result.success && 'errors' in result) {
+        setFieldErrors(result.errors);
+        if (result.errors.global) {
+          setGlobalError(result.errors.global);
+        }
       } else {
-        setServerError(result.error || "Une erreur inconnue s'est produite.");
+        setGlobalError("Une erreur inconnue s'est produite.");
       }
     } catch (err: any) {
       setIsSubmitting(false);
       console.error(err);
-      alert("Erreur de connexion : le fichier est peut-être trop lourd ou le serveur est injoignable.");
+      setGlobalError("Erreur de connexion : le fichier est peut-être trop lourd ou le serveur est injoignable.");
     }
   };
 
@@ -144,9 +121,9 @@ export default function DemandeDevis() {
 
         <form onSubmit={handleSubmit} className="card animate-fade-in" style={{ padding: '3rem', borderRadius: 'var(--radius-2xl)', backgroundColor: '#fff' }}>
 
-          {serverError && (
-            <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '2rem', border: '1px solid #f87171' }}>
-              <strong>Erreur lors de l'envoi : </strong> {serverError}
+          {globalError && (
+            <div role="alert" aria-live="assertive" style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '2rem', border: '1px solid #f87171' }}>
+              <strong>Erreur lors de l'envoi : </strong> {globalError}
             </div>
           )}
 
@@ -158,8 +135,10 @@ export default function DemandeDevis() {
                 name="phone"
                 required
                 placeholder="Ex: +221 77 123 45 67"
-                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }}
+                onChange={() => clearFieldError('phone')}
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: fieldErrors.phone ? '2px solid #ef4444' : '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }}
               />
+              {fieldErrors.phone && <p role="alert" style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>{fieldErrors.phone}</p>}
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Adresse Email (Optionnel)</label>
@@ -167,8 +146,10 @@ export default function DemandeDevis() {
                 type="email"
                 name="email"
                 placeholder="Ex: contact@votremail.com"
-                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }}
+                onChange={() => clearFieldError('email')}
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: fieldErrors.email ? '2px solid #ef4444' : '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }}
               />
+              {fieldErrors.email && <p role="alert" style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>{fieldErrors.email}</p>}
             </div>
           </div>
 
@@ -191,11 +172,11 @@ export default function DemandeDevis() {
             <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Situation du véhicule</label>
             <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input type="radio" name="situationVehicule" value="immatricule" checked={situation === 'immatricule'} onChange={(e) => { setSituation(e.target.value); setRectoFile(null); setVersoFile(null); }} />
+                <input type="radio" name="situationVehicule" value="immatricule" checked={situation === 'immatricule'} onChange={(e) => { setSituation(e.target.value); setRectoFile(null); setVersoFile(null); setFieldErrors({}); setGlobalError(null); }} />
                 <span>Véhicule déjà immatriculé (Carte Grise)</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input type="radio" name="situationVehicule" value="non_immatricule" checked={situation === 'non_immatricule'} onChange={(e) => { setSituation(e.target.value); setRectoFile(null); setVersoFile(null); }} />
+                <input type="radio" name="situationVehicule" value="non_immatricule" checked={situation === 'non_immatricule'} onChange={(e) => { setSituation(e.target.value); setRectoFile(null); setVersoFile(null); setFieldErrors({}); setGlobalError(null); }} />
                 <span>Véhicule pas encore immatriculé (CMC)</span>
               </label>
             </div>
@@ -208,9 +189,9 @@ export default function DemandeDevis() {
                   name="cmc"
                   label="Document CMC (Taille max: 4MB. Formats: JPG, PNG, PDF)"
                   accept=".jpg,.jpeg,.png,.pdf"
-                  onFileAccepted={setCmcFile}
+                  onFileAccepted={(f) => { setCmcFile(f); clearFieldError('cmc'); }}
                   isPdfOk={true}
-                  errorMsg={serverError?.includes('CMC') ? serverError : undefined}
+                  errorMsg={fieldErrors.cmc}
                 />
               </div>
             </div>
@@ -221,8 +202,8 @@ export default function DemandeDevis() {
                   name="recto"
                   label="Carte Grise (Recto)"
                   accept=".jpg,.jpeg,.png"
-                  onFileAccepted={setRectoFile}
-                  errorMsg={serverError?.includes('recto') ? serverError : undefined}
+                  onFileAccepted={(f) => { setRectoFile(f); clearFieldError('recto'); }}
+                  errorMsg={fieldErrors.recto}
                 />
               </div>
 
@@ -231,8 +212,8 @@ export default function DemandeDevis() {
                   name="verso"
                   label="Carte Grise (Verso)"
                   accept=".jpg,.jpeg,.png"
-                  onFileAccepted={setVersoFile}
-                  errorMsg={serverError?.includes('verso') ? serverError : undefined}
+                  onFileAccepted={(f) => { setVersoFile(f); clearFieldError('verso'); }}
+                  errorMsg={fieldErrors.verso}
                 />
               </div>
             </div>
@@ -248,67 +229,42 @@ export default function DemandeDevis() {
               transform: translate(4px, -4px);
             }
             .btn-submit:hover:not(:disabled) {
-              box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
-            }
-            .btn-submit.loading {
-              background: linear-gradient(135deg, var(--color-primary), #1e40af);
-              box-shadow: 0 10px 30px rgba(37, 99, 235, 0.6);
-              animation: pulse-glow 1.5s infinite alternate;
-            }
-            @keyframes pulse-glow {
-              from { transform: scale(1); box-shadow: 0 10px 20px rgba(37, 99, 235, 0.5); }
-              to { transform: scale(1.02); box-shadow: 0 15px 35px rgba(37, 99, 235, 0.7); }
-            }
-            .fly-plane {
-              animation: fly-away 0.6s forwards cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            @keyframes fly-away {
-              0% { transform: translate(0, 0) scale(1); opacity: 1; }
-              100% { transform: translate(50px, -50px) scale(0.5); opacity: 0; }
-            }
-            .hover-plane {
-              transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .dots-loader span {
-              animation: dots 1.4s infinite ease-in-out both;
-              display: inline-block;
-              width: 6px;
-              height: 6px;
-              background-color: white;
-              border-radius: 50%;
-              margin: 0 3px;
-            }
-            .dots-loader span:nth-child(1) { animation-delay: -0.32s; }
-            .dots-loader span:nth-child(2) { animation-delay: -0.16s; }
-            @keyframes dots {
-              0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
-              40% { transform: scale(1); opacity: 1; }
+              box-shadow: 0 10px 25px -5px rgba(22, 101, 52, 0.4);
+              transform: translateY(-2px);
             }
           `}</style>
-
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`btn btn-primary btn-submit ${isSubmitting ? 'loading' : ''}`}
-            style={{ width: '100%', height: '64px', padding: '0', borderRadius: 'var(--radius-lg)', position: 'relative', border: 'none', color: 'white', cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+            className="btn btn-submit"
+            style={{
+              width: '100%',
+              padding: '1.25rem',
+              fontSize: '1.125rem',
+              color: 'white',
+              border: 'none',
+              borderRadius: 'var(--radius-xl)',
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              opacity: isSubmitting ? 0.7 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.75rem',
+              fontWeight: 600,
+            }}
           >
-            {/* Loading State */}
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', opacity: isSubmitting ? 1 : 0, transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', transform: isSubmitting ? 'translateY(0)' : 'translateY(20px)', pointerEvents: 'none' }}>
-              <span style={{ fontWeight: 600, fontSize: '1.125rem', letterSpacing: '0.5px' }}>Préparation du dossier</span>
-              <div className="dots-loader" style={{ display: 'flex', alignItems: 'center', marginTop: '4px' }}>
-                <span></span><span></span><span></span>
-              </div>
-            </div>
-
-            {/* Default State */}
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', opacity: isSubmitting ? 0 : 1, transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', transform: isSubmitting ? 'translateY(-20px)' : 'translateY(0)', pointerEvents: 'none' }}>
-              <span style={{ fontWeight: 600, fontSize: '1.125rem', letterSpacing: '0.5px' }}>Envoyer la demande</span>
-              <svg className={isSubmitting ? 'fly-plane' : 'hover-plane'} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </div>
+            {isSubmitting ? 'Envoi en cours...' : (
+              <>
+                Recevoir mon devis gratuit
+                <svg className="hover-plane" style={{ transition: 'transform 0.3s ease' }} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              </>
+            )}
           </button>
+
+          <p style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Vos données sont chiffrées et sécurisées
+          </p>
         </form>
       </div>
     </main>

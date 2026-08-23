@@ -101,7 +101,7 @@ test('Demande Devis page integration checks', async (t) => {
     assert.match(pageCode, /const \[versoFile, setVersoFile\] = useState/);
 
     // Check they are rendered independently
-    assert.match(pageCode, /onFileAccepted=\{setRectoFile\}/);
-    assert.match(pageCode, /onFileAccepted=\{setVersoFile\}/);
+    assert.match(pageCode, /onFileAccepted=\{\(f\) => \{ setRectoFile\(f\); clearFieldError\('recto'\); \}\}/);
+    assert.match(pageCode, /onFileAccepted=\{\(f\) => \{ setVersoFile\(f\); clearFieldError\('verso'\); \}\}/);
   });
 });
