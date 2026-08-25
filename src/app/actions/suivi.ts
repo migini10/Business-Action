@@ -6,6 +6,9 @@ import { cookies, headers } from 'next/headers'
 
 function getRequestIp(hdrs: Headers): string | null {
   const internalIp = hdrs.get('x-businessaction-client-ip');
+  console.log("[RLDBG action-ip]", {
+    internalHeaderPresent: Boolean(internalIp)
+  });
   return internalIp ? internalIp.trim() : null;
 }
 
@@ -21,38 +24,64 @@ function normalizeSenegalPhone(value: string): string | null {
 }
 
 export async function checkRateLimit(ip: string | null, now: Date = new Date()): Promise<boolean> {
-  if (!ip) {
-    return false; // fail closed if IP is missing
-  }
   const secret = process.env.RATE_LIMIT_SECRET;
-  if (!secret) {
+  let allowed = false;
+  let failureReason = 'OK';
+  let sqlExecuted = false;
+  let returnedCount = -1;
+
+  if (!ip) {
+    failureReason = 'NO_IP';
+  } else if (!secret) {
+    failureReason = 'NO_SECRET';
     console.error("CRITICAL: RATE_LIMIT_SECRET is not set.");
-    return false; // fail closed
-  }
+  } else {
+    const normalizedIp = ip.trim().toLowerCase();
+    const ipHash = crypto.createHmac('sha256', secret).update(normalizedIp).digest('hex');
 
-  const normalizedIp = ip.trim().toLowerCase();
-  const ipHash = crypto.createHmac('sha256', secret).update(normalizedIp).digest('hex');
+    const windowStart = new Date(Math.floor(now.getTime() / 60000) * 60000);
+    const expiresAt = new Date(windowStart.getTime() + 60 * 1000);
 
-  const windowStart = new Date(Math.floor(now.getTime() / 60000) * 60000);
-  const expiresAt = new Date(windowStart.getTime() + 60 * 1000);
-
-  try {
-    const result = await prisma.$queryRaw<{count: number}[]>`
-      INSERT INTO "RateLimitWindow" ("ipHash", "windowStart", "count", "expiresAt")
-      VALUES (${ipHash}, ${windowStart}, 1, ${expiresAt})
-      ON CONFLICT ("ipHash", "windowStart")
-      DO UPDATE SET "count" = "RateLimitWindow"."count" + 1
-      RETURNING "count";
-    `;
-
-    if (result && result.length > 0) {
-      return result[0].count <= 5;
+    try {
+      const result = await prisma.$queryRaw<{count: number}[]>`
+        INSERT INTO "RateLimitWindow" ("ipHash", "windowStart", "count", "expiresAt")
+        VALUES (${ipHash}, ${windowStart}, 1, ${expiresAt})
+        ON CONFLICT ("ipHash", "windowStart")
+        DO UPDATE SET "count" = "RateLimitWindow"."count" + 1
+        RETURNING "count";
+      `;
+      sqlExecuted = true;
+      if (result && result.length > 0) {
+        returnedCount = result[0].count;
+        if (returnedCount <= 5) {
+          allowed = true;
+        } else {
+          failureReason = 'LIMIT_EXCEEDED';
+        }
+      } else {
+        failureReason = 'SQL_ERROR';
+      }
+    } catch (error) {
+      sqlExecuted = true;
+      failureReason = 'SQL_ERROR';
+      console.error("Rate limit check failed:", error);
+      console.log("[RLDBG sql-error]", {
+        errorName: (error as Error).name,
+        errorCode: (error as any).code
+      });
     }
-    return false;
-  } catch (error) {
-    console.error("Rate limit check failed:", error);
-    return false;
   }
+
+  console.log("[RLDBG checkRateLimit]", {
+    secretPresent: Boolean(secret),
+    ipPresent: Boolean(ip),
+    sqlExecuted,
+    returnedCount,
+    allowed,
+    failureReason
+  });
+
+  return allowed;
 }
 
 export async function searchDossiers(query: { numeroDossier?: string; phone?: string }) {

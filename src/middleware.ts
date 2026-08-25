@@ -35,6 +35,15 @@ export function middleware(req: NextRequest) {
     requestHeaders.set('x-businessaction-client-ip', trustedIp);
   }
 
+  if (url.pathname.startsWith('/suivi') || req.method === 'POST') {
+    console.log("[RLDBG middleware]", {
+      pathIsSuivi: url.pathname.startsWith('/suivi'),
+      method: req.method,
+      vercelForwardedForPresent: Boolean(req.headers.get('x-vercel-forwarded-for')),
+      internalHeaderSet: Boolean(trustedIp)
+    });
+  }
+
   return NextResponse.next({
     request: {
       headers: requestHeaders,
