@@ -208,22 +208,104 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
   const loadConversations = async () => {
     const res = await getWhatsAppConversations();
     if (res.success && res.conversations) {
-      setWaConversations(sortWhatsAppConversations(res.conversations));
+      setWaConversations(prev => {
+        const sortedNew = sortWhatsAppConversations(res.conversations!);
+        if (JSON.stringify(prev) === JSON.stringify(sortedNew)) return prev;
+        return sortedNew;
+      });
     }
   };
+
+  const isWaPollingRef = React.useRef(false);
+  const selectedWaConvIdRef = React.useRef<string | null>(null);
+  const waMessagesTrackerRef = React.useRef<{ convId: string | null; ids: Set<number> }>({
+    convId: null,
+    ids: new Set()
+  });
+
+  useEffect(() => {
+    selectedWaConvIdRef.current = selectedWaConv?.id || null;
+  }, [selectedWaConv?.id]);
 
   useEffect(() => {
     if (activeTab === 'whatsapp') {
       loadConversations();
+
+      const poll = async () => {
+        if (document.visibilityState !== 'visible') return;
+        if (isWaPollingRef.current) return;
+
+        isWaPollingRef.current = true;
+        try {
+          await loadConversations();
+
+          const currentConvId = selectedWaConvIdRef.current;
+          if (currentConvId) {
+            const msgRes = await getWhatsAppMessages(currentConvId);
+
+            // Rejet des réponses obsolètes si on a changé de conversation entre temps
+            if (selectedWaConvIdRef.current !== currentConvId) return;
+
+            if (msgRes.success && msgRes.messages) {
+              const newMessages = msgRes.messages || [];
+
+              const tracker = waMessagesTrackerRef.current;
+
+              if (tracker.convId === currentConvId) {
+                // 1. Mark as read UNIQUEMENT pour les nouveaux messages INBOUND
+                const newInboundMessages = newMessages.filter((m: any) =>
+                  m.direction === 'INBOUND' && !tracker.ids.has(m.id)
+                );
+
+                if (newInboundMessages.length > 0) {
+                  const lastNewInbound = newInboundMessages[newInboundMessages.length - 1];
+                  markConversationAsRead(currentConvId, lastNewInbound.id).catch(() => {});
+                }
+              }
+
+              // Baseline strictement associée à la conversation dont la réponse vient d'être validée
+              waMessagesTrackerRef.current = {
+                convId: currentConvId,
+                ids: new Set(newMessages.map((m: any) => m.id))
+              };
+
+              // 2. Mettre à jour le state UNIQUEMENT si le contenu a changé
+              setWaMessages(prev => {
+                if (JSON.stringify(prev) === JSON.stringify(newMessages)) return prev;
+                return newMessages;
+              });
+            }
+          }
+        } catch (err) {
+          // Ignorer silencieusement pour la résilience
+        } finally {
+          isWaPollingRef.current = false;
+        }
+      };
+
+      const intervalId = setInterval(poll, 5000);
+      return () => clearInterval(intervalId);
     }
   }, [activeTab]);
 
   const loadMessages = async (convId: string) => {
     const res = await getWhatsAppMessages(convId);
+
+    // Ignorer une réponse devenue obsolète après un changement de conversation
+    if (selectedWaConvIdRef.current !== convId) return [];
+
     if (res.success) {
-      setWaMessages(res.messages || []);
-      return res.messages || [];
+      const messages = res.messages || [];
+
+      waMessagesTrackerRef.current = {
+        convId,
+        ids: new Set(messages.map((m: any) => m.id))
+      };
+
+      setWaMessages(messages);
+      return messages;
     }
+
     return [];
   };
 
