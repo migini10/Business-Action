@@ -40,6 +40,7 @@ export function middleware(req: NextRequest) {
       pathIsSuivi: url.pathname.startsWith('/suivi'),
       method: req.method,
       vercelForwardedForPresent: Boolean(req.headers.get('x-vercel-forwarded-for')),
+      xForwardedForPresent: Boolean(req.headers.get('x-forwarded-for')),
       internalHeaderSet: Boolean(trustedIp)
     });
   }
