@@ -110,6 +110,7 @@ model Dossier {
   statut        StatutDossier @default(EN_ATTENTE)
 
   documents     DossierDocument[]
+  trackingSessions TrackingSession[]
 
   // Relation optionnelle si l'utilisateur a un compte
   clientId String?
@@ -248,4 +249,27 @@ model PushSubscription {
   userAgent String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model TrackingSession {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  dossierId  String
+  dossier    Dossier   @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([dossierId])
+  @@index([expiresAt])
+}
+
+model RateLimitWindow {
+  ipHash      String
+  windowStart DateTime
+  count       Int      @default(1)
+  expiresAt   DateTime
+
+  @@id([ipHash, windowStart])
+  @@index([expiresAt])
 }

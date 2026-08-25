@@ -15,7 +15,7 @@ export async function getClientDashboardData() {
       orderBy: { createdAt: 'desc' },
       include: {
         documents: {
-          select: { id: true, type: true, side: true, expiresAt: true, deletedAt: true }
+          select: { id: true, type: true, side: true, mimeType: true, expiresAt: true, deletedAt: true }
         }
       }
     });

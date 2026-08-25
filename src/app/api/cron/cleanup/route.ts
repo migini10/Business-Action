@@ -119,6 +119,15 @@ export async function GET(request: Request) {
       }
     }
 
+
+    // ---------------------------------------------------------
+    // C. RATE LIMIT CLEANUP
+    // ---------------------------------------------------------
+    await prisma.rateLimitWindow.deleteMany({
+      where: {
+        expiresAt: { lt: now }
+      }
+    });
     return NextResponse.json({ success: true, cleanup: processedCleanup, orphans: processedOrphans });
   } catch (err) {
     return NextResponse.json({ success: false, error: "Internal Error" }, { status: 500 });

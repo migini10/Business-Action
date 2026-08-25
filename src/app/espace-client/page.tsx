@@ -6,11 +6,15 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { loginClient, registerClient, getCurrentClientData, logoutClient } from '@/app/actions/auth';
 import { getClientDashboardData, respondToTransactionModification, updateClientProfile } from '@/app/actions/client';
 import { calculateClientBalance, getTransactionSign, calculateFinancialSummary } from '@/lib/finance';
+import { useToast } from '@/components/ui/ToastProvider';
+import DocumentViewerModal from '@/components/ui/DocumentViewerModal';
 
 function EspaceClientContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
+  const [viewerDoc, setViewerDoc] = useState<{url: string, title: string, mimeType?: string} | null>(null);
 
   const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,7 +112,7 @@ function EspaceClientContent() {
     setSubmittingId(transactionId);
     const res = await respondToTransactionModification(transactionId, accept);
     if (res.success) {
-      alert(res.message);
+      toast({ type: 'success', message: res.message || 'Succès' });
       if (clientData) {
         const dashRes = await getClientDashboardData();
         if (dashRes.success) {
@@ -116,7 +120,7 @@ function EspaceClientContent() {
         }
       }
     } else {
-      alert(res.error);
+      toast({ type: 'error', message: res.error || 'Erreur' });
     }
     setSubmittingId(null);
   };
@@ -187,6 +191,7 @@ function EspaceClientContent() {
 
   if (isLoggedIn) {
     return (
+      <>
       <main className="animate-fade-in" style={{ minHeight: '80vh', padding: '4rem 2rem' }}>
         <div className="container" style={{ maxWidth: '1000px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -498,7 +503,7 @@ function EspaceClientContent() {
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     </button>
                     {dossier.devisUrl && (
-                      <a href={dossier.devisUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none' }}>Voir Devis &rarr;</a>
+                      <button type="button" onClick={() => setViewerDoc({ url: dossier.devisUrl, title: 'Devis', mimeType: 'application/pdf' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--color-primary)', fontWeight: 600, fontSize: '0.875rem' }} aria-label="Voir le devis">Voir Devis &rarr;</button>
                     )}
                   </div>
                 </div>
@@ -535,9 +540,9 @@ function EspaceClientContent() {
                 </div>
 
                 {selectedDossier.devisUrl && (
-                  <a href={selectedDossier.devisUrl} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ display: 'block', textAlign: 'center', padding: '1rem', borderRadius: '0.75rem', textDecoration: 'none', marginBottom: '1rem' }}>
+                  <button type="button" onClick={() => setViewerDoc({ url: selectedDossier.devisUrl, title: 'Devis', mimeType: 'application/pdf' })} className="btn btn-primary" style={{ display: 'block', width: '100%', textAlign: 'center', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1rem', cursor: 'pointer' }} aria-label="Voir le devis">
                     Télécharger mon devis
-                  </a>
+                  </button>
                 )}
 
                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -548,18 +553,18 @@ function EspaceClientContent() {
                           {doc.type} ({doc.side})
                         </span>
                       ) : (
-                        <a key={doc.id} href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>
+                        <button type="button" key={doc.id} onClick={() => setViewerDoc({ url: `/api/documents/${doc.id}`, title: `${doc.type} (${doc.side})`, mimeType: doc.mimeType })} style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', fontSize: '0.875rem', fontWeight: 600, background: 'none', cursor: 'pointer' }} aria-label={`Voir le document ${doc.type}`}>
                           {doc.type} ({doc.side})
-                        </a>
+                        </button>
                       )
                     ))
                   ) : (
                     <>
                       {selectedDossier.rectoUrl && (
-                        <a href={selectedDossier.rectoUrl} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>Carte Grise (Recto)</a>
+                        <button type="button" onClick={() => setViewerDoc({ url: selectedDossier.rectoUrl, title: 'Carte Grise (Recto)', mimeType: 'image/jpeg' })} style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', fontSize: '0.875rem', fontWeight: 600, background: 'none', cursor: 'pointer' }} aria-label="Voir le recto">Carte Grise (Recto)</button>
                       )}
                       {selectedDossier.versoUrl && (
-                        <a href={selectedDossier.versoUrl} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>Carte Grise (Verso)</a>
+                        <button type="button" onClick={() => setViewerDoc({ url: selectedDossier.versoUrl, title: 'Carte Grise (Verso)', mimeType: 'image/jpeg' })} style={{ flex: 1, textAlign: 'center', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '0.75rem', color: '#475569', fontSize: '0.875rem', fontWeight: 600, background: 'none', cursor: 'pointer' }} aria-label="Voir le verso">Carte Grise (Verso)</button>
                       )}
                     </>
                   )}
@@ -572,6 +577,14 @@ function EspaceClientContent() {
           )}
         </div>
       </main>
+      <DocumentViewerModal
+        open={viewerDoc !== null}
+        onClose={() => setViewerDoc(null)}
+        documentUrl={viewerDoc?.url || ''}
+        title={viewerDoc?.title || ''}
+        mimeType={viewerDoc?.mimeType}
+      />
+      </>
     );
   }
 

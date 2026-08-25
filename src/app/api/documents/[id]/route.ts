@@ -3,6 +3,8 @@ import { getAdminSession } from '@/lib/admin-auth'
 import { getCurrentClient } from '@/lib/client-auth'
 import prisma from '@/lib/prisma'
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+import crypto from 'crypto'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -26,7 +28,24 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   if (!adminSession) {
     const client = await getCurrentClient()
     if (!client || doc.dossier.clientId !== client.id) {
-      return new NextResponse("Unauthorized", { status: 403 })
+      // Check TrackingSession
+      const cookieStore = await cookies();
+      const trackingSessionCookie = cookieStore.get('tracking_session')?.value;
+      if (!trackingSessionCookie) {
+        return new NextResponse("Unauthorized", { status: 403 })
+      }
+
+      const tokenHash = crypto.createHash('sha256').update(trackingSessionCookie).digest('hex')
+      const trackingSession = await prisma.trackingSession.findUnique({
+        where: { tokenHash }
+      })
+
+      if (!trackingSession ||
+          trackingSession.revokedAt !== null ||
+          trackingSession.expiresAt < new Date() ||
+          trackingSession.dossierId !== doc.dossierId) {
+        return new NextResponse("Unauthorized", { status: 403 })
+      }
     }
   }
 
