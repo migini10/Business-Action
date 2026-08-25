@@ -3,10 +3,12 @@ import assert from 'node:assert';
 import { checkRateLimit, searchDossiers, unlockDossierDocuments } from './suivi';
 import prisma from '@/lib/prisma';
 
+let currentMockHeaders = new Headers({ 'x-businessaction-client-ip': '127.0.0.1' });
+
 // Create mocks for next/headers
 mock.module('next/headers', {
   namedExports: {
-    headers: async () => new Headers({ 'x-forwarded-for': '127.0.0.1' }),
+    headers: async () => currentMockHeaders,
     cookies: async () => ({
       set: (key: string, val: string, opts: any) => {},
       get: (key: string) => ({ value: 'test' })
@@ -178,5 +180,97 @@ describe('Suivi & Rate Limiter', () => {
     }
     const allowed6 = await checkRateLimit(ip);
     assert.strictEqual(allowed6, false);
+  });
+
+  it('B. quotas indépendants', async () => {
+    const ipA = 'userA';
+    const ipB = 'userB';
+    for (let i = 1; i <= 5; i++) {
+      await checkRateLimit(ipA);
+    }
+    // ipA is blocked
+    assert.strictEqual(await checkRateLimit(ipA), false);
+    // ipB is still allowed
+    assert.strictEqual(await checkRateLimit(ipB), true);
+  });
+
+  it('C. header interne absent => DENY => aucune recherche dossier', async () => {
+    // Modify mock to return no header
+    currentMockHeaders = new Headers({});
+    const res = await searchDossiers({ numeroDossier: 'DOS-TEST-1' });
+    assert.strictEqual(res.success, false);
+    assert.strictEqual(res.error, "Trop de tentatives. Veuillez réessayer plus tard.");
+
+    // Restore mock
+    currentMockHeaders = new Headers({ 'x-businessaction-client-ip': '127.0.0.1' });
+  });
+
+  it('G. aucun unknown dans la logique rate-limit', async () => {
+    // Calling checkRateLimit with null directly
+    const allowed = await checkRateLimit(null);
+    assert.strictEqual(allowed, false);
+  });
+
+  it('H. RateLimitWindow contient uniquement ipHash, jamais IP brute', async () => {
+    const ip = 'secret-ip-address';
+    await checkRateLimit(ip);
+
+    const rows = await prisma.$queryRaw<any[]>`SELECT "ipHash" FROM "RateLimitWindow"`;
+    const found = rows.find(r => r.ipHash.includes('secret-ip-address'));
+    assert.strictEqual(found, undefined);
+  });
+});
+
+import { middleware } from '@/middleware';
+import { NextRequest } from 'next/server';
+
+describe('Middleware IP Headers', () => {
+  const originalEnv = process.env.NODE_ENV;
+
+  after(() => {
+    Object.defineProperty(process.env, 'NODE_ENV', { value: originalEnv });
+  });
+
+  const setEnv = (val: string) => {
+    Object.defineProperty(process.env, 'NODE_ENV', { value: val, configurable: true });
+  };
+
+  it('D. header x-businessaction-client-ip fourni par navigateur écrasé par middleware', () => {
+    setEnv('production');
+    const req = new NextRequest('http://localhost/suivi', {
+      headers: {
+        'x-vercel-forwarded-for': '2.2.2.2',
+        'x-businessaction-client-ip': 'hacker-ip'
+      }
+    });
+    const res = middleware(req);
+    // NextRequest headers in middleware response are available in the internal headers object or we can check logic
+    const modifiedHeaders = (res as any).headers;
+    // Actually, NextResponse doesn't easily expose the modified request headers in tests like this without accessing internal symbols.
+    // Instead we can just verify the logic locally. Next 13+ middleware returns a response with x-middleware-request-* headers.
+    const internalIp = modifiedHeaders.get('x-middleware-request-x-businessaction-client-ip');
+    assert.strictEqual(internalIp, '2.2.2.2');
+  });
+
+  it('E. x-vercel-forwarded-for absent en Production => aucun header interne généré', () => {
+    setEnv('production');
+    const req = new NextRequest('http://localhost/suivi', {
+      headers: {
+        'x-forwarded-for': '1.1.1.1' // Ignored in prod now
+      }
+    });
+    const res = middleware(req);
+    const internalIp = (res as any).headers.get('x-middleware-request-x-businessaction-client-ip');
+    assert.strictEqual(internalIp, null);
+  });
+
+  it('F. local => identité locale stable autorisée', () => {
+    setEnv('development');
+    const req = new NextRequest('http://localhost/suivi', {
+      headers: {}
+    });
+    const res = middleware(req);
+    const internalIp = (res as any).headers.get('x-middleware-request-x-businessaction-client-ip');
+    assert.strictEqual(internalIp, '127.0.0.1');
   });
 });

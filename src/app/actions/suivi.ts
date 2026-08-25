@@ -4,14 +4,9 @@ import prisma from '@/lib/prisma'
 import crypto from 'crypto'
 import { cookies, headers } from 'next/headers'
 
-function getRequestIp(hdrs: Headers): string {
-  const vercelFor = hdrs.get('x-vercel-forwarded-for');
-  if (vercelFor) return vercelFor.split(',')[0].trim();
-
-  const forwardedFor = hdrs.get('x-forwarded-for');
-  if (forwardedFor) return forwardedFor.split(',')[0].trim();
-
-  return hdrs.get('x-real-ip') || 'unknown';
+function getRequestIp(hdrs: Headers): string | null {
+  const internalIp = hdrs.get('x-businessaction-client-ip');
+  return internalIp ? internalIp.trim() : null;
 }
 
 function normalizeSenegalPhone(value: string): string | null {
@@ -25,7 +20,10 @@ function normalizeSenegalPhone(value: string): string | null {
   return digits.length === 9 ? digits : null;
 }
 
-export async function checkRateLimit(ip: string, now: Date = new Date()): Promise<boolean> {
+export async function checkRateLimit(ip: string | null, now: Date = new Date()): Promise<boolean> {
+  if (!ip) {
+    return false; // fail closed if IP is missing
+  }
   const secret = process.env.RATE_LIMIT_SECRET;
   if (!secret) {
     console.error("CRITICAL: RATE_LIMIT_SECRET is not set.");
