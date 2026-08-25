@@ -24,25 +24,15 @@ export function middleware(req: NextRequest) {
   if (process.env.NODE_ENV !== 'production') {
     trustedIp = '127.0.0.1'; // Identité locale stable
   } else {
-    // En production Vercel, on se fie uniquement à x-vercel-forwarded-for
-    const vercelFor = requestHeaders.get('x-vercel-forwarded-for');
-    if (vercelFor) {
-      trustedIp = vercelFor.split(',')[0].trim();
+    // En production Vercel, l'IP client est la première de x-forwarded-for
+    const forwardedFor = requestHeaders.get('x-forwarded-for');
+    if (forwardedFor) {
+      trustedIp = forwardedFor.split(',')[0].trim();
     }
   }
 
   if (trustedIp) {
     requestHeaders.set('x-businessaction-client-ip', trustedIp);
-  }
-
-  if (url.pathname.startsWith('/suivi') || req.method === 'POST') {
-    console.log("[RLDBG middleware]", {
-      pathIsSuivi: url.pathname.startsWith('/suivi'),
-      method: req.method,
-      vercelForwardedForPresent: Boolean(req.headers.get('x-vercel-forwarded-for')),
-      xForwardedForPresent: Boolean(req.headers.get('x-forwarded-for')),
-      internalHeaderSet: Boolean(trustedIp)
-    });
   }
 
   return NextResponse.next({
