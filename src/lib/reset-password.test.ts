@@ -82,6 +82,21 @@ test('Business Logic: requestPasswordReset', async (t) => {
     assert.strictEqual(res.success, false);
     assert.match((res as any).error as string, /patienter 3 minutes/);
   });
+
+  await t.test('requestPasswordReset utilise purpose: PASSWORD_RESET', async () => {
+    const deps = createMockDeps();
+    deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
+
+    let findFirstQuery: any = null;
+    deps.db.passwordResetChallenge.findFirst = async (q: any) => { findFirstQuery = q; return null; };
+
+    let createQuery: any = null;
+    deps.db.passwordResetChallenge.create = async (q: any) => { createQuery = q; return {}; };
+
+    await _requestPasswordReset('221770000000', deps);
+    assert.strictEqual(findFirstQuery.where.purpose, 'PASSWORD_RESET');
+    assert.strictEqual(createQuery.data.purpose, 'PASSWORD_RESET');
+  });
 });
 
 test('Business Logic: verifyOTP', async (t) => {
@@ -169,14 +184,71 @@ test('Business Logic: verifyOTP', async (t) => {
     assert.ok(deps.cookies['password_reset_token'], "Le cookie de token doit être défini");
     assert.strictEqual(deps.cookies['password_reset_token'].opts.httpOnly, true);
   });
+
+  await t.test('verifyOTP utilise purpose: PASSWORD_RESET', async () => {
+    const deps = createMockDeps();
+    deps.db.user.findUnique = async () => ({ id: 'user1' });
+
+    let findFirstQuery: any = null;
+    deps.db.passwordResetChallenge.findFirst = async (q: any) => { findFirstQuery = q; return null; };
+
+    await _verifyOTP('221770000000', '123456', deps);
+    assert.strictEqual(findFirstQuery.where.purpose, 'PASSWORD_RESET');
+  });
+  await t.test('verifyOTP refuse un challenge avec purpose: FIRST_PASSWORD_CHANGE', async () => {
+    const deps = createMockDeps();
+    deps.db.user.findUnique = async () => ({ id: 'user1' });
+
+    // Mock findFirst pour retourner le challenge SEULEMENT s'il n'y a pas de filtre,
+    // ou si on demande le mauvais purpose. Mais le code de prod demande PASSWORD_RESET.
+    deps.db.passwordResetChallenge.findFirst = async (query: any) => {
+      // En base, le challenge est un FIRST_PASSWORD_CHANGE
+      if (query.where.purpose === 'PASSWORD_RESET') {
+        return null; // La DB ne trouve pas de PASSWORD_RESET car c'est un FIRST_PASSWORD_CHANGE
+      }
+      return {
+        id: 'chal1',
+        otpHash: hashString('123456', mockSecret),
+        expiresAt: new Date(MOCK_NOW + 10000),
+        attempts: 0,
+        purpose: 'FIRST_PASSWORD_CHANGE'
+      };
+    };
+
+    const res = await _verifyOTP('221770000000', '123456', deps);
+    assert.strictEqual(res.success, false);
+    assert.match((res as any).error as string, /Aucune demande de réinitialisation en cours/);
+  });
 });
 
 test('Business Logic: updatePassword', async (t) => {
   await t.test('Token manquant/invalide refusé', async () => {
     const deps = createMockDeps(); // No cookie set
-    const res: any = await _updatePassword('newpass', deps);
+    const res: any = await _updatePassword('newpass123', deps);
     assert.strictEqual(res.success, false);
     assert.match((res as any).error as string, /invalide ou expirée/);
+  });
+
+  await t.test('updatePassword refuse un challenge avec purpose: FIRST_PASSWORD_CHANGE', async () => {
+    const deps = createMockDeps();
+    deps.setCookie('password_reset_token', 'my-raw-token', {});
+
+    deps.db.passwordResetChallenge.findFirst = async (query: any) => {
+      if (query.where.purpose === 'PASSWORD_RESET') {
+        return null; // Pas trouvé avec le filtre PASSWORD_RESET
+      }
+      return {
+        id: 'chal1',
+        userId: 'user1',
+        resetTokenHash: hashString('my-raw-token', mockSecret),
+        resetTokenExpiresAt: new Date(MOCK_NOW + 10000),
+        purpose: 'FIRST_PASSWORD_CHANGE'
+      };
+    };
+
+    const res = await _updatePassword('newpass123', deps);
+    assert.strictEqual(res.success, false);
+    assert.match((res as any).error as string, /Demande non valide ou déjà utilisée/);
   });
 
   await t.test('Token valide => password update & atomic ops', async () => {

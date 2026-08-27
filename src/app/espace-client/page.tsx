@@ -4,6 +4,7 @@ import React, { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { loginClient, registerClient, getCurrentClientData, logoutClient } from '@/app/actions/auth';
+import { executeFirstPasswordChange } from '@/app/actions/first-password';
 import { getClientDashboardData, respondToTransactionModification, updateClientProfile } from '@/app/actions/client';
 import { calculateClientBalance, getTransactionSign, calculateFinancialSummary } from '@/lib/finance';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -21,6 +22,8 @@ function EspaceClientContent() {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [requireFirstPasswordChange, setRequireFirstPasswordChange] = useState(false);
+  const [firstPasswordError, setFirstPasswordError] = useState('');
 
   const tabParam = searchParams.get('tab');
   const validTabs = ['dashboard', 'finances', 'profile'];
@@ -140,9 +143,19 @@ function EspaceClientContent() {
 
     setIsSubmitting(false);
 
-    if (result.success && result.user) {
+    if ((result as any).firstPasswordChangeAlreadyInProgress) {
+      setErrorMessage('Un changement de mot de passe est déjà en cours. Réessayez dans quelques minutes.');
+      return;
+    }
+
+    if ((result as any).requireFirstPasswordChange) {
+      setRequireFirstPasswordChange(true);
+      return;
+    }
+
+    if (result.success && (result as any).user) {
       setIsLoggedIn(true);
-      setClientData(result.user);
+      setClientData((result as any).user);
 
       const dashRes = await getClientDashboardData();
       if (dashRes.success) {
@@ -152,6 +165,33 @@ function EspaceClientContent() {
     } else {
       setErrorMessage(result.error || 'Une erreur est survenue.');
       setErrorField((result as any).field || null);
+    }
+  };
+
+  const handleFirstPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setFirstPasswordError('');
+
+    const form = e.target as HTMLFormElement;
+    const newPassword = (form.elements.namedItem('newPassword') as HTMLInputElement).value;
+    const confirmPassword = (form.elements.namedItem('confirmPassword') as HTMLInputElement).value;
+
+    if (newPassword !== confirmPassword) {
+      setFirstPasswordError('Les mots de passe ne correspondent pas.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const result = await executeFirstPasswordChange(newPassword);
+    
+    setIsSubmitting(false);
+
+    if (result.success) {
+      // Recharger pour créer la session normale (le token est purgé)
+      window.location.reload();
+    } else {
+      setFirstPasswordError(result.error || 'Erreur lors de la mise à jour.');
     }
   };
 
@@ -588,6 +628,62 @@ function EspaceClientContent() {
     );
   }
 
+  if (requireFirstPasswordChange) {
+    return (
+      <main style={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', padding: '4rem 1rem 2rem 1rem' }}>
+        <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '450px', padding: '2.5rem 1.5rem', borderRadius: 'var(--radius-xl)', backgroundColor: '#fff', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: '0 0 0.5rem 0' }}>Créer votre mot de passe</h1>
+            <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.875rem' }}>
+              Pour des raisons de sécurité, veuillez définir votre mot de passe définitif.
+            </p>
+          </div>
+
+          {firstPasswordError && (
+            <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', padding: '1rem', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              {firstPasswordError}
+            </div>
+          )}
+
+          <form onSubmit={handleFirstPasswordSubmit}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Nouveau Mot de Passe (min. 8 caractères)</label>
+              <input
+                type="password"
+                name="newPassword"
+                required
+                minLength={8}
+                placeholder="••••••••"
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
+              />
+            </div>
+            <div style={{ marginBottom: '2.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Confirmer le Mot de Passe</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                required
+                minLength={8}
+                placeholder="••••••••"
+                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '1.25rem', fontSize: '1.125rem', borderRadius: 'var(--radius-lg)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+            >
+              {isSubmitting ? 'Enregistrement...' : 'Enregistrer mon mot de passe'}
+            </button>
+          </form>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main style={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', padding: '4rem 1rem 2rem 1rem' }}>
       <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '450px', padding: '2.5rem 1.5rem', borderRadius: 'var(--radius-xl)', backgroundColor: '#fff', margin: '0 auto' }}>
@@ -668,9 +764,16 @@ function EspaceClientContent() {
               type="password"
               name="password"
               required
+              minLength={!isLogin ? 8 : undefined}
               placeholder="••••••••"
+              onChange={() => { if (errorField === 'password') { setErrorField(null); setErrorMessage(''); } }}
               style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
             />
+            {errorField === 'password' && (
+              <div style={{ color: '#DC2626', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>
+                {errorMessage}
+              </div>
+            )}
           </div>
 
           <button

@@ -31,7 +31,7 @@ function createFormData(data: Record<string, string>) {
 test('Client Registration Logic: _registerClient', async (t) => {
   await t.test('inscription sans email => autorisée', async () => {
     const deps = createMockDeps();
-    const fd = createFormData({ name: 'John', phone: '77123', password: 'pwd' });
+    const fd = createFormData({ name: 'John', phone: '77123', password: 'password123' });
     const res = await _registerClient(fd, deps);
     assert.strictEqual(res.success, true);
     assert.strictEqual(res.user?.phone, '77123');
@@ -50,7 +50,7 @@ test('Client Registration Logic: _registerClient', async (t) => {
         }
       }
     });
-    const fd = createFormData({ name: 'John', phone: '77123', password: 'pwd', email: 'john@example.com' });
+    const fd = createFormData({ name: 'John', phone: '77123', password: 'password123', email: 'john@example.com' });
     const res = await _registerClient(fd, deps);
     assert.strictEqual(res.success, true);
     assert.strictEqual(createdData.email, 'john@example.com');
@@ -69,7 +69,7 @@ test('Client Registration Logic: _registerClient', async (t) => {
         }
       }
     });
-    const fd = createFormData({ name: 'John', phone: '77123', password: 'pwd', email: ' JOHN@ExaMple.com ' });
+    const fd = createFormData({ name: 'John', phone: '77123', password: 'password123', email: ' JOHN@ExaMple.com ' });
     const res = await _registerClient(fd, deps);
     assert.strictEqual(res.success, true);
     assert.strictEqual(createdData.email, 'john@example.com');
@@ -77,7 +77,7 @@ test('Client Registration Logic: _registerClient', async (t) => {
 
   await t.test('email invalide => refus', async () => {
     const deps = createMockDeps();
-    const fd = createFormData({ name: 'John', phone: '77123', password: 'pwd', email: 'not-an-email' });
+    const fd = createFormData({ name: 'John', phone: '77123', password: 'password123', email: 'not-an-email' });
     const res = await _registerClient(fd, deps) as any;
     assert.strictEqual(res.success, false);
     assert.strictEqual(res.field, 'email');
@@ -95,7 +95,7 @@ test('Client Registration Logic: _registerClient', async (t) => {
         }
       }
     });
-    const fd = createFormData({ name: 'John', phone: '77123', password: 'pwd', email: 'john@example.com' });
+    const fd = createFormData({ name: 'John', phone: '77123', password: 'password123', email: 'john@example.com' });
     const res = await _registerClient(fd, deps) as any;
     assert.strictEqual(res.success, false);
     assert.strictEqual(res.field, 'email');
@@ -113,7 +113,7 @@ test('Client Registration Logic: _registerClient', async (t) => {
         }
       }
     });
-    const fd = createFormData({ name: 'John', phone: ' 77123 ', password: 'pwd' });
+    const fd = createFormData({ name: 'John', phone: ' 77123 ', password: 'password123' });
     const res = await _registerClient(fd, deps) as any;
     assert.strictEqual(res.success, false);
     assert.strictEqual(res.field, 'phone');
@@ -123,11 +123,11 @@ test('Client Registration Logic: _registerClient', async (t) => {
   await t.test('email null sur plusieurs comptes => autorisé (pas de conflit Prisma en test unitaire)', async () => {
     // Si email est vide, il ne déclenche pas findUnique sur l'email.
     const deps = createMockDeps();
-    let fd = createFormData({ name: 'John1', phone: '1', password: 'pwd', email: '' });
+    let fd = createFormData({ name: 'John1', phone: '1', password: 'password123', email: '' });
     let res = await _registerClient(fd, deps) as any;
     assert.strictEqual(res.success, true);
 
-    fd = createFormData({ name: 'John2', phone: '2', password: 'pwd', email: '   ' });
+    fd = createFormData({ name: 'John2', phone: '2', password: 'password123', email: '   ' });
     res = await _registerClient(fd, deps) as any;
     assert.strictEqual(res.success, true);
   });
@@ -146,7 +146,7 @@ test('Client Registration Logic: _registerClient', async (t) => {
         }
       }
     });
-    const fd = createFormData({ name: 'John', phone: '77123', password: 'pwd', email: 'john@example.com' });
+    const fd = createFormData({ name: 'John', phone: '77123', password: 'password123', email: 'john@example.com' });
     const res = await _registerClient(fd, deps) as any;
     assert.strictEqual(res.success, false);
     assert.strictEqual(res.field, 'email');
@@ -167,7 +167,7 @@ test('Client Registration Logic: _registerClient', async (t) => {
         }
       }
     });
-    const fd = createFormData({ name: 'John', phone: '77123', password: 'pwd' });
+    const fd = createFormData({ name: 'John', phone: '77123', password: 'password123' });
     const res = await _registerClient(fd, deps) as any;
     assert.strictEqual(res.success, false);
     assert.strictEqual(res.field, 'phone');

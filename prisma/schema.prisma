@@ -43,6 +43,8 @@ model User {
   fullName  String?
   password  String
   role      Role      @default(CLIENT)
+  mustChangePassword         Boolean   @default(false)
+  temporaryPasswordExpiresAt DateTime?
   dossiers     Dossier[]
   transactions Transaction[]
   passwordResetChallenges PasswordResetChallenge[]
@@ -163,10 +165,16 @@ enum WhatsAppSupportStatus {
   RESOLVED
 }
 
+enum ChallengePurpose {
+  PASSWORD_RESET
+  FIRST_PASSWORD_CHANGE
+}
+
 model PasswordResetChallenge {
   id                  String    @id @default(cuid())
   userId              String
   user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose             ChallengePurpose @default(PASSWORD_RESET)
   otpHash             String
   expiresAt           DateTime
   attempts            Int       @default(0)

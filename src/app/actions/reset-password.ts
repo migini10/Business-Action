@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import crypto from 'crypto';
 import { Resend } from 'resend';
+import { validatePasswordPolicy } from '@/lib/password-policy';
 import bcrypt from 'bcryptjs';
 
 // The secret must be present for the reset process to work safely
@@ -43,6 +44,7 @@ export async function _requestPasswordReset(phone: string, deps: any) {
     const recentChallenge = await deps.db.passwordResetChallenge.findFirst({
       where: {
         userId: user.id,
+        purpose: 'PASSWORD_RESET',
         createdAt: { gte: threeMinutesAgo },
       },
     });
@@ -56,13 +58,14 @@ export async function _requestPasswordReset(phone: string, deps: any) {
     const expiresAt = new Date(deps.now() + 15 * 60 * 1000);
 
     await deps.db.passwordResetChallenge.updateMany({
-      where: { userId: user.id, usedAt: null },
+      where: { userId: user.id, purpose: 'PASSWORD_RESET', usedAt: null },
       data: { usedAt: new Date(deps.now()) },
     });
 
     await deps.db.passwordResetChallenge.create({
       data: {
         userId: user.id,
+        purpose: 'PASSWORD_RESET',
         otpHash,
         expiresAt,
         createdAt: new Date(deps.now()),
@@ -90,7 +93,7 @@ export async function _verifyOTP(phone: string, otp: string, deps: any) {
     if (!user) return { success: false, error: 'Code invalide ou expiré' };
 
     const challenge = await deps.db.passwordResetChallenge.findFirst({
-      where: { userId: user.id, usedAt: null, verifiedAt: null },
+      where: { userId: user.id, purpose: 'PASSWORD_RESET', usedAt: null, verifiedAt: null },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -157,12 +160,18 @@ export async function _updatePassword(newPassword: string, deps: any) {
       return { success: false, error: 'Session de réinitialisation invalide ou expirée' };
     }
 
+    const passwordCheck = deps.validatePasswordPolicy ? deps.validatePasswordPolicy(newPassword) : { isValid: true };
+    if (!passwordCheck.isValid) {
+      return { success: false, error: passwordCheck.error };
+    }
+
     const resetToken = tokenCookie;
     const resetTokenHash = hashString(resetToken, secret);
 
     const challenge = await deps.db.passwordResetChallenge.findFirst({
       where: {
         resetTokenHash,
+        purpose: 'PASSWORD_RESET',
         usedAt: null,
         verifiedAt: { not: null },
       },
@@ -283,6 +292,7 @@ export async function updatePassword(newPassword: string) {
     deleteCookie: async (name: string) => {
       const cookieStore = await cookies();
       cookieStore.delete(name);
-    }
+    },
+    validatePasswordPolicy
   });
 }

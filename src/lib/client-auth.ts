@@ -51,6 +51,14 @@ export async function getCurrentClient() {
     return null;
   }
 
+  if (session.user.mustChangePassword) {
+    // Révocation de sécurité silencieuse si le flag a été forcé
+    await prisma.clientSession.deleteMany({
+      where: { userId: session.user.id }
+    });
+    return null;
+  }
+
   return session.user;
 }
 

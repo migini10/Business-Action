@@ -3,6 +3,9 @@
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { createClientSession, getCurrentClient, revokeClientSession } from '@/lib/client-auth';
+import crypto from 'crypto';
+import { cookies } from 'next/headers';
+import { validatePasswordPolicy } from '@/lib/password-policy';
 
 export async function _registerClient(formData: FormData, deps: { db: any; hash: (p: string) => Promise<string>; createSession?: (id: string) => Promise<void> }) {
   try {
@@ -18,6 +21,11 @@ export async function _registerClient(formData: FormData, deps: { db: any; hash:
     const phone = rawPhone.trim();
     if (!phone) {
       return { success: false, error: 'Tous les champs obligatoires doivent être remplis.' };
+    }
+
+    const passwordCheck = validatePasswordPolicy(password);
+    if (!passwordCheck.isValid) {
+      return { success: false, error: passwordCheck.error, field: 'password' };
     }
 
     let email: string | null = null;
@@ -126,6 +134,100 @@ export async function loginClient(formData: FormData) {
 
     if (!isPasswordValid) {
       return { success: false, error: 'Numéro de téléphone ou mot de passe incorrect.' };
+    }
+
+    if (user.mustChangePassword) {
+      const authResult = await prisma.$transaction(async (tx) => {
+        // Verrouiller la ligne User pour sérialiser
+        const lockedUserArr = await tx.$queryRaw<any[]>`SELECT id, "mustChangePassword", "temporaryPasswordExpiresAt" FROM "User" WHERE id = ${user.id} FOR UPDATE`;
+        const lockedUser = lockedUserArr[0];
+
+        if (!lockedUser) {
+          throw new Error('Utilisateur introuvable.');
+        }
+
+        if (lockedUser.mustChangePassword) {
+          if (!lockedUser.temporaryPasswordExpiresAt || lockedUser.temporaryPasswordExpiresAt <= new Date()) {
+            return { success: false, error: 'Mot de passe temporaire expiré. Veuillez réinitialiser votre mot de passe.' };
+          }
+
+          // Rechercher un challenge FIRST_PASSWORD_CHANGE actif
+          const activeChallenge = await tx.passwordResetChallenge.findFirst({
+            where: {
+              userId: user.id,
+              purpose: 'FIRST_PASSWORD_CHANGE',
+              usedAt: null,
+              resetTokenExpiresAt: { gt: new Date() }
+            }
+          });
+
+          if (activeChallenge) {
+             // Il en existe déjà un actif. On ne fait rien et on ne renvoie pas de nouveau token.
+             // On avertit le code appelant de NE PAS écraser le cookie existant.
+             return { success: true, requireFirstPasswordChange: true, challengeAlreadyActive: true, activeResetTokenHash: activeChallenge.resetTokenHash };
+          }
+
+          // Invalider les anciens challenges FIRST_PASSWORD_CHANGE expirés
+          await tx.passwordResetChallenge.updateMany({
+            where: { userId: user.id, purpose: 'FIRST_PASSWORD_CHANGE', usedAt: null },
+            data: { usedAt: new Date() }
+          });
+
+          const resetToken = crypto.randomBytes(32).toString('hex');
+          const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+          const dummyOtpHash = crypto.createHash('sha256').update(crypto.randomBytes(16)).digest('hex');
+
+          await tx.passwordResetChallenge.create({
+            data: {
+              userId: user.id,
+              purpose: 'FIRST_PASSWORD_CHANGE',
+              otpHash: dummyOtpHash,
+              resetTokenHash,
+              resetTokenExpiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 min
+              expiresAt: new Date(Date.now() + 15 * 60 * 1000), // otp expiry (unused here but required)
+              verifiedAt: new Date(), // Déjà vérifié car login réussi
+            }
+          });
+
+          return { success: true, requireFirstPasswordChange: true, resetToken };
+        }
+        return { success: true, requireFirstPasswordChange: false };
+      });
+
+      if (!authResult.success) {
+        return authResult;
+      }
+
+      if (authResult.requireFirstPasswordChange) {
+        if (authResult.challengeAlreadyActive) {
+          // Si le challenge est actif, vérifier que le navigateur a déjà un cookie correspondant
+          const cookieStore = await cookies();
+          const existingCookie = cookieStore.get('first_password_token')?.value;
+          if (!existingCookie) {
+            // Le challenge est en cours mais le navigateur n'a pas le cookie
+            return { success: false, firstPasswordChangeAlreadyInProgress: true };
+          }
+
+          // HASHER LE COOKIE ET COMPARER AVEC LE TOKEN ACTIF
+          const existingCookieHash = crypto.createHash('sha256').update(existingCookie).digest('hex');
+          if (existingCookieHash !== authResult.activeResetTokenHash) {
+            // Le cookie existe mais ne correspond pas (ex: ancien test / autre navigateur)
+            return { success: false, firstPasswordChangeAlreadyInProgress: true };
+          }
+          // Si le cookie est présent et valide, on laisse continuer
+        } else if (authResult.resetToken) {
+          // Nouveau challenge, on écrit le cookie
+          const cookieStore = await cookies();
+          cookieStore.set('first_password_token', authResult.resetToken as string, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 15 * 60, // 15 min
+          });
+        }
+        return { success: true, requireFirstPasswordChange: true };
+      }
     }
 
     await createClientSession(user.id);
