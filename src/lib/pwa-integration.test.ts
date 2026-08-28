@@ -13,6 +13,10 @@ const mockPrisma = {
   user: {
     findUnique: mock.fn(async () => null),
   },
+  user: {
+    findUnique: mock.fn(async () => null),
+    create: mock.fn(async (args) => ({ id: 'usr-new', ...args.data })),
+  },
   whatsAppConversation: {
     findUnique: mock.fn(async () => null),
     create: mock.fn(async () => ({ id: 'conv-123' })),

@@ -6,6 +6,7 @@ export type CustomerIntent =
   | 'FAQ_SERVICES'
   | 'REQUEST_STATUS'
   | 'HUMAN_SUPPORT'
+  | 'GREETING'
   | 'UNKNOWN';
 
 export function detectIntent(text: string): CustomerIntent {
@@ -18,7 +19,7 @@ export function detectIntent(text: string): CustomerIntent {
   const quoteKeywords = ['devis', 'quote', 'prix', 'price', 'combien', 'naata', 'cost', 'tarif', 'tarifs', 'commencer', 'start', 'tambali', 'much'];
 
   // Status request: statut, status, suivi, where, quand, etat, track
-  const statusKeywords = ['statut', 'status', 'statu', 'staus', 'suivi', 'suivre', 'where', 'quand', 'etat', 'track', 'requst'];
+  const statusKeywords = ['statut', 'status', 'statu', 'staus', 'suivi', 'suivre', 'where', 'quand', 'etat', 'track'];
 
   // Human support: humain, human, conseiller, agent, parler, help, aide, assist, assistance, personne, advisor
   const humanKeywords = ['humain', 'human', 'conseiller', 'agent', 'parler', 'help', 'aide', 'assist', 'assistance', 'personne', 'advisor'];
@@ -29,11 +30,22 @@ export function detectIntent(text: string): CustomerIntent {
   // Services: service, services, proposer, faites, vehicule, offer
   const serviceKeywords = ['service', 'services', 'proposer', 'proposez', 'faites', 'vehicule', 'offer', 'do', 'def', 'xetu', 'auto', 'camion', 'moto'];
 
+  // Greetings: match exact ou premier mot
+  const greetingKeywords = ['bonjour', 'bonsoir', 'salut', 'hello', 'hi', 'salam', 'salaam'];
+
   let quoteScore = 0;
   let statusScore = 0;
   let humanScore = 0;
   let questionScore = 0;
   let serviceScore = 0;
+  let greetingScore = 0;
+
+  // For very short phrases starting with a greeting, consider it a greeting attempt
+  if (words.length <= 3 && greetingKeywords.includes(words[0])) {
+    greetingScore++;
+  } else if (greetingKeywords.includes(normalizedText)) {
+    greetingScore++;
+  }
 
   for (const word of words) {
     if (matchAnyKeyword(word, quoteKeywords)) quoteScore++;
@@ -65,6 +77,9 @@ export function detectIntent(text: string): CustomerIntent {
   }
 
   if (serviceScore > 0) return 'FAQ_SERVICES';
+  if (questionScore > 0) return 'UNKNOWN'; // A general question without a specific domain
+  
+  if (greetingScore > 0) return 'GREETING';
 
   return 'UNKNOWN';
 }

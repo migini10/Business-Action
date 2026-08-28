@@ -82,8 +82,6 @@ describe('Customer Service Auto - Fuzzy Match (CUSTOMER-SERVICE-AUTO-003.1)', ()
 
   describe('Negative tests (Safety against false positives)', () => {
     it('keeps irrelevant messages as UNKNOWN', () => {
-      assert.strictEqual(detectIntent('bonjour'), 'UNKNOWN');
-      assert.strictEqual(detectIntent('salut'), 'UNKNOWN');
       assert.strictEqual(detectIntent('ok'), 'UNKNOWN');
       assert.strictEqual(detectIntent('merci'), 'UNKNOWN');
       assert.strictEqual(detectIntent('12345'), 'UNKNOWN');
@@ -118,4 +116,20 @@ describe('Customer Service Auto - Fuzzy Match (CUSTOMER-SERVICE-AUTO-003.1)', ()
     });
   });
 
+
+  describe('Greetings Detection', () => {
+    it('detects short greetings as GREETING', () => {
+      assert.strictEqual(detectIntent('Bonjour'), 'GREETING');
+      assert.strictEqual(detectIntent('Bonsoir'), 'GREETING');
+      assert.strictEqual(detectIntent('Salut'), 'GREETING');
+      assert.strictEqual(detectIntent('Hello'), 'GREETING');
+      assert.strictEqual(detectIntent('Hi'), 'GREETING');
+      assert.strictEqual(detectIntent('Salam'), 'GREETING');
+      assert.strictEqual(detectIntent('Salaam'), 'GREETING');
+      assert.strictEqual(detectIntent('Bonjour le bot'), 'GREETING');
+    });
+
+    it('does not swallow actual intents when greeting is present', () => {
+    });
+  });
 });

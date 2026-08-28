@@ -5,7 +5,13 @@ export const QUOTE_RESPONSES = {
     CONFIRM_PROMPT: (service: string) => `Votre demande concerne un véhicule ${service}.\n\nSouhaitez-vous envoyer cette demande ?\n1. Oui\n2. Modifier\n3. Annuler\n4. Parler à un conseiller`,
     CONFIRM_INVALID: "Veuillez répondre par 1, 2, 3 ou 4.",
     CANCELLED: "Votre demande de devis a été annulée. Vous pouvez recommencer à tout moment.",
-    SUCCESS: (ref: string) => `Votre demande de devis a bien été enregistrée sous la référence ${ref}. Notre équipe pourra maintenant la traiter.`,
+    SUCCESS: (ref: string, credentials?: { phone: string, plainPass: string }) => {
+      let base = `Votre demande de devis a bien été enregistrée sous la référence ${ref}. Notre équipe pourra maintenant la traiter.`;
+      if (credentials) {
+        base += `\n\n🎉 Votre espace client a été créé automatiquement !\nIdentifiant : ${credentials.phone}\nMot de passe provisoire : ${credentials.plainPass}\n(À modifier sous 24h via le site)`;
+      }
+      return base;
+    },
     HUMAN_TRANSFER: "Un conseiller va prendre le relais pour répondre à votre demande. Merci de patienter.",
     ERROR: "Une erreur est survenue lors de l'enregistrement de votre demande. Veuillez réessayer plus tard.",
     CONCURRENT_ERROR: "Votre demande est déjà en cours de traitement."
@@ -16,7 +22,13 @@ export const QUOTE_RESPONSES = {
     CONFIRM_PROMPT: (service: string) => `Your request is for a ${service} vehicle.\n\nWould you like to send this request?\n1. Yes\n2. Modify\n3. Cancel\n4. Talk to an advisor`,
     CONFIRM_INVALID: "Please reply with 1, 2, 3, or 4.",
     CANCELLED: "Your quote request has been cancelled. You can start over at any time.",
-    SUCCESS: (ref: string) => `Your quote request has been successfully recorded under the reference ${ref}. Our team will now process it.`,
+    SUCCESS: (ref: string, credentials?: { phone: string, plainPass: string }) => {
+      let base = `Your quote request has been successfully recorded under the reference ${ref}. Our team will now process it.`;
+      if (credentials) {
+        base += `\n\n🎉 Your client space has been created automatically!\nLogin: ${credentials.phone}\nTemporary password: ${credentials.plainPass}\n(Please change it within 24h on the website)`;
+      }
+      return base;
+    },
     HUMAN_TRANSFER: "An agent will take over to answer your request. Please wait.",
     ERROR: "An error occurred while saving your request. Please try again later.",
     CONCURRENT_ERROR: "Your request is already being processed."
@@ -27,7 +39,13 @@ export const QUOTE_RESPONSES = {
     CONFIRM_PROMPT: (service: string) => `Sa yitte dafa jëm ci auto ${service}.\n\nNdax bëgg nga yónnee mbir mi ?\n1. Waaw\n2. Sopite\n3. Bàyyi\n4. Wax ak nit`,
     CONFIRM_INVALID: "Tontul ak 1, 2, 3 mbaa 4.",
     CANCELLED: "Dañu dindi sa mbir mi. Mën nga ko tambalilwaat sa bu la neexee.",
-    SUCCESS: (ref: string) => `Sa mbir mi jàll na ak nimero bi ${ref}. Sunu équipe dina ci liggéey.`,
+    SUCCESS: (ref: string, credentials?: { phone: string, plainPass: string }) => {
+      let base = `Sa mbir mi jàll na ak nimero bi ${ref}. Sunu équipe dina ci liggéey.`;
+      if (credentials) {
+        base += `\n\n🎉 Ubbil nañu la sa compte !\nNimero: ${credentials.phone}\nBàt bi: ${credentials.plainPass}\n(Sopil ko ci site bi ci dirub 24h)`;
+      }
+      return base;
+    },
     HUMAN_TRANSFER: "Nit dina la jëlal sa mbir mi. Xaaral tuuti.",
     ERROR: "Amna lu doxul ci yónnee bi. Jémaatal bu yàggee.",
     CONCURRENT_ERROR: "Ñu ngi liggéey ci sa mbir mi."

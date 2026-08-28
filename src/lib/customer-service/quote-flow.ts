@@ -6,7 +6,8 @@ import { handleHumanHandoff } from './human-handoff';
 import { parseVehicleSelection, parseConfirmSelection } from './quote-state';
 
 import { normalizeWhatsAppIdentity } from './identity';
-
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 export async function handleQuoteFlow(
   conversation: WhatsAppConversation,
   text: string,
@@ -111,7 +112,7 @@ export async function handleQuoteFlow(
       }
 
       try {
-        const dossier = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
           // Atomic consumption of the state
           const updateResult = await tx.whatsAppConversation.updateMany({
             where: { id: conversation.id, botState: 'QUOTE_CONFIRM' },
@@ -126,16 +127,45 @@ export async function handleQuoteFlow(
           const phoneStr = normalizeWhatsAppIdentity(conversation.waId);
 
           // Find user to associate if exists
-          const user = await tx.user.findUnique({
+          let user = await tx.user.findUnique({
             where: { phone: phoneStr }
           });
+
+          let credentials = null;
+
+          if (!user) {
+            const plainPass = crypto.randomBytes(4).toString('hex');
+            const hashedPassword = await bcrypt.hash(plainPass, 10);
+            try {
+              user = await tx.user.create({
+                data: {
+                  phone: phoneStr,
+                  password: hashedPassword,
+                  role: 'CLIENT',
+                  mustChangePassword: true,
+                  temporaryPasswordExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+                }
+              });
+              credentials = { phone: phoneStr, plainPass };
+            } catch (err: any) {
+              if (err.code === 'P2002') {
+                // Créé concurremment par une autre session/processus
+                user = await tx.user.findUnique({
+                  where: { phone: phoneStr }
+                });
+                if (!user) throw err;
+              } else {
+                throw err;
+              }
+            }
+          }
 
           const createdDossier = await tx.dossier.create({
             data: {
               numeroDossier,
               phone: phoneStr,
               typeVehicule: draft.typeVehicule as TypeVehicule,
-              clientId: user ? user.id : null
+              clientId: user.id
             }
           });
 
@@ -146,10 +176,10 @@ export async function handleQuoteFlow(
             url: '/admin',
           });
 
-          return createdDossier;
+          return { dossier: createdDossier, credentials };
         });
 
-        return responses.SUCCESS(dossier.numeroDossier);
+        return responses.SUCCESS(result.dossier.numeroDossier, result.credentials || undefined);
       } catch (err: unknown) {
         if (err instanceof Error && err.message === 'CONCURRENT_UPDATE') {
           return responses.CONCURRENT_ERROR;

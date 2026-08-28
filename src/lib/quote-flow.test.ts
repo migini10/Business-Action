@@ -12,6 +12,8 @@ p.whatsAppConversation.update = mock.fn(async () => ({}));
 p.whatsAppConversation.updateMany = mock.fn(async () => ({ count: 1 }));
 p.dossier.create = mock.fn(async () => ({ numeroDossier: 'DOS-TEST-SN' }));
 p.user.findUnique = mock.fn(async () => null);
+p.user.create = mock.fn(async (args: any) => ({ id: 'usr-new-id', ...args.data }));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 p.$transaction = mock.fn(async (cb: any) => cb(prisma));
 
@@ -60,6 +62,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
   test('Confirm and create (QUOTE_CONFIRM -> IDLE)', async () => {
     p.whatsAppConversation.updateMany.mock.resetCalls();
     p.dossier.create.mock.resetCalls();
+    p.dossier.create.mock.resetCalls();
 
     const conv = {
       ...baseConv,
@@ -85,6 +88,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
 
   test('Idempotency / Concurrency on Confirm (Two simultaneous YES)', async () => {
     p.whatsAppConversation.updateMany.mock.resetCalls();
+    p.dossier.create.mock.resetCalls();
 
     let callCount = 0;
     p.whatsAppConversation.updateMany.mock.mockImplementation(async () => {
@@ -135,6 +139,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
 
   test('Human transfer command (text)', async () => {
     p.whatsAppConversation.updateMany.mock.resetCalls();
+    p.dossier.create.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'je veux parler à un humain', 'fr');
     assert.match(result as string, /Votre demande a été transmise à un conseiller/);
@@ -144,6 +149,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
 
   test('Select 5 in QUOTE_VEHICLE -> HUMAN_SUPPORT', async () => {
     p.whatsAppConversation.updateMany.mock.resetCalls();
+    p.dossier.create.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, '5', 'fr');
     assert.match(result as string, /Votre demande a été transmise à un conseiller/);
@@ -154,6 +160,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
 
   test('Select 4 in QUOTE_CONFIRM -> HUMAN_SUPPORT', async () => {
     p.whatsAppConversation.updateMany.mock.resetCalls();
+    p.dossier.create.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_CONFIRM', draftQuote: { typeVehicule: 'UTILITAIRE' } } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, '4', 'fr');
     assert.match(result as string, /Votre demande a été transmise à un conseiller/);
@@ -174,5 +181,55 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     const result = await handleQuoteFlow(conv, 'quote', 'en');
     assert.match(result as string, /What type of vehicle is your request about/);
     assert.match(result as string, /5\. Talk to an advisor/);
+  });
+
+  test('Concurrent User.create -> P2002: no crash, reuses existing User', async () => {
+    p.whatsAppConversation.updateMany.mock.resetCalls();
+    p.dossier.create.mock.resetCalls();
+    
+    // Simulate user initially not found
+    
+    let findUniqueCallCount = 0;
+    p.user.findUnique.mock.mockImplementation(async () => {
+      findUniqueCallCount++;
+      if (findUniqueCallCount === 1) return null; // First call: user not found
+      return { id: 'usr-existing-id' }; // Second call: user found on fallback
+    });
+
+    p.user.create.mock.mockImplementation(async () => {
+      const error = new Error('Unique constraint failed on the fields: (`phone`)');
+      (error as any).code = 'P2002';
+      throw error;
+    });
+
+    
+    // Simulate concurrent creation P2002 error
+    p.user.create.mock.mockImplementation(async () => {
+      const error = new Error('Unique constraint failed on the fields: (`phone`)');
+      (error as any).code = 'P2002';
+      throw error;
+    });
+
+    // The catch block will then retry findUnique, so we return the user the second time
+    /* replaced */
+
+    const conv = {
+      ...baseConv,
+      botState: 'QUOTE_CONFIRM',
+      draftQuote: { typeVehicule: 'PARTICULIER' }
+    } as unknown as WhatsAppConversation;
+
+    const result = await handleQuoteFlow(conv, 'oui', 'fr');
+    
+    assert.match(result as string, /DOS-TEST-SN/);
+    assert.doesNotMatch(result as string, /Votre espace client a été créé automatiquement/); // no credentials on fallback
+    
+    assert.strictEqual(p.dossier.create.mock.calls.length, 1);
+    const dossierCreateArgs = p.dossier.create.mock.calls[0].arguments[0];
+    assert.strictEqual(dossierCreateArgs.data.clientId, 'usr-existing-id');
+
+    // Restore mocks
+    p.user.findUnique.mock.mockImplementation(async () => null);
+    p.user.create.mock.mockImplementation(async (args: any) => ({ id: 'usr-new-id', ...args.data }));
   });
 });
