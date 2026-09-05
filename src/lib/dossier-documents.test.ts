@@ -11,7 +11,7 @@ if (typeof global.WebSocket === 'undefined') {
 }
 
 import { createDossier, CreateDossierResult } from '@/app/actions/dossier';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/test-prisma';
 import { checkMagicBytes } from '@/lib/magic-bytes';
 
 describe('Dossier Documents', () => {
@@ -21,6 +21,7 @@ describe('Dossier Documents', () => {
     process.env = { ...originalEnv };
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'dummy-key';
+    process.env.SUPABASE_STORAGE_BUCKET = 'dossier_documents_test';
   });
 
   const getErrorString = (res: CreateDossierResult) => {

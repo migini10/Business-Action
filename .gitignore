@@ -44,3 +44,4 @@ next-env.d.ts
 
 # Local Prisma database
 prisma/dev.db
+.agents/

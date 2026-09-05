@@ -3,6 +3,7 @@ import { getAdminSession } from '@/lib/admin-auth'
 import { getCurrentClient } from '@/lib/client-auth'
 import prisma from '@/lib/prisma'
 import { createClient } from '@supabase/supabase-js'
+import { getDossierDocumentsBucket } from '@/lib/supabase'
 import { cookies } from 'next/headers'
 import crypto from 'crypto'
 
@@ -13,6 +14,13 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   if (!supabase) return new NextResponse("Supabase config error", { status: 500 })
+
+  let bucket: string;
+  try {
+    bucket = getDossierDocumentsBucket();
+  } catch {
+    return new NextResponse("Storage bucket config error", { status: 500 })
+  }
 
   const doc = await prisma.dossierDocument.findUnique({
     where: { id },
@@ -58,7 +66,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   }
 
   const { data, error } = await supabase.storage
-    .from('dossier_documents')
+    .from(bucket)
     .createSignedUrl(targetPath, 5 * 60) // 5 minutes
 
   if (error || !data) return new NextResponse("Signed URL error", { status: 500 })

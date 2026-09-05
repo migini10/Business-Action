@@ -9,6 +9,7 @@ import { getClientDashboardData, respondToTransactionModification, updateClientP
 import { calculateClientBalance, getTransactionSign, calculateFinancialSummary } from '@/lib/finance';
 import { useToast } from '@/components/ui/ToastProvider';
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 
 function EspaceClientContent() {
   const searchParams = useSearchParams();
@@ -291,20 +292,11 @@ function EspaceClientContent() {
 
                 <div className="form-group">
                   <label htmlFor="phone" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--color-text-main)' }}>Numéro de téléphone *</label>
-                  <input
-                    type="tel"
-                    id="phone"
+                  <PhoneInput
                     name="phone"
                     defaultValue={clientData.phone || ''}
                     required
-                    style={{
-                      width: '100%',
-                      padding: '0.875rem',
-                      borderRadius: '0.75rem',
-                      border: `1px solid ${profileErrorField === 'phone' ? '#EF4444' : '#E2E8F0'}`,
-                      outline: 'none',
-                      transition: 'border-color 0.2s',
-                    }}
+                    onChange={() => { if (profileErrorField === 'phone') { setProfileErrorField(null); setProfileErrorMessage(''); } }}
                   />
                 </div>
 
@@ -738,13 +730,11 @@ function EspaceClientContent() {
 
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Numéro de Téléphone (WhatsApp)</label>
-            <input
-              type="tel"
+            <PhoneInput
               name="phone"
               required
               placeholder="Ex: +221 77 123 45 67"
               onChange={() => { if (errorField === 'phone') { setErrorField(null); setErrorMessage(''); } }}
-              style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', backgroundColor: 'var(--color-gray-light)', transition: 'border-color 0.2s' }}
             />
             {errorField === 'phone' && (
               <div style={{ color: '#DC2626', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>

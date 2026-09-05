@@ -95,10 +95,25 @@ export async function sendWhatsAppMessage(conversationId: string, text: string) 
 export async function resumeBot(conversationId: string) {
   await requireAdmin();
   try {
+    const conv = await prisma.whatsAppConversation.findUnique({
+      where: { id: conversationId }
+    });
+
+    if (!conv) {
+      return { success: false, error: 'Conversation introuvable.' };
+    }
+
+    const { recoverBotState } = require('@/lib/customer-service/state-recovery');
+    const recovered = await recoverBotState(conv);
+    
+    // Si la collecte est terminée, on libère le activeDossierId pour de bon
+    const activeDossierId = recovered.isComplete ? null : conv.activeDossierId;
+
     const result = await prisma.whatsAppConversation.update({
       where: { id: conversationId },
       data: {
-        botState: 'IDLE',
+        botState: recovered.botState,
+        activeDossierId,
         draftQuote: Prisma.DbNull,
         trackingContext: Prisma.DbNull
       }

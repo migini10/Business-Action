@@ -8,11 +8,18 @@ import { parseVehicleSelection, parseConfirmSelection } from './quote-state';
 import { normalizeWhatsAppIdentity } from './identity';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+
+export type FlowResponse = {
+  text: string;
+  nextBotState?: string;
+  clearDraft?: boolean;
+};
+
 export async function handleQuoteFlow(
   conversation: WhatsAppConversation,
   text: string,
   lang: 'fr' | 'en' | 'wo'
-): Promise<string | null> {
+): Promise<FlowResponse | string | null> {
   const normalizedText = text.toLowerCase().trim();
   const responses = QUOTE_RESPONSES[lang];
 
@@ -25,31 +32,20 @@ export async function handleQuoteFlow(
 
   const isCancel = ['annuler', 'cancel', 'bayyi', 'bàyyi'].includes(normalizedText);
   if (isCancel && conversation.botState !== 'IDLE') {
-    await prisma.whatsAppConversation.update({
-      where: { id: conversation.id },
-      data: { botState: 'IDLE', draftQuote: Prisma.DbNull }
-    });
-    return responses.CANCELLED;
+    return { text: responses.CANCELLED, nextBotState: 'IDLE', clearDraft: true };
   }
 
   const isRestart = ['recommencer', 'restart', 'tambaliwaat'].includes(normalizedText);
   if (isRestart) {
-    await prisma.whatsAppConversation.update({
-      where: { id: conversation.id },
-      data: { botState: 'QUOTE_VEHICLE', draftQuote: Prisma.DbNull }
-    });
-    return responses.SERVICE_PROMPT;
+    return { text: responses.SERVICE_PROMPT, nextBotState: 'QUOTE_VEHICLE', clearDraft: true };
   }
 
   // State Machine
   switch (conversation.botState) {
+    case 'MAIN_MENU':
     case 'IDLE':
       // This is triggered by auto-reply intent detection
-      await prisma.whatsAppConversation.update({
-        where: { id: conversation.id },
-        data: { botState: 'QUOTE_VEHICLE', draftQuote: Prisma.DbNull }
-      });
-      return responses.SERVICE_PROMPT;
+      return { text: responses.SERVICE_PROMPT, nextBotState: 'QUOTE_VEHICLE', clearDraft: true };
 
     case 'QUOTE_VEHICLE':
       const vehicleType = parseVehicleSelection(text);
@@ -80,19 +76,11 @@ export async function handleQuoteFlow(
       }
 
       if (confirmAction === 'CANCEL') {
-        await prisma.whatsAppConversation.update({
-          where: { id: conversation.id },
-          data: { botState: 'IDLE', draftQuote: Prisma.DbNull }
-        });
-        return responses.CANCELLED;
+        return { text: responses.CANCELLED, nextBotState: 'IDLE', clearDraft: true };
       }
 
       if (confirmAction === 'MODIFY') {
-        await prisma.whatsAppConversation.update({
-          where: { id: conversation.id },
-          data: { botState: 'QUOTE_VEHICLE', draftQuote: Prisma.DbNull }
-        });
-        return responses.SERVICE_PROMPT;
+        return { text: responses.SERVICE_PROMPT, nextBotState: 'QUOTE_VEHICLE', clearDraft: true };
       }
 
       if (confirmAction === 'HUMAN_SUPPORT') {
@@ -104,24 +92,13 @@ export async function handleQuoteFlow(
       const draft = conversation.draftQuote as { typeVehicule?: TypeVehicule } | null;
       if (!draft || !draft.typeVehicule) {
         // Fallback safety
-        await prisma.whatsAppConversation.update({
-          where: { id: conversation.id },
-          data: { botState: 'QUOTE_VEHICLE', draftQuote: Prisma.DbNull }
-        });
-        return responses.SERVICE_PROMPT;
+        return { text: responses.SERVICE_PROMPT, nextBotState: 'QUOTE_VEHICLE', clearDraft: true };
       }
 
       try {
         const result = await prisma.$transaction(async (tx) => {
           // Atomic consumption of the state
-          const updateResult = await tx.whatsAppConversation.updateMany({
-            where: { id: conversation.id, botState: 'QUOTE_CONFIRM' },
-            data: { botState: 'IDLE', draftQuote: Prisma.DbNull }
-          });
-
-          if (updateResult.count === 0) {
-            throw new Error('CONCURRENT_UPDATE');
-          }
+          // updateResult moved below
 
           const numeroDossier = 'DOS-' + Math.floor(1000 + Math.random() * 9000) + '-SN';
           const phoneStr = normalizeWhatsAppIdentity(conversation.waId);
@@ -169,6 +146,14 @@ export async function handleQuoteFlow(
             }
           });
 
+          const updateResult = await tx.whatsAppConversation.updateMany({
+            where: { id: conversation.id, activeDossierId: null, botState: 'QUOTE_CONFIRM' },
+            data: { activeDossierId: createdDossier.id }
+          });
+          if (updateResult.count === 0) throw new Error('CONCURRENT_UPDATE');
+
+          // removed to combine with updateMany
+
           // Notification push non bloquante
           await sendPushNotificationSafe({
             title: 'Nouvelle demande de devis',
@@ -179,13 +164,39 @@ export async function handleQuoteFlow(
           return { dossier: createdDossier, credentials };
         });
 
-        return responses.SUCCESS(result.dossier.numeroDossier, result.credentials || undefined);
+        const successMsg = responses.SUCCESS(result.dossier.numeroDossier, result.credentials || undefined);
+        return { 
+          text: `${successMsg}\n\n${responses.DOCUMENT_CHOICE_PROMPT}`, 
+          nextBotState: 'DOCUMENT_CHOICE', 
+          clearDraft: true 
+        };
       } catch (err: unknown) {
         if (err instanceof Error && err.message === 'CONCURRENT_UPDATE') {
           return responses.CONCURRENT_ERROR;
         }
         console.error("Quote creation error:", err);
         return responses.ERROR;
+      }
+
+    case 'DOCUMENT_CHOICE':
+      if (text === '1') {
+        if (conversation.activeDossierId) {
+          await prisma.dossier.update({
+            where: { id: conversation.activeDossierId },
+            data: { documentFlow: 'CARTE_GRISE' }
+          });
+        }
+        return { text: responses.WAITING_RECTO_PROMPT, nextBotState: 'WAITING_FOR_RECTO' };
+      } else if (text === '2') {
+        if (conversation.activeDossierId) {
+          await prisma.dossier.update({
+            where: { id: conversation.activeDossierId },
+            data: { documentFlow: 'CMC' }
+          });
+        }
+        return { text: responses.WAITING_CMC_PROMPT, nextBotState: 'WAITING_FOR_CMC' };
+      } else {
+        return responses.DOCUMENT_CHOICE_INVALID;
       }
 
     default:

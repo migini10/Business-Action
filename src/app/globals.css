@@ -323,6 +323,19 @@ a {
   }
 }
 
+/* Form field row (ex: /demande-devis Numéro WhatsApp + Email): stay single-column
+   until there's comfortably enough room for two 250px columns, instead of the
+   auto-fit/minmax default which keeps two cramped columns in the intermediate range. */
+.form-row-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 751px) {
+  .form-row-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+}
+
 /* Admin Dashboard Layout & Responsive */
 .desktop-only {
   display: flex;

@@ -9,18 +9,21 @@ function getRequestIp(hdrs: Headers): string | null {
   return internalIp ? internalIp.trim() : null;
 }
 
+import { normalizePhoneCanonical } from '@/lib/phone'
+
 function normalizeSenegalPhone(value: string): string | null {
-  const digits = value.replace(/\D/g, '');
-  if (digits.startsWith('00221')) {
-    return digits.slice(5).length === 9 ? digits.slice(5) : null;
+  const canonical = normalizePhoneCanonical(value);
+  if (!canonical) return null;
+  // Le suivi s'attend historiquement à 9 chiffres pour le Sénégal
+  if (canonical.startsWith('+221') && canonical.length === 13) {
+    return canonical.substring(4);
   }
-  if (digits.startsWith('221')) {
-    return digits.slice(3).length === 9 ? digits.slice(3) : null;
-  }
-  return digits.length === 9 ? digits : null;
+  // Pour les autres formats, on retourne tel quel (sans le + si c'est international ?)
+  // La logique précédente retournait toujours 9 chiffres.
+  return canonical.replace('+', '');
 }
 
-export async function checkRateLimit(ip: string | null, now: Date = new Date()): Promise<boolean> {
+export async function checkRateLimit(ip: string | null, now: Date = new Date(), deps = { db: prisma as any }): Promise<boolean> {
   if (!ip) {
     return false; // fail closed if IP is missing
   }
@@ -37,7 +40,7 @@ export async function checkRateLimit(ip: string | null, now: Date = new Date()):
   const expiresAt = new Date(windowStart.getTime() + 60 * 1000);
 
   try {
-    const result = await prisma.$queryRaw<{count: number}[]>`
+    const result = await deps.db.$queryRaw<{count: number}[]>`
       INSERT INTO "RateLimitWindow" ("ipHash", "windowStart", "count", "expiresAt")
       VALUES (${ipHash}, ${windowStart}, 1, ${expiresAt})
       ON CONFLICT ("ipHash", "windowStart")
@@ -55,13 +58,13 @@ export async function checkRateLimit(ip: string | null, now: Date = new Date()):
   }
 }
 
-export async function searchDossiers(query: { numeroDossier?: string; phone?: string }) {
+export async function searchDossiers(query: { numeroDossier?: string; phone?: string }, deps = { db: prisma as any }) {
   const now = new Date();
   try {
     const hdrs = await headers();
     const ip = getRequestIp(hdrs);
 
-    const allowed = await checkRateLimit(ip);
+    const allowed = await checkRateLimit(ip, new Date(), deps);
     if (!allowed) {
       return { success: false, error: "Trop de tentatives. Veuillez réessayer plus tard." };
     }
@@ -72,7 +75,7 @@ export async function searchDossiers(query: { numeroDossier?: string; phone?: st
 
     if (query.numeroDossier) {
       const normalizedDossier = query.numeroDossier.trim().toUpperCase();
-      const dossier = await prisma.dossier.findUnique({
+      const dossier = await deps.db.dossier.findUnique({
         where: { numeroDossier: normalizedDossier },
         select: {
           numeroDossier: true,
@@ -107,7 +110,7 @@ export async function searchDossiers(query: { numeroDossier?: string; phone?: st
 
     if (query.phone) {
       const normalizedPhone = query.phone.trim();
-      const dossiers = await prisma.dossier.findMany({
+      const dossiers = await deps.db.dossier.findMany({
         where: { phone: normalizedPhone },
         select: {
           numeroDossier: true,
@@ -130,7 +133,7 @@ export async function searchDossiers(query: { numeroDossier?: string; phone?: st
         return { success: false, error: "Informations de suivi incorrectes." };
       }
 
-      const maskedDossiers = dossiers.map(d => {
+      const maskedDossiers = dossiers.map((d: any) => {
         const parts = d.numeroDossier.split('-');
         let masked = d.numeroDossier;
         if (parts.length >= 3) {
@@ -157,12 +160,12 @@ export async function searchDossiers(query: { numeroDossier?: string; phone?: st
   }
 }
 
-export async function unlockDossierDocuments(numeroDossier: string, phone: string) {
+export async function unlockDossierDocuments(numeroDossier: string, phone: string, deps = { db: prisma as any }) {
   try {
     const hdrs = await headers();
     const ip = getRequestIp(hdrs);
 
-    const allowed = await checkRateLimit(ip);
+    const allowed = await checkRateLimit(ip, new Date(), deps);
     if (!allowed) {
       return { success: false, error: "Trop de tentatives. Veuillez réessayer plus tard." };
     }
@@ -173,7 +176,7 @@ export async function unlockDossierDocuments(numeroDossier: string, phone: strin
       return { success: false, error: "Informations de vérification incorrectes." };
     }
 
-    const dossier = await prisma.dossier.findFirst({
+    const dossier = await deps.db.dossier.findFirst({
       where: {
         numeroDossier: normalizedDossier
       },
@@ -198,7 +201,7 @@ export async function unlockDossierDocuments(numeroDossier: string, phone: strin
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    await prisma.trackingSession.create({
+    await deps.db.trackingSession.create({
       data: {
         tokenHash,
         dossierId: dossier.id,
@@ -216,7 +219,7 @@ export async function unlockDossierDocuments(numeroDossier: string, phone: strin
     });
 
     const now = new Date();
-    const documents = await prisma.dossierDocument.findMany({
+    const documents = await deps.db.dossierDocument.findMany({
       where: {
         dossierId: dossier.id,
         deletedAt: null,
@@ -233,7 +236,7 @@ export async function unlockDossierDocuments(numeroDossier: string, phone: strin
 
     return {
       success: true,
-      documents: documents.map(doc => ({
+      documents: documents.map((doc: any) => ({
         id: doc.id,
         type: doc.type,
         side: doc.side,

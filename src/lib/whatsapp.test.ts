@@ -18,11 +18,15 @@ const mockPrisma = {
   },
   whatsAppMessage: {
     create: mock.fn(async () => ({ id: 'msg_1' })),
+    upsert: mock.fn(async () => ({})),
     findUnique: mock.fn(async () => null),
     findFirst: mock.fn(async () => null),
     findMany: mock.fn(async () => []),
     update: mock.fn(async () => ({})),
     updateMany: mock.fn(async () => ({ count: 1 })),
+  },
+  mediaStaging: {
+    upsert: mock.fn(async () => ({})),
   },
   $transaction: mock.fn(async (cb: any) => {
     return cb(mockPrisma);
@@ -89,6 +93,7 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     mockPrisma.whatsAppMessage.update.mock.resetCalls();
     mockPrisma.whatsAppMessage.updateMany?.mock?.resetCalls?.();
     mockPrisma.$transaction.mock.resetCalls();
+    mockPrisma.mediaStaging?.upsert?.mock?.resetCalls?.();
     mockPrisma.adminSession.findUnique.mock.resetCalls();
     mockCookieStore.get.mock.resetCalls();
     mockAuth.requireAdmin.mock.resetCalls();
@@ -292,6 +297,9 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
 
   test('AUTO-005: resumeBot avec admin => HUMAN_SUPPORT -> IDLE', async () => {
     mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+    mockPrisma.whatsAppConversation.findUnique.mock.mockImplementation(async (args: any) => ({ id: args.where.id, activeDossierId: null, botState: 'HUMAN_SUPPORT' }));
+    if (!mockPrisma.dossier) mockPrisma.dossier = { findUnique: mock.fn() };
+    mockPrisma.dossier.findUnique.mock.mockImplementation(async () => null);
     mockPrisma.whatsAppConversation.update.mock.mockImplementation(async (args: any) => {
       return { id: args.where.id, botState: args.data.botState };
     });
@@ -339,7 +347,7 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
 
     // Check reservation was made and then updated to FAILED
     assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls.length, 1);
-    assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls[0].arguments[0].data.status, 'SENT');
+    assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls[0].arguments[0].data.status, 'PENDING');
     assert.strictEqual(mockPrisma.whatsAppMessage.update.mock.calls.length, 1);
     assert.strictEqual(mockPrisma.whatsAppMessage.update.mock.calls[0].arguments[0].data.status, 'FAILED');
 
@@ -362,7 +370,7 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
 
     // Check reservation was made and then updated with waMessageId
     assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls.length, 1);
-    assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls[0].arguments[0].data.status, 'SENT');
+    assert.strictEqual(mockPrisma.whatsAppMessage.create.mock.calls[0].arguments[0].data.status, 'PENDING');
     assert.strictEqual(mockPrisma.whatsAppMessage.update.mock.calls.length, 1);
     assert.strictEqual(mockPrisma.whatsAppMessage.update.mock.calls[0].arguments[0].data.waMessageId, 'wamid.outbound.1');
 
@@ -543,6 +551,12 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
 
   test('12. Admin Action: resumeBot ne change pas supportStatus', async () => {
     mockAuth.requireAdmin.mock.mockImplementation(async () => {});
+    mockPrisma.whatsAppConversation.findUnique.mock.mockImplementation(async (args: any) => ({ id: args.where.id, activeDossierId: null, botState: 'HUMAN_SUPPORT' }));
+    if (!mockPrisma.dossier) mockPrisma.dossier = { findUnique: mock.fn() };
+    mockPrisma.dossier.findUnique.mock.mockImplementation(async () => null);
+    mockPrisma.whatsAppConversation.update.mock.mockImplementation(async (args: any) => {
+      return { id: args.where.id, botState: args.data.botState, supportStatus: args.data.supportStatus };
+    });
     const { resumeBot } = require('../app/actions/whatsapp');
     const res = await resumeBot('conv_resume');
 
@@ -560,5 +574,102 @@ describe('WhatsApp Webhook & Admin Actions Tests', () => {
     try { await claimConversation('conv_1'); assert.fail('Should throw'); } catch(e: any) { assert.strictEqual(e.message, 'Unauthorized'); }
     try { await resolveConversation('conv_1'); assert.fail('Should throw'); } catch(e: any) { assert.strictEqual(e.message, 'Unauthorized'); }
     try { await reopenConversation('conv_1'); assert.fail('Should throw'); } catch(e: any) { assert.strictEqual(e.message, 'Unauthorized'); }
+  });
+
+  test('Webhook Media: IDLE + legacy ambigu -> DOCUMENT_CHOICE', async () => {
+    mockPrisma.mediaStaging.upsert.mock.resetCalls();
+    mockPrisma.whatsAppMessage.create.mock.resetCalls();
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{ changes: [{ value: { messages: [{ from: '123', id: 'wamid.media1', timestamp: '1690000000', type: 'image', image: { id: 'img_1', mime_type: 'image/jpeg' } }] } }] }]
+    });
+    const req = new NextRequest('http://localhost/api', { method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) } });
+    
+    mockPrisma.whatsAppConversation.findUnique.mock.mockImplementation(async () => ({
+      id: 'conv_1', waId: '123', botState: 'IDLE', activeDossierId: 'dos_1', lastInboundAt: new Date()
+    }));
+    if (!mockPrisma.dossier) mockPrisma.dossier = { findUnique: mock.fn() };
+    mockPrisma.dossier.findUnique.mock.mockImplementation(async () => ({ id: 'dos_1', documentFlow: 'NONE' }));
+
+    const originalFetch = global.fetch;
+    global.fetch = mock.fn(async () => ({ ok: true, json: async () => ({ messages: [{ id: 'meta_wamid' }] }) })) as any;
+
+    const res = await POST(req);
+    assert.strictEqual(res.status, 200);
+
+    assert.strictEqual(mockPrisma.mediaStaging.upsert.mock.calls.length, 0);
+
+    const outboundCalls = mockPrisma.whatsAppMessage.create.mock.calls.filter((c: any) => c.arguments[0].data.direction === 'OUTBOUND');
+    assert.strictEqual(outboundCalls.length, 1);
+    assert.match(outboundCalls[0].arguments[0].data.content, /Veuillez d'abord choisir/);
+
+    global.fetch = originalFetch;
+  });
+
+  test('Webhook Media: WAITING_FOR_RECTO -> RECTO', async () => {
+    mockPrisma.mediaStaging.upsert.mock.resetCalls();
+    mockPrisma.whatsAppMessage.create.mock.resetCalls();
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{ changes: [{ value: { messages: [{ from: '123', id: 'wamid.media2', timestamp: '1690000000', type: 'image', image: { id: 'img_1', mime_type: 'image/jpeg' } }] } }] }]
+    });
+    const req = new NextRequest('http://localhost/api', { method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) } });
+    
+    mockPrisma.whatsAppConversation.findUnique.mock.mockImplementation(async () => ({
+      id: 'conv_1', waId: '123', botState: 'WAITING_FOR_RECTO', activeDossierId: 'dos_1', lastInboundAt: new Date()
+    }));
+
+    const res = await POST(req);
+    assert.strictEqual(res.status, 200);
+
+    assert.strictEqual(mockPrisma.mediaStaging.upsert.mock.calls.length, 1);
+    assert.strictEqual(mockPrisma.mediaStaging.upsert.mock.calls[0].arguments[0].create.expectedSlot, 'CARTE_GRISE_RECTO');
+  });
+
+  test('Webhook Media: WAITING_FOR_CMC -> CMC', async () => {
+    mockPrisma.mediaStaging.upsert.mock.resetCalls();
+    mockPrisma.whatsAppMessage.create.mock.resetCalls();
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{ changes: [{ value: { messages: [{ from: '123', id: 'wamid.media3', timestamp: '1690000000', type: 'image', image: { id: 'img_1', mime_type: 'image/jpeg' } }] } }] }]
+    });
+    const req = new NextRequest('http://localhost/api', { method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) } });
+    
+    mockPrisma.whatsAppConversation.findUnique.mock.mockImplementation(async () => ({
+      id: 'conv_1', waId: '123', botState: 'WAITING_FOR_CMC', activeDossierId: 'dos_1', lastInboundAt: new Date()
+    }));
+
+    const res = await POST(req);
+    assert.strictEqual(res.status, 200);
+
+    assert.strictEqual(mockPrisma.mediaStaging.upsert.mock.calls.length, 1);
+    assert.strictEqual(mockPrisma.mediaStaging.upsert.mock.calls[0].arguments[0].create.expectedSlot, 'CMC');
+  });
+
+  test('Webhook Media: Invalid media state -> No TypeError, fallback error', async () => {
+    mockPrisma.mediaStaging.upsert.mock.resetCalls();
+    mockPrisma.whatsAppMessage.create.mock.resetCalls();
+    const body = JSON.stringify({
+      object: 'whatsapp_business_account',
+      entry: [{ changes: [{ value: { messages: [{ from: '123', id: 'wamid.media4', timestamp: '1690000000', type: 'image', image: { id: 'img_1', mime_type: 'image/jpeg' } }] } }] }]
+    });
+    const req = new NextRequest('http://localhost/api', { method: 'POST', body, headers: { 'x-hub-signature-256': generateSignature(body) } });
+    
+    mockPrisma.whatsAppConversation.findUnique.mock.mockImplementation(async () => ({
+      id: 'conv_1', waId: '123', botState: 'MAIN_MENU', activeDossierId: 'dos_1', lastInboundAt: new Date()
+    }));
+
+    const originalFetch = global.fetch;
+    global.fetch = mock.fn(async () => ({ ok: true, json: async () => ({ messages: [{ id: 'meta_wamid' }] }) })) as any;
+
+    const res = await POST(req);
+    assert.strictEqual(res.status, 200);
+
+    assert.strictEqual(mockPrisma.mediaStaging.upsert.mock.calls.length, 0);
+    const outboundCalls = mockPrisma.whatsAppMessage.create.mock.calls.filter((c: any) => c.arguments[0].data.direction === 'OUTBOUND');
+    assert.strictEqual(outboundCalls.length, 1);
+    assert.match(outboundCalls[0].arguments[0].data.content, /je n'attends pas de document/);
+
+    global.fetch = originalFetch;
   });
 });

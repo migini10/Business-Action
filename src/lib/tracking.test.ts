@@ -2,15 +2,17 @@
 import { describe, it, before, beforeEach, after, mock } from 'node:test';
 import assert from 'node:assert';
 import prisma from '@/lib/prisma';
-import { handleTrackingStart, handleTrackingSelect } from './customer-service/tracking-flow';
 import { TRACKING_RESPONSES } from './customer-service/tracking-responses';
 import { Prisma } from '@prisma/client';
+
+let handleTrackingStart: any;
+let handleTrackingSelect: any;
 
 describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
   let mockDossiers: any[] = [];
   let mockConversations: any = {};
 
-  before(() => {
+  before(async () => {
     const p = prisma as any;
 
     p.whatsAppConversation = {
@@ -55,6 +57,10 @@ describe('Customer Service Auto - TRACKING (CUSTOMER-SERVICE-AUTO-004)', () => {
     };
 
     p.$transaction = mock.fn(async (cb: any) => cb(prisma));
+
+    const mod = await import('./customer-service/tracking-flow');
+    handleTrackingStart = mod.handleTrackingStart;
+    handleTrackingSelect = mod.handleTrackingSelect;
   });
 
   beforeEach(() => {

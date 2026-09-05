@@ -1,23 +1,31 @@
-import { test, describe, mock } from 'node:test';
+import { test, describe, mock, before } from 'node:test';
 import assert from 'node:assert';
-import { handleQuoteFlow } from './customer-service/quote-flow';
 import { WhatsAppConversation, Prisma } from '@prisma/client';
 
-import prisma from '@/lib/prisma';
+import realPrisma from '@/lib/prisma';
+
+let handleQuoteFlow: any;
 
 // Setup mock methods on the singleton
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const p = prisma as any;
+const p = realPrisma as any;
+p.whatsAppConversation = p.whatsAppConversation || {};
 p.whatsAppConversation.update = mock.fn(async () => ({}));
 p.whatsAppConversation.updateMany = mock.fn(async () => ({ count: 1 }));
+p.dossier = p.dossier || {};
 p.dossier.create = mock.fn(async () => ({ numeroDossier: 'DOS-TEST-SN' }));
+p.user = p.user || {};
 p.user.findUnique = mock.fn(async () => null);
 p.user.create = mock.fn(async (args: any) => ({ id: 'usr-new-id', ...args.data }));
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-p.$transaction = mock.fn(async (cb: any) => cb(prisma));
+p.$transaction = mock.fn(async (cb: any) => cb(p));
 
 describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () => {
+
+  before(async () => {
+    // mock.module crashes with Invalid URL in tsx for local files, so we mutate the singleton directly.
+    const mod = await import('./customer-service/quote-flow');
+    handleQuoteFlow = mod.handleQuoteFlow;
+  });
 
   const baseConv: WhatsAppConversation = {
     id: 'conv-123',
@@ -35,19 +43,20 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
   test('Start quote flow (IDLE -> QUOTE_VEHICLE)', async () => {
     p.whatsAppConversation.update.mock.resetCalls();
     const result = await handleQuoteFlow(baseConv, 'devis', 'fr');
-    assert.match(result as string, /Quel type de véhicule/);
-    assert.strictEqual(p.whatsAppConversation.update.mock.calls.length, 1);
-    const updateArgs = p.whatsAppConversation.update.mock.calls[0].arguments[0];
-    assert.strictEqual(updateArgs.data.botState, 'QUOTE_VEHICLE');
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /Quel type de véhicule/);
+    
+    
+    assert.strictEqual((result as any).nextBotState, 'QUOTE_VEHICLE');
   });
 
   test('Select vehicle (QUOTE_VEHICLE -> QUOTE_CONFIRM) - FR', async () => {
     p.whatsAppConversation.update.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, '2', 'fr');
-    assert.match(result as string, /véhicule utilitaire/);
-    assert.match(result as string, /Souhaitez-vous envoyer/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /véhicule utilitaire/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /Souhaitez-vous envoyer/);
 
+    
     const updateArgs = p.whatsAppConversation.update.mock.calls[0].arguments[0];
     assert.strictEqual(updateArgs.data.botState, 'QUOTE_CONFIRM');
     assert.strictEqual(updateArgs.data.draftQuote.typeVehicule, 'UTILITAIRE');
@@ -56,10 +65,10 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
   test('Select vehicle - invalid input', async () => {
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'bonjour', 'fr');
-    assert.match(result as string, /Veuillez répondre par 1, 2, 3, 4 ou 5/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /Veuillez répondre par 1, 2, 3, 4 ou 5/);
   });
 
-  test('Confirm and create (QUOTE_CONFIRM -> IDLE)', async () => {
+  test('Confirm and create (QUOTE_CONFIRM -> DOCUMENT_CHOICE)', async () => {
     p.whatsAppConversation.updateMany.mock.resetCalls();
     p.dossier.create.mock.resetCalls();
     p.dossier.create.mock.resetCalls();
@@ -71,13 +80,13 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     } as unknown as WhatsAppConversation;
 
     const result = await handleQuoteFlow(conv, 'oui', 'fr');
-    assert.match(result as string, /DOS-TEST-SN/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /DOS-TEST-SN/);
 
     // Check updateMany was called (atomic lock)
     assert.strictEqual(p.whatsAppConversation.updateMany.mock.calls.length, 1);
     const updateManyArgs = p.whatsAppConversation.updateMany.mock.calls[0].arguments[0];
     assert.strictEqual(updateManyArgs.where.botState, 'QUOTE_CONFIRM');
-    assert.strictEqual(updateManyArgs.data.botState, 'IDLE');
+    assert.strictEqual((result as any).nextBotState, 'DOCUMENT_CHOICE');
 
     // Check dossier creation
     assert.strictEqual(p.dossier.create.mock.calls.length, 1);
@@ -109,8 +118,8 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     ]);
 
     // One succeeds, one says already processed
-    const successResult = [res1, res2].find(r => r?.includes('DOS-TEST-SN'));
-    const concurrentResult = [res1, res2].find(r => r?.includes('déjà en cours'));
+    const successResult = [res1, res2].find(r => (typeof r === 'string' ? r : r?.text)?.includes('DOS-TEST-SN'));
+    const concurrentResult = [res1, res2].find(r => (typeof r === 'string' ? r : r?.text)?.includes('déjà en cours'));
 
     assert.ok(successResult);
     assert.ok(concurrentResult);
@@ -123,18 +132,18 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     p.whatsAppConversation.update.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'annuler', 'fr');
-    assert.match(result as string, /annulée/);
-    const updateArgs = p.whatsAppConversation.update.mock.calls[0].arguments[0];
-    assert.strictEqual(updateArgs.data.botState, 'IDLE');
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /annulée/);
+    
+    assert.strictEqual((result as any).nextBotState, 'IDLE');
   });
 
   test('Restart command', async () => {
     p.whatsAppConversation.update.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_CONFIRM' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'recommencer', 'fr');
-    assert.match(result as string, /Quel type de véhicule/);
-    const updateArgs = p.whatsAppConversation.update.mock.calls[0].arguments[0];
-    assert.strictEqual(updateArgs.data.botState, 'QUOTE_VEHICLE');
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /Quel type de véhicule/);
+    
+    assert.strictEqual((result as any).nextBotState, 'QUOTE_VEHICLE');
   });
 
   test('Human transfer command (text)', async () => {
@@ -142,7 +151,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     p.dossier.create.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'je veux parler à un humain', 'fr');
-    assert.match(result as string, /Votre demande a été transmise à un conseiller/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /Votre demande a été transmise à un conseiller/);
     const updateArgs = p.whatsAppConversation.updateMany.mock.calls[0].arguments[0];
     assert.strictEqual(updateArgs.data.botState, 'HUMAN_SUPPORT');
   });
@@ -152,7 +161,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     p.dossier.create.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_VEHICLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, '5', 'fr');
-    assert.match(result as string, /Votre demande a été transmise à un conseiller/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /Votre demande a été transmise à un conseiller/);
     const updateArgs = p.whatsAppConversation.updateMany.mock.calls[0].arguments[0];
     assert.strictEqual(updateArgs.data.botState, 'HUMAN_SUPPORT');
     assert.strictEqual(updateArgs.data.draftQuote, Prisma.DbNull);
@@ -163,7 +172,7 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
     p.dossier.create.mock.resetCalls();
     const conv = { ...baseConv, botState: 'QUOTE_CONFIRM', draftQuote: { typeVehicule: 'UTILITAIRE' } } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, '4', 'fr');
-    assert.match(result as string, /Votre demande a été transmise à un conseiller/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /Votre demande a été transmise à un conseiller/);
     const updateArgs = p.whatsAppConversation.updateMany.mock.calls[0].arguments[0];
     assert.strictEqual(updateArgs.data.botState, 'HUMAN_SUPPORT');
     assert.strictEqual(updateArgs.data.draftQuote, Prisma.DbNull);
@@ -172,15 +181,15 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
   test('Language WO', async () => {
     const conv = { ...baseConv, botState: 'IDLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'devis', 'wo');
-    assert.match(result as string, /Ban xetu auto nga am/);
-    assert.match(result as string, /5\. Wax ak nit/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /Ban xetu auto nga am/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /5\. Wax ak nit/);
   });
 
   test('Language EN', async () => {
     const conv = { ...baseConv, botState: 'IDLE' } as unknown as WhatsAppConversation;
     const result = await handleQuoteFlow(conv, 'quote', 'en');
-    assert.match(result as string, /What type of vehicle is your request about/);
-    assert.match(result as string, /5\. Talk to an advisor/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /What type of vehicle is your request about/);
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /5\. Talk to an advisor/);
   });
 
   test('Concurrent User.create -> P2002: no crash, reuses existing User', async () => {
@@ -221,8 +230,8 @@ describe('Customer Service Auto - QUOTE FLOW (CUSTOMER-SERVICE-AUTO-002)', () =>
 
     const result = await handleQuoteFlow(conv, 'oui', 'fr');
     
-    assert.match(result as string, /DOS-TEST-SN/);
-    assert.doesNotMatch(result as string, /Votre espace client a été créé automatiquement/); // no credentials on fallback
+    assert.match((typeof result === "string" ? result : (result as any)?.text || ""), /DOS-TEST-SN/);
+    assert.doesNotMatch((typeof result === "string" ? result : (result as any)?.text || ""), /Votre espace client a été créé automatiquement/); // no credentials on fallback
     
     assert.strictEqual(p.dossier.create.mock.calls.length, 1);
     const dossierCreateArgs = p.dossier.create.mock.calls[0].arguments[0];

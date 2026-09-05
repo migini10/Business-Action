@@ -45,6 +45,7 @@ function createMockDeps(overrides = {}) {
     getCookie: async (name: string) => cookies[name]?.value,
     deleteCookie: async (name: string) => { delete cookies[name]; },
     cookies, // For test inspection
+    sendWhatsApp: async () => ({ success: true }),
     ...overrides
   };
 }
@@ -54,19 +55,20 @@ test('Business Logic: requestPasswordReset', async (t) => {
     const deps = createMockDeps();
     deps.db.user.findUnique = async () => null; // Numéro n'existe pas
 
-    const res = await _requestPasswordReset('221770000000', deps);
+    const res = await _requestPasswordReset('221770000000', 'EMAIL', deps);
     assert.strictEqual(res.success, true);
     assert.match((res as any).message as string, /Si un compte correspondant existe/);
   });
 
   await t.test('Numéro existant => réponse neutre', async () => {
     const deps = createMockDeps();
-    deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
+    deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000', email: 'test@example.com' });
+    deps.resendConfigured = true;
 
     let createdChallenge = false;
     deps.db.passwordResetChallenge.create = async () => { createdChallenge = true; };
 
-    const res = await _requestPasswordReset('221770000000', deps);
+    const res = await _requestPasswordReset('221770000000', 'EMAIL', deps);
     assert.strictEqual(res.success, true);
     assert.match((res as any).message as string, /Si un compte correspondant existe/);
     assert.ok(createdChallenge, "Le challenge a dû être créé en base");
@@ -78,14 +80,15 @@ test('Business Logic: requestPasswordReset', async (t) => {
     // Simulate an existing recent challenge
     deps.db.passwordResetChallenge.findFirst = async () => ({ id: 'chal1' });
 
-    const res = await _requestPasswordReset('221770000000', deps);
+    const res = await _requestPasswordReset('221770000000', 'EMAIL', deps);
     assert.strictEqual(res.success, false);
     assert.match((res as any).error as string, /patienter 3 minutes/);
   });
 
   await t.test('requestPasswordReset utilise purpose: PASSWORD_RESET', async () => {
     const deps = createMockDeps();
-    deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
+    deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000', email: 'test@example.com' });
+    deps.resendConfigured = true;
 
     let findFirstQuery: any = null;
     deps.db.passwordResetChallenge.findFirst = async (q: any) => { findFirstQuery = q; return null; };
@@ -93,9 +96,36 @@ test('Business Logic: requestPasswordReset', async (t) => {
     let createQuery: any = null;
     deps.db.passwordResetChallenge.create = async (q: any) => { createQuery = q; return {}; };
 
-    await _requestPasswordReset('221770000000', deps);
+    await _requestPasswordReset('221770000000', 'EMAIL', deps);
     assert.strictEqual(findFirstQuery.where.purpose, 'PASSWORD_RESET');
     assert.strictEqual(createQuery.data.purpose, 'PASSWORD_RESET');
+  });
+
+  await t.test('WHATSAPP method: failure to send does not create challenge', async () => {
+    const deps = createMockDeps();
+    deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
+    deps.sendWhatsApp = async () => ({ success: false, error: 'Not approved' });
+    
+    let createdChallenge = false;
+    deps.db.passwordResetChallenge.create = async () => { createdChallenge = true; };
+
+    const res = await _requestPasswordReset('221770000000', 'WHATSAPP', deps);
+    assert.strictEqual(res.success, false);
+    assert.strictEqual((res as any).error, 'Not approved');
+    assert.ok(!createdChallenge, "Ne doit pas créer de challenge si l'envoi échoue");
+  });
+
+  await t.test('WHATSAPP method: successful send creates challenge', async () => {
+    const deps = createMockDeps();
+    deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
+    deps.sendWhatsApp = async () => ({ success: true });
+    
+    let createdChallenge = false;
+    deps.db.passwordResetChallenge.create = async () => { createdChallenge = true; };
+
+    const res = await _requestPasswordReset('221770000000', 'WHATSAPP', deps);
+    assert.strictEqual(res.success, true);
+    assert.ok(createdChallenge, "Le challenge a dû être créé en base");
   });
 });
 

@@ -1,0 +1,49 @@
+.custom-react-phone-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-gray, #d1d5db);
+  border-radius: var(--radius-lg, 0.5rem);
+  padding: 0 1rem;
+  background-color: var(--color-gray-light, #f9fafb);
+  transition: border-color 0.2s;
+  width: 100%;
+  min-width: 0;
+}
+
+.custom-react-phone-input:focus-within {
+  border-color: var(--color-primary, #3b82f6);
+}
+
+.custom-react-phone-input .PhoneInputCountry {
+  margin-right: 0.75rem;
+}
+
+.custom-phone-input-inner {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.phone-calling-code {
+  font-weight: 600;
+  color: var(--color-text-main, #1f2937);
+  white-space: nowrap;
+}
+
+.phone-separator {
+  color: #d1d5db;
+  margin: 0 0.75rem;
+  font-weight: 300;
+}
+
+.phone-input-field {
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  padding: 1rem 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  color: var(--color-text-main, #1f2937);
+}

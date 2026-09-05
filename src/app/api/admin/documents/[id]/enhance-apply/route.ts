@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/admin-auth';
 import prisma from '@/lib/prisma';
 import { createClient } from '@supabase/supabase-js';
+import { getDossierDocumentsBucket } from '@/lib/supabase';
 import { enhanceImageBuffer } from '@/lib/image-enhancer';
 import crypto from 'crypto';
 
@@ -32,6 +33,13 @@ export async function POST(
       return NextResponse.json({ success: false, error: "Supabase config error" }, { status: 500 });
     }
 
+    let bucket: string;
+    try {
+      bucket = getDossierDocumentsBucket();
+    } catch {
+      return NextResponse.json({ success: false, error: "Storage bucket config error" }, { status: 500 });
+    }
+
     const { id: documentId } = await params;
     const { mode, brightness, contrast, sharpness } = await request.json();
 
@@ -45,7 +53,7 @@ export async function POST(
 
     // 1. Download original
     const { data: fileData, error: fileError } = await supabase.storage
-      .from('dossier_documents')
+      .from(bucket)
       .download(doc.storagePath);
 
     if (fileError || !fileData) {
@@ -81,7 +89,7 @@ export async function POST(
     const newEnhancedStoragePath = `${folderPath}/${sidePrefix}-${enhancedFileUuid}-enhanced.jpeg`;
 
     const { data: eData, error: eErr } = await supabase.storage
-      .from('dossier_documents')
+      .from(bucket)
       .upload(newEnhancedStoragePath, processedBuffer, { contentType: 'image/jpeg' });
 
     if (eErr || !eData) {
@@ -97,13 +105,13 @@ export async function POST(
 
       // 5. Success -> delete old enhanced if it exists
       if (oldEnhancedPath && oldEnhancedPath !== newEnhancedStoragePath) {
-        await supabase.storage.from('dossier_documents').remove([oldEnhancedPath]).catch((err: any) => console.error("Error cleaning old enhanced", err));
+        await supabase.storage.from(bucket).remove([oldEnhancedPath]).catch((err: any) => console.error("Error cleaning old enhanced", err));
       }
 
       return NextResponse.json({ success: true, enhancedStoragePath: newEnhancedStoragePath });
     } catch (dbError) {
       // 6. Prisma failed -> rollback newly uploaded file
-      await supabase.storage.from('dossier_documents').remove([newEnhancedStoragePath]).catch((err: any) => console.error("Error rollback new enhanced", err));
+      await supabase.storage.from(bucket).remove([newEnhancedStoragePath]).catch((err: any) => console.error("Error rollback new enhanced", err));
       return NextResponse.json({ success: false, error: "Erreur lors de la mise à jour en base de données" }, { status: 500 });
     }
 

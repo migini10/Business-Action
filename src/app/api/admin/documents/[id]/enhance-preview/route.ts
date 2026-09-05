@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getAdminSession } from '@/lib/admin-auth'
 import prisma from '@/lib/prisma'
 import { createClient } from '@supabase/supabase-js'
+import { getDossierDocumentsBucket } from '@/lib/supabase'
 import { enhanceImageBuffer } from '@/lib/image-enhancer'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -12,6 +13,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
 
   if (!supabase) return new NextResponse("Supabase config error", { status: 500 })
+
+  let bucket: string;
+  try {
+    bucket = getDossierDocumentsBucket();
+  } catch {
+    return new NextResponse("Storage bucket config error", { status: 500 })
+  }
 
   const adminSession = await getAdminSession()
   if (!adminSession) {
@@ -31,7 +39,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
     // Retrieve original from Supabase
     const { data: fileData, error: fileError } = await supabase.storage
-      .from('dossier_documents')
+      .from(bucket)
       .download(doc.storagePath)
 
     if (fileError || !fileData) {

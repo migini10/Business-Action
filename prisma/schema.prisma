@@ -37,39 +37,38 @@ enum StatutPaiement {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  phone     String    @unique
-  email     String?   @unique
-  fullName  String?
-  password  String
-  role      Role      @default(CLIENT)
-  mustChangePassword         Boolean   @default(false)
+  id                         String                   @id @default(cuid())
+  phone                      String                   @unique
+  email                      String?                  @unique
+  fullName                   String?
+  password                   String
+  role                       Role                     @default(CLIENT)
+  mustChangePassword         Boolean                  @default(false)
   temporaryPasswordExpiresAt DateTime?
-  dossiers     Dossier[]
-  transactions Transaction[]
-  passwordResetChallenges PasswordResetChallenge[]
-  clientSessions ClientSession[]
-  createdAt    DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  dossiers                   Dossier[]
+  transactions               Transaction[]
+  passwordResetChallenges    PasswordResetChallenge[]
+  clientSessions             ClientSession[]
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @updatedAt
 }
 
 model AdminSession {
-  id         String    @id @default(cuid())
-  tokenHash  String    @unique
-  createdAt  DateTime  @default(now())
-  expiresAt  DateTime
-  revokedAt  DateTime?
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
 }
 
 model ClientSession {
-  id         String    @id @default(cuid())
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash  String    @unique
-  expiresAt  DateTime
-  createdAt  DateTime  @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
-
 
 enum DossierDocumentType {
   CARTE_GRISE
@@ -83,9 +82,9 @@ enum DossierDocumentSide {
 }
 
 model DossierDocument {
-  id          String              @id @default(cuid())
-  dossierId   String
-  type        DossierDocumentType
+  id                  String              @id @default(cuid())
+  dossierId           String
+  type                DossierDocumentType
   side                DossierDocumentSide
   storagePath         String
   enhancedStoragePath String?
@@ -94,24 +93,25 @@ model DossierDocument {
   expiresAt           DateTime
   deletedAt           DateTime?
 
-  dossier     Dossier @relation(fields: [dossierId], references: [id], onDelete: Restrict)
+  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Restrict)
 
   @@index([dossierId])
   @@index([expiresAt, deletedAt])
 }
 
 model Dossier {
-  id            String        @id @default(cuid())
-  numeroDossier String        @unique // Ex: DOS-1234-SN
+  id            String             @id @default(cuid())
+  numeroDossier String             @unique // Ex: DOS-1234-SN
   phone         String // Utilisé pour le suivi sans compte
   email         String?
   typeVehicule  TypeVehicule
+  documentFlow  DocumentFlowChoice @default(NONE)
   rectoUrl      String? // URL de la carte grise recto
   versoUrl      String? // URL de la carte grise verso
   devisUrl      String? // URL du devis envoyé au client
-  statut        StatutDossier @default(EN_ATTENTE)
+  statut        StatutDossier      @default(EN_ATTENTE)
 
-  documents     DossierDocument[]
+  documents        DossierDocument[]
   trackingSessions TrackingSession[]
 
   // Relation optionnelle si l'utilisateur a un compte
@@ -121,6 +121,9 @@ model Dossier {
   echeances Echeance[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+
+  activeWhatsAppConversations WhatsAppConversation[] @relation("ActiveDossier")
+  mediaStagings               MediaStaging[]
 }
 
 model Echeance {
@@ -145,18 +148,18 @@ enum TypeTransaction {
 }
 
 model Transaction {
-  id          String          @id @default(cuid())
-  montant     Float
-  type        TypeTransaction
-  description String
-  commentaire String?
+  id                    String          @id @default(cuid())
+  montant               Float
+  type                  TypeTransaction
+  description           String
+  commentaire           String?
   statut                String          @default("Payé")
   date                  DateTime        @default(now())
   isModificationPending Boolean         @default(false)
   pendingModification   Json?
 
-  clientId    String
-  client      User            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 enum WhatsAppSupportStatus {
@@ -171,57 +174,68 @@ enum ChallengePurpose {
 }
 
 model PasswordResetChallenge {
-  id                  String    @id @default(cuid())
+  id                  String           @id @default(cuid())
   userId              String
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   purpose             ChallengePurpose @default(PASSWORD_RESET)
-  otpHash             String
+  otpHash             String?
   expiresAt           DateTime
-  attempts            Int       @default(0)
+  attempts            Int              @default(0)
   verifiedAt          DateTime?
   resetTokenHash      String?
   resetTokenExpiresAt DateTime?
   usedAt              DateTime?
-  createdAt           DateTime  @default(now())
+  createdAt           DateTime         @default(now())
 
   @@index([userId])
 }
 
 enum WhatsAppBotState {
   IDLE
+  MAIN_MENU
   QUOTE_VEHICLE
   QUOTE_CONFIRM
+  DOCUMENT_CHOICE
+  WAITING_FOR_RECTO
+  WAITING_FOR_VERSO
+  WAITING_FOR_CMC
   TRACK_SELECT
   HUMAN_SUPPORT
 }
 
 model WhatsAppConversation {
-  id            String            @id @default(cuid())
-  waId          String            @unique
-  displayName   String?
-  lastMessageAt DateTime
-  lastInboundAt DateTime?
-  language      String?
-  botState      WhatsAppBotState      @default(IDLE)
-  draftQuote    Json?
+  id              String            @id @default(cuid())
+  waId            String            @unique
+  displayName     String?
+  lastMessageAt   DateTime
+  lastInboundAt   DateTime?
+  language        String?
+  botState        WhatsAppBotState  @default(IDLE)
+  draftQuote      Json?
   trackingContext Json?
-  messages      WhatsAppMessage[]
+  activeDossierId String?
+  activeDossier   Dossier?          @relation("ActiveDossier", fields: [activeDossierId], references: [id])
+  messages        WhatsAppMessage[]
 
   supportStatus WhatsAppSupportStatus @default(RESOLVED)
   claimedAt     DateTime?
   resolvedAt    DateTime?
   lastReadAt    DateTime?
 
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mediaStagings MediaStaging[]
 }
 
 enum WhatsAppMessageStatus {
+  PENDING
   SENT
   DELIVERED
   READ
   FAILED
   RECEIVED
+  RETRYING
 }
 
 enum WhatsAppMessageDirection {
@@ -230,21 +244,25 @@ enum WhatsAppMessageDirection {
 }
 
 model WhatsAppMessage {
-  id             String                   @id @default(cuid())
-  waMessageId    String?                  @unique
-  direction      WhatsAppMessageDirection
-  content        String                   @db.Text
-  status         WhatsAppMessageStatus
-  metaTimestamp  DateTime
+  id            String                   @id @default(cuid())
+  waMessageId   String?                  @unique
+  direction     WhatsAppMessageDirection
+  content       String                   @db.Text
+  status        WhatsAppMessageStatus
+  metaTimestamp DateTime
+  retryCount    Int                      @default(0)
+  nextAttemptAt DateTime?
+  lastErrorCode String?
 
   conversationId String
-  conversation   WhatsAppConversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  autoReplyToId  String?                  @unique
+  autoReplyToId String? @unique
+  metadata      Json?
 
-  readAt         DateTime?
+  readAt DateTime?
 
-  createdAt      DateTime                 @default(now())
+  createdAt DateTime @default(now())
 
   @@index([conversationId, direction, readAt])
 }
@@ -260,13 +278,13 @@ model PushSubscription {
 }
 
 model TrackingSession {
-  id         String    @id @default(cuid())
-  tokenHash  String    @unique
-  dossierId  String
-  dossier    Dossier   @relation(fields: [dossierId], references: [id], onDelete: Cascade)
-  expiresAt  DateTime
-  createdAt  DateTime  @default(now())
-  revokedAt  DateTime?
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  dossierId String
+  dossier   Dossier   @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
 
   @@index([dossierId])
   @@index([expiresAt])
@@ -280,4 +298,74 @@ model RateLimitWindow {
 
   @@id([ipHash, windowStart])
   @@index([expiresAt])
+}
+
+enum StagingSource {
+  WHATSAPP
+  WEB
+}
+
+enum StagingStatus {
+  RESERVED
+  DOWNLOADING
+  STORED
+  EXTRACTED
+  MOVED
+  RETRYING
+  FAILED
+  EXPIRED
+}
+
+enum MediaExpectedSlot {
+  CARTE_GRISE_RECTO
+  CARTE_GRISE_VERSO
+  CMC
+}
+
+model WebDraftSession {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  mediaStagings MediaStaging[]
+}
+
+model MediaStaging {
+  id     String        @id @default(cuid())
+  source StagingSource
+
+  waMessageId      String?               @unique
+  mediaId          String?
+  waConversationId String?
+  waConversation   WhatsAppConversation? @relation(fields: [waConversationId], references: [id])
+
+  webDraftId String?
+  webDraft   WebDraftSession? @relation(fields: [webDraftId], references: [id])
+
+  dossierId String?
+  dossier   Dossier? @relation(fields: [dossierId], references: [id], onDelete: SetNull)
+
+  expectedSlot MediaExpectedSlot
+
+  storagePath String?
+  mimeType    String?
+  sizeBytes   Int?
+
+  receivedAt DateTime @default(now())
+  expiresAt  DateTime
+
+  status StagingStatus @default(RESERVED)
+
+  retryCount    Int       @default(0)
+  nextAttemptAt DateTime?
+  leaseUntil    DateTime?
+  processedAt   DateTime?
+  lastErrorCode String?
+
+  extractedData Json?
+}
+
+enum DocumentFlowChoice {
+  NONE
+  CARTE_GRISE
+  CMC
 }

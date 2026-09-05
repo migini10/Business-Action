@@ -18,6 +18,7 @@ import AdminEnhanceModal from './AdminEnhanceModal';
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal';
 import { useToast } from '@/components/ui/ToastProvider';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 
 export default function AdminDashboard({ initialDossiers, initialClients }: { initialDossiers: any[], initialClients: any[] }) {
   const router = useRouter();
@@ -888,7 +889,13 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
                     <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', marginBottom: '1rem' }}>Nouveau Client</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                       <input type="text" placeholder="Nom complet" value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
-                      <input type="text" placeholder="Téléphone (ex: 77 000 00 00)" value={newClient.phone} onChange={(e) => setNewClient({...newClient, phone: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <PhoneInput 
+                          placeholder="Téléphone (ex: +221 77...)" 
+                          defaultValue={newClient.phone} 
+                          onChange={(val) => setNewClient({...newClient, phone: val})} 
+                        />
+                      </div>
                       <input type="email" placeholder="Email" value={newClient.email} onChange={(e) => setNewClient({...newClient, email: e.target.value})} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none' }} />
                       <button onClick={async () => {
                         if (!newClient.name || !newClient.phone) {

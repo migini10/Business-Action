@@ -14,7 +14,13 @@ export const QUOTE_RESPONSES = {
     },
     HUMAN_TRANSFER: "Un conseiller va prendre le relais pour répondre à votre demande. Merci de patienter.",
     ERROR: "Une erreur est survenue lors de l'enregistrement de votre demande. Veuillez réessayer plus tard.",
-    CONCURRENT_ERROR: "Votre demande est déjà en cours de traitement."
+    CONCURRENT_ERROR: "Votre demande est déjà en cours de traitement.",
+    DOCUMENT_CHOICE_PROMPT: "Pour étudier votre dossier, choisissez le document à envoyer :\n\n1. Carte Grise\n2. CMC",
+    DOCUMENT_CHOICE_INVALID: "Veuillez répondre par 1 (Carte Grise) ou 2 (CMC).",
+    WAITING_RECTO_PROMPT: "Envoyez une photo bien lisible du RECTO de votre Carte Grise.",
+    WAITING_VERSO_PROMPT: "Recto reçu. Envoyez maintenant le VERSO.",
+    WAITING_CMC_PROMPT: "Envoyez une photo bien lisible de votre CMC.",
+    DOCUMENTS_RECEIVED: "Merci, vos documents ont bien été reçus. Notre équipe finalise votre devis."
   },
   en: {
     SERVICE_PROMPT: "What type of vehicle is your request about?\n\n1. Passenger vehicle\n2. Utility vehicle\n3. Heavy vehicle\n4. Two-wheeler\n5. Talk to an advisor",
@@ -31,7 +37,13 @@ export const QUOTE_RESPONSES = {
     },
     HUMAN_TRANSFER: "An agent will take over to answer your request. Please wait.",
     ERROR: "An error occurred while saving your request. Please try again later.",
-    CONCURRENT_ERROR: "Your request is already being processed."
+    CONCURRENT_ERROR: "Your request is already being processed.",
+    DOCUMENT_CHOICE_PROMPT: "To study your file, choose the document to send:\n\n1. Vehicle Registration (Carte Grise)\n2. CMC",
+    DOCUMENT_CHOICE_INVALID: "Please reply with 1 (Registration) or 2 (CMC).",
+    WAITING_RECTO_PROMPT: "Please send a clear photo of the FRONT of your Vehicle Registration.",
+    WAITING_VERSO_PROMPT: "Front received. Now send the BACK.",
+    WAITING_CMC_PROMPT: "Please send a clear photo of your CMC.",
+    DOCUMENTS_RECEIVED: "Thank you, your documents have been received. Our team is finalizing your quote."
   },
   wo: {
     SERVICE_PROMPT: "Ban xetu auto nga am?\n\n1. Auto bopp (Particulier)\n2. Auto liggéey (Utilitaire)\n3. Camion (Poids lourd)\n4. Moto (Deux roues)\n5. Wax ak nit",
@@ -48,7 +60,13 @@ export const QUOTE_RESPONSES = {
     },
     HUMAN_TRANSFER: "Nit dina la jëlal sa mbir mi. Xaaral tuuti.",
     ERROR: "Amna lu doxul ci yónnee bi. Jémaatal bu yàggee.",
-    CONCURRENT_ERROR: "Ñu ngi liggéey ci sa mbir mi."
+    CONCURRENT_ERROR: "Ñu ngi liggéey ci sa mbir mi.",
+    DOCUMENT_CHOICE_PROMPT: "Ngir ñu mën a xool sa mbir mi, tannal kayeet bi ngay yónnee :\n\n1. Carte Grise\n2. CMC",
+    DOCUMENT_CHOICE_INVALID: "Tontul ak 1 (Carte Grise) mbaa 2 (CMC).",
+    WAITING_RECTO_PROMPT: "Yónneel nataal bu leer ci kanamu sa Carte Grise (RECTO).",
+    WAITING_VERSO_PROMPT: "Jot nañu RECTO bi. Yónneel léegi VERSO bi (ginaaw).",
+    WAITING_CMC_PROMPT: "Yónneel nataal bu leer ci sa CMC.",
+    DOCUMENTS_RECEIVED: "Jërëjëf, jot nañu sa kayeet yi. Ñu ngi parel sa devis."
   }
 };
 

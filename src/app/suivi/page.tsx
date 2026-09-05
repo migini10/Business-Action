@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { searchDossiers, unlockDossierDocuments } from '@/app/actions/suivi';
 import { useToast } from '@/components/ui/ToastProvider';
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 
 export default function Suivi() {
   const [searchMode, setSearchMode] = useState<'dossier' | 'phone'>('dossier');
@@ -269,13 +270,10 @@ export default function Suivi() {
                 ) : (
                   <div>
                     <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Votre numéro WhatsApp</label>
-                    <input
-                      type="tel"
+                    <PhoneInput
                       name="phone"
                       required
                       placeholder="Ex: +221 77 123 45 67"
-                      className="suivi-input"
-                      style={{ width: '100%', boxSizing: 'border-box', padding: '1.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid #d1d5db', fontSize: '1.125rem', backgroundColor: '#fff', color: 'var(--color-text-main)' }}
                     />
                   </div>
                 )}

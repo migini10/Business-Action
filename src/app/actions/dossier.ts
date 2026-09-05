@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma'
 import { TypeVehicule, DossierDocumentType, DossierDocumentSide } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
+import { getDossierDocumentsBucket } from '@/lib/supabase'
 import { sendPushNotificationSafe } from '@/lib/push/send-push'
 import { checkMagicBytes } from '@/lib/magic-bytes'
 import { evaluateDocumentReadability } from '@/lib/google-document-ocr'
@@ -43,6 +44,13 @@ export async function createDossier(formData: FormData): Promise<CreateDossierRe
     return { success: false, errors: { global: "Configuration Supabase manquante sur le serveur." } };
   }
 
+  let bucket: string;
+  try {
+    bucket = getDossierDocumentsBucket();
+  } catch {
+    return { success: false, errors: { global: "Configuration du bucket Supabase Storage manquante sur le serveur." } };
+  }
+
   // Validations frontend vs serveur
   if (situationVehicule === 'immatricule') {
     if (!rectoFile || !versoFile) return { success: false, errors: { global: "Recto et Verso sont obligatoires pour un véhicule immatriculé." } }
@@ -79,7 +87,7 @@ export async function createDossier(formData: FormData): Promise<CreateDossierRe
     for (const item of filesToUpload) {
       if (item.file.size > MAX_SIZE) {
         if (uploadedPaths.length > 0) {
-          await getSupabase().storage.from('dossier_documents').remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
+          await getSupabase().storage.from(bucket).remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
         }
         return { success: false, errors: { [item.field]: "Le fichier ne doit pas dépasser 4 MB." } };
       }
@@ -88,14 +96,14 @@ export async function createDossier(formData: FormData): Promise<CreateDossierRe
       const verifiedMime = checkMagicBytes(buffer);
       if (!verifiedMime) {
         if (uploadedPaths.length > 0) {
-          await getSupabase().storage.from('dossier_documents').remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
+          await getSupabase().storage.from(bucket).remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
         }
         return { success: false, errors: { [item.field]: "Format de fichier non valide ou corrompu." } };
       }
 
       if (item.type === DossierDocumentType.CARTE_GRISE && verifiedMime === 'application/pdf') {
         if (uploadedPaths.length > 0) {
-          await getSupabase().storage.from('dossier_documents').remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
+          await getSupabase().storage.from(bucket).remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
         }
         return { success: false, errors: { [item.field]: "Le format PDF est refusé pour la Carte Grise." } };
       }
@@ -109,14 +117,14 @@ export async function createDossier(formData: FormData): Promise<CreateDossierRe
         const readability = await evaluateDocumentReadability(buffer);
         if (!readability.isReadable) {
           if (uploadedPaths.length > 0) {
-            await getSupabase().storage.from('dossier_documents').remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
+            await getSupabase().storage.from(bucket).remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
           }
           return { success: false, errors: { [item.field]: "Le document ne contient pas suffisamment de texte lisible." } };
         }
       }
 
       const storagePath = `${uploadUuid}/${folder}/${sidePrefix}-${fileUuid}.${ext}`;
-      const { data, error } = await supabase.storage.from('dossier_documents').upload(storagePath, buffer, { contentType: verifiedMime });
+      const { data, error } = await supabase.storage.from(bucket).upload(storagePath, buffer, { contentType: verifiedMime });
       if (error || !data) throw new Error("Erreur upload original.");
       uploadedPaths.push(storagePath);
 
@@ -135,7 +143,7 @@ export async function createDossier(formData: FormData): Promise<CreateDossierRe
   } catch (err: any) {
     console.error("Dossier creation error:", err);
     if (uploadedPaths.length > 0) {
-      await getSupabase().storage.from('dossier_documents').remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
+      await getSupabase().storage.from(bucket).remove(uploadedPaths).catch((e: unknown) => console.error("Rollback error:", e));
     }
     return { success: false, errors: { global: err.message || "Erreur interne." } };
   }

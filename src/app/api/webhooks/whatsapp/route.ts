@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { processAutoReply } from '@/lib/customer-service/auto-reply';
 import { sendPushNotificationSafe } from '@/lib/push/send-push';
+import { processMediaStagingJobs } from '@/lib/worker/media';
+import { internalSendWhatsAppMessage } from '@/lib/whatsapp/send-message';
+import { recoverBotState } from '@/lib/customer-service/state-recovery';
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -70,8 +73,102 @@ export async function POST(req: NextRequest) {
           for (const change of entry.changes) {
 
             // 1. Gérer les messages entrants (INBOUND)
+
             if (change.value && change.value.messages && Array.isArray(change.value.messages)) {
               for (const message of change.value.messages) {
+                // ... text handling ...
+                if (message.type === 'image' || message.type === 'document') {
+                  const waId = message.from;
+                  const waMessageId = message.id;
+                  const mediaId = message.type === 'image' ? message.image.id : message.document.id;
+                  const mimeType = message.type === 'image' ? message.image.mime_type : message.document.mime_type;
+                  const timestamp = new Date(parseInt(message.timestamp) * 1000);
+
+                  try {
+                    await prisma.$transaction(async (tx) => {
+                      const conversation = await tx.whatsAppConversation.findUnique({ where: { waId } });
+                      
+                      // For now, default to RECTO. In Phase B, this will map to botState.
+                      
+                      let expectedSlot: 'CARTE_GRISE_RECTO' | 'CARTE_GRISE_VERSO' | 'CMC' | null = null;
+                      let currentBotState = conversation?.botState;
+                      
+                      if (conversation && conversation.botState === 'IDLE' && conversation.activeDossierId) {
+                        const recovered = await recoverBotState(conversation);
+                        currentBotState = recovered.botState as any;
+                      }
+
+                      if (currentBotState === 'WAITING_FOR_RECTO') {
+                        expectedSlot = 'CARTE_GRISE_RECTO';
+                      } else if (currentBotState === 'WAITING_FOR_VERSO') {
+                        expectedSlot = 'CARTE_GRISE_VERSO';
+                      } else if (currentBotState === 'WAITING_FOR_CMC') {
+                        expectedSlot = 'CMC';
+                      }
+
+                      if (!expectedSlot) {
+                        if (conversation) {
+                          if (currentBotState === 'DOCUMENT_CHOICE') {
+                            await internalSendWhatsAppMessage(
+                              conversation,
+                              "Veuillez d'abord choisir le type de document :\nTapez 1 pour Carte Grise, ou 2 pour CMC.",
+                              waMessageId
+                            );
+                          } else {
+                            await internalSendWhatsAppMessage(
+                              conversation,
+                              "Désolé, je n'attends pas de document pour le moment.",
+                              waMessageId
+                            );
+                          }
+                        }
+                        return; // Skip transaction
+                      }
+                      
+                      const expiresAt = new Date(timestamp.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+                      if (conversation) {
+                        await tx.whatsAppMessage.upsert({
+                          where: { waMessageId },
+                          create: {
+                            waMessageId,
+                            direction: 'INBOUND',
+                            content: `[Media: ${message.type}]`,
+                            status: 'DELIVERED',
+                            metaTimestamp: timestamp,
+                            conversationId: conversation.id,
+                            metadata: { isMedia: true, mediaId }
+                          },
+                          update: {} // Idempotent: don't modify if it exists
+                        });
+                      }
+                      
+                      await tx.mediaStaging.upsert({
+                        where: { waMessageId },
+                        create: {
+                          source: 'WHATSAPP',
+                          waMessageId,
+                          mediaId,
+                          waConversationId: conversation?.id,
+                          dossierId: conversation?.activeDossierId,
+                          expectedSlot,
+                          mimeType,
+                          receivedAt: timestamp,
+                          expiresAt,
+                          status: 'RESERVED',
+                        },
+                        update: {} // Idempotent: don't modify if it exists
+                      });
+                    });
+
+                    after(async () => {
+                      await processMediaStagingJobs();
+                    });
+
+                  } catch (err: any) {
+                    console.error("Error processing Media webhook:", err);
+                  }
+                }
                 if (message.type === 'text' && message.text) {
                   const waId = message.from;
                   const waMessageId = message.id;

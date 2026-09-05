@@ -1,15 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { describe, it, mock, beforeEach, afterEach } from 'node:test';
+import { describe, it, mock, before, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { detectLanguage } from './customer-service/language';
 import { detectIntent } from './customer-service/intent';
 import { getFaqResponse } from './customer-service/knowledge/faq';
-import { processAutoReply } from './customer-service/auto-reply';
 import prisma from '@/lib/prisma';
-import { internalSendWhatsAppMessage } from '@/lib/whatsapp/send-message';
+
+let processAutoReply: any;
+let internalSendWhatsAppMessage: any;
 
 describe('Customer Service Auto - MVP', () => {
+  before(async () => {
+    const modAutoReply = await import('./customer-service/auto-reply');
+    processAutoReply = modAutoReply.processAutoReply;
+
+    const modWhatsApp = await import('@/lib/whatsapp/send-message');
+    internalSendWhatsAppMessage = modWhatsApp.internalSendWhatsAppMessage;
+  });
+
   beforeEach(() => {
     mock.restoreAll();
   });

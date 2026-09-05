@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { createDossier, FormField, CreateDossierResult } from '@/app/actions/dossier';
 import DocumentScanner from '@/components/DocumentScanner';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 
 export default function DemandeDevis() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -13,6 +14,7 @@ export default function DemandeDevis() {
   const [versoFile, setVersoFile] = useState<File | null>(null);
   const [cmcFile, setCmcFile] = useState<File | null>(null);
   const [situation, setSituation] = useState('immatricule');
+  const [phoneState, setPhoneState] = useState('');
 
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FormField, string>>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -23,9 +25,8 @@ export default function DemandeDevis() {
       if (dataStr) {
         try {
           const clientData = JSON.parse(dataStr);
-          const phoneInput = document.querySelector('input[name="phone"]') as HTMLInputElement;
           const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
-          if (phoneInput && clientData.phone) phoneInput.value = clientData.phone;
+          if (clientData.phone) setPhoneState(clientData.phone);
           if (emailInput && clientData.email) emailInput.value = clientData.email;
         } catch (e) {
           console.error("Erreur de lecture des données client", e);
@@ -140,7 +141,7 @@ export default function DemandeDevis() {
   }
 
   return (
-    <main style={{ minHeight: '80vh', padding: '4rem 2rem' }}>
+    <main style={{ minHeight: '80vh', padding: '4rem 0' }}>
       <div className="container" style={{ maxWidth: '800px' }}>
 
         <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
@@ -158,16 +159,18 @@ export default function DemandeDevis() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+          <div className="form-row-grid" style={{ display: 'grid', gap: '2rem', marginBottom: '2rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>Numéro WhatsApp</label>
-              <input
-                type="tel"
+              <PhoneInput
                 name="phone"
                 required
-                placeholder="Ex: +221 77 123 45 67"
-                onChange={() => clearFieldError('phone')}
-                style={{ width: '100%', padding: '1rem', borderRadius: 'var(--radius-lg)', border: fieldErrors.phone ? '2px solid #ef4444' : '1px solid var(--color-gray)', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'var(--color-gray-light)' }}
+                placeholder="Ex: 77 123 45 67"
+                defaultValue={phoneState}
+                onChange={(val) => {
+                  setPhoneState(val);
+                  clearFieldError('phone');
+                }}
               />
               {fieldErrors.phone && <p role="alert" style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>{fieldErrors.phone}</p>}
             </div>

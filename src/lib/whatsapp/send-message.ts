@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import prisma from '@/lib/prisma';
-import { WhatsAppConversation } from '@prisma/client';
+import { WhatsAppConversation, Prisma } from '@prisma/client';
 
 export async function internalSendWhatsAppMessage(
   conversation: WhatsAppConversation,
   text: string,
-  autoReplyToId?: string
+  autoReplyToId?: string,
+  transitionMetadata?: { nextBotState?: string; clearDraft?: boolean; [key: string]: any },
+  deps = { db: prisma as any }
 ) {
   if (!text || text.trim() === '') {
     return { success: false, error: 'Le message ne peut pas être vide.' };
@@ -44,14 +46,15 @@ export async function internalSendWhatsAppMessage(
 
   // 1. Réservation en DB AVANT l'appel Meta (garantit l'idempotence stricte)
   try {
-    const reservedMsg = await prisma.whatsAppMessage.create({
+    const reservedMsg = await deps.db.whatsAppMessage.create({
       data: {
         direction: 'OUTBOUND',
         content: text.trim(),
-        status: 'SENT', // Statut initial optimiste/intermédiaire
+        status: 'PENDING', // Attente de la confirmation réseau
         metaTimestamp: timestamp,
         conversationId: conversation.id,
-        autoReplyToId
+        autoReplyToId,
+        metadata: (transitionMetadata ? { ...transitionMetadata, expectedBotState: conversation.botState } : { expectedBotState: conversation.botState }) as any
       }
     });
     reservedMessageId = reservedMsg.id;
@@ -78,7 +81,7 @@ export async function internalSendWhatsAppMessage(
   } catch (fetchErr) {
     console.error('Meta API Network Error:', fetchErr);
     try {
-      await prisma.whatsAppMessage.update({
+      await deps.db.whatsAppMessage.update({
         where: { id: reservedMessageId! },
         data: { status: 'FAILED' }
       });
@@ -101,7 +104,7 @@ export async function internalSendWhatsAppMessage(
 
     // Mettre à jour la réservation en statut FAILED
     try {
-      await prisma.whatsAppMessage.update({
+      await deps.db.whatsAppMessage.update({
         where: { id: reservedMessageId },
         data: { status: 'FAILED' }
       });
@@ -112,24 +115,177 @@ export async function internalSendWhatsAppMessage(
     return { success: false, error: 'Erreur lors de l\'envoi via Meta API.' };
   }
 
+  
   const waMessageId = data.messages && data.messages[0] ? data.messages[0].id : null;
 
-  // 3. Mise à jour de la réservation avec succès
+  // Succès: on update le message et potentiellement on avance le botState
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.whatsAppMessage.update({
-        where: { id: reservedMessageId! },
-        data: { waMessageId }
-      });
+    if (transitionMetadata) {
+      const updateData: any = {};
+      if (transitionMetadata.nextBotState) updateData.botState = transitionMetadata.nextBotState;
+      if (transitionMetadata.clearDraft) updateData.draftQuote = Prisma.DbNull;
 
-      await tx.whatsAppConversation.update({
-        where: { id: conversation.id },
-        data: { lastMessageAt: timestamp }
+      await deps.db.$transaction([
+        deps.db.whatsAppMessage.update({
+          where: { id: reservedMessageId },
+          data: { status: 'SENT', waMessageId, metadata: transitionMetadata as any }
+        }),
+        deps.db.whatsAppConversation.update({
+          where: { id: conversation.id },
+          data: updateData
+        })
+      ]);
+    } else {
+      await deps.db.whatsAppMessage.update({
+        where: { id: reservedMessageId },
+        data: { status: 'SENT', waMessageId }
       });
-    });
-    return { success: true };
-  } catch (err: unknown) {
-    console.error('internalSendWhatsAppMessage DB update error:', err);
-    return { success: false, error: 'Erreur interne de persistance après envoi.' };
+    }
+  } catch (dbErr) {
+    console.error('Failed to update status on success:', dbErr);
   }
+
+  return { success: true, messageId: reservedMessageId, waMessageId };
+
+}
+
+export async function retryOutboundWhatsAppMessage(messageId: string, deps = { db: prisma as any }) {
+  // 1. Claim atomic
+  const claim = await deps.db.whatsAppMessage.updateMany({
+    where: {
+      id: messageId,
+      status: { in: ['FAILED', 'RETRYING', 'PENDING'] },
+      OR: [
+        { nextAttemptAt: null },
+        { nextAttemptAt: { lte: new Date() } }
+      ]
+    },
+    data: {
+      status: 'RETRYING',
+      nextAttemptAt: new Date(Date.now() + 60000) // Lock for 1 minute
+    }
+  });
+
+  if (claim.count === 0) {
+    return { success: false, error: 'Message non éligible au retry ou déjà en cours.' };
+  }
+
+  const msg = await deps.db.whatsAppMessage.findUnique({
+    where: { id: messageId },
+    include: { conversation: true }
+  });
+
+  if (!msg || !msg.conversation) return { success: false, error: 'Not found' };
+
+  const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+  const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
+    return { success: false, error: 'Config missing' };
+  }
+
+  const meta = msg.metadata as any;
+  if (meta && meta.expectedBotState && meta.expectedBotState !== msg.conversation.botState) {
+    // Obsolete context, do not retry
+    await deps.db.whatsAppMessage.update({
+      where: { id: messageId },
+      data: {
+        status: 'FAILED',
+        nextAttemptAt: null,
+        lastErrorCode: 'OBSOLETE_CONTEXT'
+      }
+    });
+    return { success: false, error: 'Obsolete context' };
+  }
+
+  const payload = {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: msg.conversation.waId,
+    type: 'text',
+    text: { preview_url: false, body: msg.content.trim() }
+  };
+
+  let response;
+  try {
+    response = await fetch(`https://graph.facebook.com/v17.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+    } catch (fetchErr: any) {
+      console.error(JSON.stringify({
+        event: 'META_API_NETWORK_ERROR_RETRY',
+        errorName: fetchErr.name || 'Error',
+        errorMessage: fetchErr.message || 'Unknown network error'
+      }));
+      const nextRetryCount = msg.retryCount + 1;
+      const isFinal = nextRetryCount >= 3;
+      await deps.db.whatsAppMessage.update({
+        where: { id: messageId },
+        data: {
+          status: isFinal ? 'FAILED' : 'RETRYING',
+          retryCount: nextRetryCount,
+          nextAttemptAt: isFinal ? null : new Date(Date.now() + nextRetryCount * 60000),
+          lastErrorCode: fetchErr.message || 'Fetch failed'
+        }
+      });
+      return { success: false, error: 'Fetch failed' };
+    }
+
+  let data: any = {};
+  try { data = await response.json(); } catch(e){}
+
+  if (!response.ok) {
+    console.error(JSON.stringify({
+      event: 'META_API_ERROR_RETRY',
+      metaHttpStatus: response.status,
+      errorCode: data?.error?.code,
+      errorSubcode: data?.error?.error_subcode,
+      errorType: data?.error?.type,
+      errorMessage: data?.error?.message,
+      fbtraceId: data?.error?.fbtrace_id ? 'PRESENT' : 'ABSENT'
+    }));
+
+    const nextRetryCount = msg.retryCount + 1;
+    const isFinal = nextRetryCount >= 3;
+    await deps.db.whatsAppMessage.update({
+      where: { id: messageId },
+      data: {
+        status: isFinal ? 'FAILED' : 'RETRYING',
+        retryCount: nextRetryCount,
+        nextAttemptAt: isFinal ? null : new Date(Date.now() + nextRetryCount * 60000),
+        lastErrorCode: data.error?.message || 'API Error'
+      }
+    });
+    return { success: false, error: 'API Error' };
+  }
+
+  const waMessageId = data.messages && data.messages[0] ? data.messages[0].id : null;
+
+  if (meta && meta.nextBotState && msg.conversation.botState === meta.expectedBotState) {
+    const updateData: any = { botState: meta.nextBotState };
+    if (meta.clearDraft) updateData.draftQuote = Prisma.DbNull;
+    
+    await deps.db.$transaction([
+      deps.db.whatsAppMessage.update({
+        where: { id: messageId },
+        data: { status: 'SENT', waMessageId, nextAttemptAt: null }
+      }),
+      deps.db.whatsAppConversation.update({
+        where: { id: msg.conversation.id },
+        data: updateData
+      })
+    ]);
+  } else {
+    await deps.db.whatsAppMessage.update({
+      where: { id: messageId },
+      data: { status: 'SENT', waMessageId, nextAttemptAt: null }
+    });
+  }
+
+  return { success: true, messageId, waMessageId };
 }

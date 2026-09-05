@@ -6,6 +6,7 @@ import { createClientSession, getCurrentClient, revokeClientSession } from '@/li
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { validatePasswordPolicy } from '@/lib/password-policy';
+import { normalizePhoneCanonical } from '@/lib/phone';
 
 export async function _registerClient(formData: FormData, deps: { db: any; hash: (p: string) => Promise<string>; createSession?: (id: string) => Promise<void> }) {
   try {
@@ -18,10 +19,11 @@ export async function _registerClient(formData: FormData, deps: { db: any; hash:
       return { success: false, error: 'Tous les champs obligatoires doivent être remplis.' };
     }
 
-    const phone = rawPhone.trim();
-    if (!phone) {
-      return { success: false, error: 'Tous les champs obligatoires doivent être remplis.' };
+    const phoneNorm = normalizePhoneCanonical(rawPhone);
+    if (!phoneNorm) {
+      return { success: false, error: 'Numéro de téléphone invalide.' };
     }
+    const phone = phoneNorm;
 
     const passwordCheck = validatePasswordPolicy(password);
     if (!passwordCheck.isValid) {
@@ -114,11 +116,13 @@ export async function registerClient(formData: FormData) {
 
 export async function loginClient(formData: FormData) {
   try {
-    const phone = formData.get('phone') as string;
+    const rawPhone = formData.get('phone') as string;
     const password = formData.get('password') as string;
 
+    const phone = rawPhone ? normalizePhoneCanonical(rawPhone) : null;
+
     if (!phone || !password) {
-      return { success: false, error: 'Téléphone et mot de passe requis.' };
+      return { success: false, error: 'Téléphone invalide ou mot de passe requis.' };
     }
 
     const user = await prisma.user.findUnique({
@@ -205,14 +209,14 @@ export async function loginClient(formData: FormData) {
           const existingCookie = cookieStore.get('first_password_token')?.value;
           if (!existingCookie) {
             // Le challenge est en cours mais le navigateur n'a pas le cookie
-            return { success: false, firstPasswordChangeAlreadyInProgress: true };
+            return { success: false, error: 'Un changement est en cours.', firstPasswordChangeAlreadyInProgress: true };
           }
 
           // HASHER LE COOKIE ET COMPARER AVEC LE TOKEN ACTIF
           const existingCookieHash = crypto.createHash('sha256').update(existingCookie).digest('hex');
           if (existingCookieHash !== authResult.activeResetTokenHash) {
             // Le cookie existe mais ne correspond pas (ex: ancien test / autre navigateur)
-            return { success: false, firstPasswordChangeAlreadyInProgress: true };
+            return { success: false, error: 'Un changement est en cours.', firstPasswordChangeAlreadyInProgress: true };
           }
           // Si le cookie est présent et valide, on laisse continuer
         } else if (authResult.resetToken) {
