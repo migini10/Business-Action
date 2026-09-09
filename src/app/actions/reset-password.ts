@@ -237,7 +237,11 @@ export async function _updatePassword(newPassword: string, deps: any) {
     await deps.db.$transaction([
       deps.db.user.update({
         where: { id: challenge.userId },
-        data: { password: newPasswordHash },
+        data: {
+          password: newPasswordHash,
+          mustChangePassword: false,
+          temporaryPasswordExpiresAt: null
+        },
       }),
       deps.db.passwordResetChallenge.update({
         where: { id: challenge.id },

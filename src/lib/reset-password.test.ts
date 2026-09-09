@@ -304,6 +304,34 @@ test('Business Logic: updatePassword', async (t) => {
     assert.strictEqual(deps.cookies['password_reset_token'], undefined, "Le cookie doit être supprimé");
   });
 
+  await t.test('Reset OTP sur un compte mustChangePassword=true avec temp password expiré => réinitialise aussi les flags de mot de passe temporaire', async () => {
+    const deps = createMockDeps();
+    deps.setCookie('password_reset_token', 'my-raw-token', {});
+
+    // Etat avant reset: mustChangePassword=true, temporaryPasswordExpiresAt expiré depuis avant le reset
+    deps.db.passwordResetChallenge.findFirst = async () => ({
+      id: 'chal1',
+      userId: 'user1',
+      resetTokenHash: hashString('my-raw-token', mockSecret),
+      resetTokenExpiresAt: new Date(MOCK_NOW + 10000),
+      user: {
+        id: 'user1',
+        mustChangePassword: true,
+        temporaryPasswordExpiresAt: new Date(MOCK_NOW - 999999999) // largement expiré
+      }
+    });
+
+    let updateData: any = null;
+    deps.db.user.update = async ({ data }: any) => { updateData = data; };
+
+    const res = await _updatePassword('newpass123', deps);
+    assert.strictEqual(res.success, true);
+    assert.ok(updateData, "user.update doit avoir été appelé");
+    assert.ok(updateData.password, "le nouveau hash de mot de passe doit être défini");
+    assert.strictEqual(updateData.mustChangePassword, false, "mustChangePassword doit repasser à false après un reset OTP réussi");
+    assert.strictEqual(updateData.temporaryPasswordExpiresAt, null, "temporaryPasswordExpiresAt doit être remis à null après un reset OTP réussi");
+  });
+
   await t.test('Token expiré refusé', async () => {
     const deps = createMockDeps();
     deps.setCookie('password_reset_token', 'my-raw-token', {});
