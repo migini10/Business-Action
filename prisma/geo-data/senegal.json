@@ -1,0 +1,869 @@
+{
+  "metadata": {
+    "sourceCanonical": "DGE — Décret n°2021-1367 du 15 octobre 2021",
+    "organisme": "DGE",
+    "decret": "2021-1367",
+    "date": "2021-10-15",
+    "controleANSD": "RGPH-5 / SES",
+    "divergencesDocumentees": "Aucune divergence bloquante. Référentiel validé à 14 régions, 46 départements, 553 communes."
+  },
+  "country": {
+    "code": "SN",
+    "name": "Senegal"
+  },
+  "regions": [
+    {
+      "name": "Dakar",
+      "departments": [
+        {
+          "name": "Dakar",
+          "communes": [
+            "Goree",
+            "Plateau",
+            "Gueule Tapee-Fass-Colobane",
+            "Fann-Point E-Amitie",
+            "Medina",
+            "Biscuiterie",
+            "Grand Dakar",
+            "Dieuppeul-Derkle",
+            "Hann-Bel Air",
+            "Sicap Liberte",
+            "H.L.M",
+            "Mermoz-Sacre Coeur",
+            "Ouakam",
+            "Ngor",
+            "Yoff",
+            "Grand Yoff",
+            "Patte d'Oie",
+            "Camberene",
+            "Parcelles Assainies"
+          ]
+        },
+        {
+          "name": "Guediawaye",
+          "communes": [
+            "Golf Sud",
+            "Sam Notaire",
+            "Ndiareme Limamoulaye",
+            "Medina Gounass",
+            "Wakhinane Nimzath"
+          ]
+        },
+        {
+          "name": "Keur Massar",
+          "communes": [
+            "Malika",
+            "Keur Massar Nord",
+            "Jaxaay-Parcelles",
+            "Keur Massar Sud",
+            "Yeumbeul Nord",
+            "Yeumbeul Sud"
+          ]
+        },
+        {
+          "name": "Pikine",
+          "communes": [
+            "Dalifort",
+            "Djidah Thiaroye Kao",
+            "Guinaw Rail Nord",
+            "Guinaw Rail Sud",
+            "Pikine Est",
+            "Pikine Ouest",
+            "Pikine Nord",
+            "Diamagueune Sicap Bao",
+            "Mbao",
+            "Thiaroye Gare",
+            "Thiaroye sur Mer",
+            "Tivaouane Diacksao"
+          ]
+        },
+        {
+          "name": "Rufisque",
+          "communes": [
+            "Bargny",
+            "Sendou",
+            "Rufisque Est",
+            "Rufisque Nord",
+            "Rufisque Ouest",
+            "Diamniadio",
+            "Sebikotane",
+            "Yenne",
+            "Bambilor",
+            "Tivaouane Peul-Niaga",
+            "Sangalkam"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Diourbel",
+      "departments": [
+        {
+          "name": "Bambey",
+          "communes": [
+            "Bambey",
+            "Dinguiraye",
+            "Baba Garage",
+            "Keur Samba Kane",
+            "Ngoye",
+            "Ndangalma",
+            "Ndondol",
+            "Thiakhar",
+            "Lambaye",
+            "Refane",
+            "Gawane",
+            "Ngogom"
+          ]
+        },
+        {
+          "name": "Diourbel",
+          "communes": [
+            "Diourbel",
+            "Gade Escale",
+            "Keur Ngalgou",
+            "Ndankh Sene",
+            "Ndindy",
+            "Taiba Moutoupha",
+            "Touba Lappe",
+            "Ndoulo",
+            "Ngohe",
+            "Pattar",
+            "Tocky Gare",
+            "Toure Mbonde"
+          ]
+        },
+        {
+          "name": "Mbacke",
+          "communes": [
+            "Mbacke",
+            "Dalla Ngabou",
+            "Missirah",
+            "Ngaye",
+            "Touba Fall",
+            "Touba Mosquee",
+            "Darou Salam Typ",
+            "Darou Nahim",
+            "Kael",
+            "Madina",
+            "Touba Mboul",
+            "Taiba Thiekene",
+            "Dendeye Gouye Gui",
+            "Ndioumane",
+            "Sadio",
+            "Taif"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Fatick",
+      "departments": [
+        {
+          "name": "Fatick",
+          "communes": [
+            "Fatick",
+            "Dioffior",
+            "Diakhao",
+            "Diaoule",
+            "Mbellacadiao",
+            "Ndiob",
+            "Thiare Ndialgui",
+            "Djilasse",
+            "Fimela",
+            "Loul Sessene",
+            "Palmarin Facao",
+            "Niakhar",
+            "Ngayokheme",
+            "Patar",
+            "Diarrere",
+            "Diouroup",
+            "Tattaguine"
+          ]
+        },
+        {
+          "name": "Foundiougne",
+          "communes": [
+            "Foundiougne",
+            "Sokone",
+            "Diagane Barka",
+            "Diossiong",
+            "Djilor",
+            "Mbam",
+            "Niassene",
+            "Passy",
+            "Soum",
+            "Bassoul",
+            "Dionewar",
+            "Djirnda",
+            "Keur Saloum Diane",
+            "Keur Samba Gueye",
+            "Karang Poste",
+            "Nioro Alassane Tall",
+            "Toubacouta"
+          ]
+        },
+        {
+          "name": "Gossas",
+          "communes": [
+            "Gossas",
+            "Colobane",
+            "Mbar",
+            "Ndiene Lagane",
+            "Ouadiour",
+            "Patar Lia"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Kaffrine",
+      "departments": [
+        {
+          "name": "Kaffrine",
+          "communes": [
+            "Kaffrine",
+            "Nganda",
+            "Boulel",
+            "Gniby",
+            "Kahi",
+            "Diamagadio",
+            "Diokoul Mbelbouck",
+            "Kathiotte",
+            "Medinatoul Salam 2"
+          ]
+        },
+        {
+          "name": "Birkelane",
+          "communes": [
+            "Birkelane",
+            "Diamal",
+            "Keur Mboucki",
+            "Touba Mbella",
+            "Mabo",
+            "Mbeuleup",
+            "Ndiognick",
+            "Segre Gatta"
+          ]
+        },
+        {
+          "name": "Koungheul",
+          "communes": [
+            "Koungheul",
+            "Fass Thiekene",
+            "Ida Mouride",
+            "Saly Escale",
+            "Lour Escale",
+            "Ribot Escale",
+            "Maka Yop",
+            "Missirah Wadene",
+            "Ngainthe Pathe"
+          ]
+        },
+        {
+          "name": "Malem Hoddar",
+          "communes": [
+            "Malem Hoddar",
+            "Darou Miname",
+            "Khelcom",
+            "Ndiobene Samba Lamo",
+            "Ndioum Ngainthe",
+            "Dianke Souf",
+            "Sagna"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Kaolack",
+      "departments": [
+        {
+          "name": "Guinguineo",
+          "communes": [
+            "Guinguineo",
+            "Fass",
+            "Khelcom Birane",
+            "Mbadakhoune",
+            "Ndiago",
+            "Ngathie Naoude",
+            "Dara Mboss",
+            "Gagnick",
+            "Mboss",
+            "Ngelou",
+            "Ourour",
+            "Panal Ouolof"
+          ]
+        },
+        {
+          "name": "Kaolack",
+          "communes": [
+            "Kaolack",
+            "Kahone",
+            "Keur Baka",
+            "Latmingue",
+            "Ndoffane",
+            "Thiare",
+            "Keur Soce",
+            "Ndiaffate",
+            "Ndiedieng",
+            "Dya",
+            "Gandiaye",
+            "Ndiebel",
+            "Sibassor",
+            "Thiomby"
+          ]
+        },
+        {
+          "name": "Nioro",
+          "communes": [
+            "Nioro",
+            "Kayemor",
+            "Medina Sabakh",
+            "Ngayene",
+            "Dabaly",
+            "Darou Salam",
+            "Gainthe Kaye",
+            "Paos Koto",
+            "Porokhane",
+            "Taiba Niassene",
+            "Keur Maba Diakhou",
+            "Keur Madiabel",
+            "Keur Mandongo",
+            "Ndrame Escale",
+            "Wack Ngouna"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Kedougou",
+      "departments": [
+        {
+          "name": "Kedougou",
+          "communes": [
+            "Kedougou",
+            "Bandafassi",
+            "Dindifelo",
+            "Ninefecha",
+            "Tomboroncoto",
+            "Dimboli",
+            "Fongolimbi"
+          ]
+        },
+        {
+          "name": "Salemata",
+          "communes": [
+            "Salemata",
+            "Dakateli",
+            "Kevoye",
+            "Dar Salam",
+            "Ethiolo",
+            "Oubadji"
+          ]
+        },
+        {
+          "name": "Saraya",
+          "communes": [
+            "Saraya",
+            "Bembou",
+            "Medina Baffe",
+            "Khossanto",
+            "Missira Sirimana",
+            "Sabodala"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Kolda",
+      "departments": [
+        {
+          "name": "Kolda",
+          "communes": [
+            "Kolda",
+            "Dioulacolon",
+            "Guiro Yero Bocar",
+            "Medina El Hadji",
+            "Salikegne",
+            "Sare Yoba Diega",
+            "Tankanto Escale",
+            "Bagadadji",
+            "Dabo",
+            "Dialambere",
+            "Coumbacara",
+            "Mampatim",
+            "Medina Cherif",
+            "Sare Bidji",
+            "Thiety"
+          ]
+        },
+        {
+          "name": "Medina Yoro Foulah",
+          "communes": [
+            "Medina Yoro Foulah",
+            "Badion",
+            "Fafacourou",
+            "Bourouco",
+            "Bignirabe",
+            "Koulinto",
+            "Ndorna",
+            "Dinguiraye",
+            "Kerewane",
+            "Niaming",
+            "Pata"
+          ]
+        },
+        {
+          "name": "Velingara",
+          "communes": [
+            "Velingara",
+            "Bonconto",
+            "Linkering",
+            "Medina Gounass",
+            "Sinthiang Koundara",
+            "Ouassadou",
+            "Pakour",
+            "Paroumba",
+            "Diaobe-Kabendou",
+            "Kandiaye",
+            "Kandia",
+            "Kounkane",
+            "Nematuba",
+            "Sare Coly Salle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Louga",
+      "departments": [
+        {
+          "name": "Kebemer",
+          "communes": [
+            "Kebemer",
+            "Darou Marnane",
+            "Darou Mousty",
+            "Mbacke Cadior",
+            "Mbadiane",
+            "Ndoyenne",
+            "Sam Yabal",
+            "Touba Merina",
+            "Bandegne Ouolof",
+            "Diokoul Diawrigne",
+            "Gueoul",
+            "Kab Gaye",
+            "Ndande",
+            "Thieppe",
+            "Kanene Ndiob",
+            "Ngourane Ouolof",
+            "Loro",
+            "Sagatta Gueth",
+            "Thiolom Fall"
+          ]
+        },
+        {
+          "name": "Linguere",
+          "communes": [
+            "Dahra",
+            "Linguere",
+            "Barkedji",
+            "Gassane",
+            "Thiargny",
+            "Thiel",
+            "Dodji",
+            "Labgar",
+            "Ouarkhokh",
+            "Boulal",
+            "Dealy",
+            "Affe Djolof",
+            "Sagatta Djolof",
+            "Thiamene Pass",
+            "Kamb",
+            "Mbeuleukhe",
+            "Mboula",
+            "Tessekere Forage",
+            "Yang Yang"
+          ]
+        },
+        {
+          "name": "Louga",
+          "communes": [
+            "Louga",
+            "Coki",
+            "Gueth Ardo",
+            "Ndiagne",
+            "Pete Ouarack",
+            "Thiamene Cayor",
+            "Keur Momar Sarr",
+            "Nguer Malal",
+            "Ngande",
+            "Syer",
+            "Kelle Gueye",
+            "Mbediene",
+            "Nguidilie",
+            "Niomre",
+            "Leona",
+            "Ngueune Sarr",
+            "Sakal"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Matam",
+      "departments": [
+        {
+          "name": "Kanel",
+          "communes": [
+            "Kanel",
+            "Aoure",
+            "Bokiladji",
+            "Ouaounde",
+            "Dembacane",
+            "Orkadiere",
+            "Semme",
+            "Hamady Hounare",
+            "Ndendory",
+            "Odobere",
+            "Sinthiou Bamambe Banadji",
+            "Wouro Sidy"
+          ]
+        },
+        {
+          "name": "Matam",
+          "communes": [
+            "Matam",
+            "Ourossogui",
+            "Agnam Civol",
+            "Dabia",
+            "Orefonde",
+            "Thilogne",
+            "Bokidiawe",
+            "Nabadji Civol",
+            "Nguidjilone",
+            "Ogo"
+          ]
+        },
+        {
+          "name": "Ranerou Ferlo",
+          "communes": [
+            "Ranerou",
+            "Lougre Thioly",
+            "Oudalaye",
+            "Velingara"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Saint-Louis",
+      "departments": [
+        {
+          "name": "Dagana",
+          "communes": [
+            "Dagana",
+            "Richard Toll",
+            "Diama",
+            "Ngnith",
+            "Ronkh",
+            "Ross Bethio",
+            "Rosso Senegal",
+            "Bokhol",
+            "Gae",
+            "Mbane",
+            "Ndombo Sandjiry"
+          ]
+        },
+        {
+          "name": "Podor",
+          "communes": [
+            "Ndioum",
+            "Podor",
+            "Aere Lao",
+            "Doumga Lao",
+            "Gollere",
+            "Madina Diathbe",
+            "Mboumba",
+            "Mery",
+            "Walalde",
+            "Bode Lao",
+            "Demette",
+            "Dodel",
+            "Gamadji Sare",
+            "Guede Chantier",
+            "Guede Village",
+            "Fanaye",
+            "Ndiayene Peindao",
+            "Niandane",
+            "Boke Dialoube",
+            "Galoya Toucouleur",
+            "Mbolo Birane",
+            "Pete"
+          ]
+        },
+        {
+          "name": "Saint-Louis",
+          "communes": [
+            "Saint Louis",
+            "Fass Ngom",
+            "Gandon",
+            "Ndiebene Gandiol",
+            "Mpal"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sedhiou",
+      "departments": [
+        {
+          "name": "Bounkiling",
+          "communes": [
+            "Bounkiling",
+            "Boghal",
+            "Djinany",
+            "Ndiamacouta",
+            "Ndiamalathiel",
+            "Tankon",
+            "Bona",
+            "Diacounda",
+            "Inor",
+            "Kandion Mangana",
+            "Diambati",
+            "Diaroume",
+            "Faoune",
+            "Madina Wandifa"
+          ]
+        },
+        {
+          "name": "Goudomp",
+          "communes": [
+            "Goudomp",
+            "Diattacounda",
+            "Djibanar",
+            "Kaour",
+            "Mangaroungou Santo",
+            "Samine",
+            "Simbandi Balante",
+            "Yarang Balante",
+            "Karantaba",
+            "Kolibantang",
+            "Baghere",
+            "Dioudoubou",
+            "Niagha",
+            "Simbandi Brassou",
+            "Tanaff"
+          ]
+        },
+        {
+          "name": "Sedhiou",
+          "communes": [
+            "Marsassoum",
+            "Sedhiou",
+            "Diannah Ba",
+            "Dianah Malary",
+            "Diende",
+            "Koussy",
+            "Oudoucar",
+            "Sakar",
+            "Sama Kanta Peulh",
+            "Djibabouya",
+            "Bemet Bidjini",
+            "San Samba",
+            "Bambaly",
+            "Djiredji"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tambacounda",
+      "departments": [
+        {
+          "name": "Bakel",
+          "communes": [
+            "Bakel",
+            "Bele",
+            "Kidira",
+            "Sinthiou Fissa",
+            "Gathiary",
+            "Madina Foulbe",
+            "Sadatou",
+            "Toumboura",
+            "Ballou",
+            "Diawara",
+            "Gabou",
+            "Moudery"
+          ]
+        },
+        {
+          "name": "Goudiry",
+          "communes": [
+            "Goudiry",
+            "Bala",
+            "Koar",
+            "Goumbayel",
+            "Boynguel Bamba",
+            "Dougue",
+            "Koussan",
+            "Sinthiou Mamadou Boubou",
+            "Bani Israel",
+            "Boutoucoufara",
+            "Dianke Makha",
+            "Komoti",
+            "Koulor",
+            "Kothiary",
+            "Sinthiou Bocar Aly"
+          ]
+        },
+        {
+          "name": "Koumpentoum",
+          "communes": [
+            "Koumpentoum",
+            "Bamba Thialene",
+            "Kahene",
+            "Mereto",
+            "Ndam",
+            "Malem Niani",
+            "Kouthiaba Ouolof",
+            "Kouthia Gaydi",
+            "Pass Koto",
+            "Payar"
+          ]
+        },
+        {
+          "name": "Tambacounda",
+          "communes": [
+            "Tambacounda",
+            "Koussanar",
+            "Sinthiou Maleme",
+            "Makacolibantang",
+            "Ndoga Babacar",
+            "Niani Toucouleur",
+            "Dialacoto",
+            "Missirah",
+            "Netteboulou"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Thies",
+      "departments": [
+        {
+          "name": "Mbour",
+          "communes": [
+            "Mbour",
+            "Joal Fadhiout",
+            "Fissel",
+            "Ndiaganiao",
+            "Ngueniene",
+            "Sandiara",
+            "Sessene",
+            "Thiadiaye",
+            "Diass",
+            "Malicounda",
+            "Ngaparou",
+            "Nguekhokh",
+            "Popenguine",
+            "Saly Portudal",
+            "Sindia",
+            "Somone"
+          ]
+        },
+        {
+          "name": "Thies",
+          "communes": [
+            "Khombole",
+            "Pout",
+            "Thies Nord",
+            "Thies Est",
+            "Thies Ouest",
+            "Diender Guedj",
+            "Kayar",
+            "Keur Moussa",
+            "Fandene",
+            "Notto",
+            "Tassete",
+            "Ndieyene Sirakh",
+            "Ngoudiane",
+            "Thienaba",
+            "Touba Toul"
+          ]
+        },
+        {
+          "name": "Tivaouane",
+          "communes": [
+            "Tivaouane",
+            "Mekhe",
+            "Darou Khoudoss",
+            "Mboro",
+            "Meouane",
+            "Taiba Ndiaye",
+            "Koul",
+            "Merina Dakhar",
+            "Pekesse",
+            "Mbayene",
+            "Niakhene",
+            "Ngandiouf",
+            "Thilmakha",
+            "Mont Rolland",
+            "Notto Gouye Diama",
+            "Cherif Lo",
+            "Pambal",
+            "Pire Gou Reye"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ziguinchor",
+      "departments": [
+        {
+          "name": "Bignona",
+          "communes": [
+            "Bignona",
+            "Thionck Essyl",
+            "Diouloulou",
+            "Djinaky",
+            "Kafountine",
+            "Kataba 1",
+            "Balinghore",
+            "Diegoune",
+            "Karthiack",
+            "Mangagoulack",
+            "Mlomp",
+            "Coubalan",
+            "Niamone",
+            "Ouonck",
+            "Tenghori",
+            "Djibidione",
+            "Oulampane",
+            "Sindian",
+            "Suel"
+          ]
+        },
+        {
+          "name": "Oussouye",
+          "communes": [
+            "Oussouye",
+            "Diembering",
+            "Santhiaba Manjack",
+            "Mlomp",
+            "Oukout"
+          ]
+        },
+        {
+          "name": "Ziguinchor",
+          "communes": [
+            "Ziguinchor",
+            "Adeane",
+            "Boutoupa Camaracounda",
+            "Niaguis",
+            "Enampore",
+            "Nyassia"
+          ]
+        }
+      ]
+    }
+  ]
+}

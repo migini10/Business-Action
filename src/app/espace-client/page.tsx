@@ -10,6 +10,7 @@ import { calculateClientBalance, getTransactionSign, calculateFinancialSummary }
 import { useToast } from '@/components/ui/ToastProvider';
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal';
 import { PhoneInput } from '@/components/ui/PhoneInput';
+import { GeoSelector } from '@/components/geo/GeoSelector';
 
 function EspaceClientContent() {
   const searchParams = useSearchParams();
@@ -315,6 +316,17 @@ function EspaceClientContent() {
                       outline: 'none',
                       transition: 'border-color 0.2s',
                     }}
+                  />
+                </div>
+
+                <div className="form-group" style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 700, color: 'var(--color-text-main)', fontSize: '0.95rem' }}>
+                    Localisation
+                  </label>
+                  <GeoSelector
+                    initialCommuneId={clientData.geoCommuneId || null}
+                    name="geoCommuneId"
+                    disabled={isUpdatingProfile}
                   />
                 </div>
 

@@ -49,8 +49,12 @@ model User {
   transactions               Transaction[]
   passwordResetChallenges    PasswordResetChallenge[]
   clientSessions             ClientSession[]
+  geoCommuneId               String?
+  geoCommune                 GeoCommune?              @relation(fields: [geoCommuneId], references: [id], onDelete: Restrict)
   createdAt                  DateTime                 @default(now())
   updatedAt                  DateTime                 @updatedAt
+
+  @@index([geoCommuneId])
 }
 
 model AdminSession {
@@ -369,3 +373,60 @@ enum DocumentFlowChoice {
   CARTE_GRISE
   CMC
 }
+
+// ==========================================
+// GEO CORE MODELS
+// ==========================================
+
+model GeoCountry {
+  id        String      @id @default(cuid())
+  code      String      @unique
+  name      String
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  regions   GeoRegion[]
+}
+
+model GeoRegion {
+  id          String          @id @default(cuid())
+  countryId   String
+  name        String
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  country     GeoCountry      @relation(fields: [countryId], references: [id], onDelete: Restrict)
+  departments GeoDepartment[]
+
+  @@unique([countryId, name])
+  @@index([countryId])
+}
+
+model GeoDepartment {
+  id        String       @id @default(cuid())
+  regionId  String
+  name      String
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  region    GeoRegion    @relation(fields: [regionId], references: [id], onDelete: Restrict)
+  communes  GeoCommune[]
+
+  @@unique([regionId, name])
+  @@index([regionId])
+}
+
+model GeoCommune {
+  id           String        @id @default(cuid())
+  departmentId String
+  name         String
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  department   GeoDepartment @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  users        User[]
+
+  @@unique([departmentId, name])
+  @@index([departmentId])
+}
+

@@ -119,13 +119,38 @@ export async function _updateClientProfile(formData: FormData, deps: UpdateClien
       }
     }
 
+    let geoCommuneId: string | null | undefined = undefined;
+    if (formData.has('geoCommuneId')) {
+      const rawCommune = formData.get('geoCommuneId') as string | null;
+      if (!rawCommune || !rawCommune.trim()) {
+        geoCommuneId = null;
+      } else {
+        const cleanCommuneId = rawCommune.trim();
+        if ((deps.db as any).geoCommune) {
+          const commune = await (deps.db as any).geoCommune.findUnique({
+            where: { id: cleanCommuneId },
+            include: { department: { include: { region: true } } },
+          });
+          if (!commune || !commune.active || !commune.department?.active || !commune.department?.region?.active) {
+            return { success: false, error: 'Commune invalide ou inactive.', field: 'geoCommuneId' };
+          }
+        }
+        geoCommuneId = cleanCommuneId;
+      }
+    }
+
+    const updateData: any = {
+      fullName: name.trim(),
+      phone,
+      email,
+    };
+    if (geoCommuneId !== undefined) {
+      updateData.geoCommuneId = geoCommuneId;
+    }
+
     const updatedUser = await deps.db.user.update({
       where: { id: user.id },
-      data: {
-        fullName: name.trim(),
-        phone,
-        email
-      }
+      data: updateData,
     });
 
     return {
@@ -135,8 +160,9 @@ export async function _updateClientProfile(formData: FormData, deps: UpdateClien
         id: updatedUser.id,
         name: updatedUser.fullName,
         phone: updatedUser.phone,
-        email: updatedUser.email
-      }
+        email: updatedUser.email,
+        geoCommuneId: (updatedUser as any).geoCommuneId || null,
+      },
     };
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
