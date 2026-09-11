@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import { companyConfig } from '@/lib/company-config';
+
+export const metadata: Metadata = {
+  title: "Politique de Confidentialité",
+  description: "Consultez la politique de confidentialité et de traitement des données personnelles de Business Action.",
+  alternates: {
+    canonical: "/confidentialite",
+  },
+};
 
 export default function ConfidentialitePage() {
   return (

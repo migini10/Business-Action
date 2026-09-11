@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import { companyConfig } from '@/lib/company-config';
+
+export const metadata: Metadata = {
+  title: "Conditions Générales d'Utilisation",
+  description: "Consultez les conditions générales d'utilisation des services Business Action pour les devis et la gestion d'assurance.",
+  alternates: {
+    canonical: "/conditions-utilisation",
+  },
+};
 
 export default function ConditionsUtilisationPage() {
   return (

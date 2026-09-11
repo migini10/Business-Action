@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: "Devis & Suivi Assurance Auto au Sénégal",
+  description: "Plateforme de demande de devis et de suivi d'assurance auto au Sénégal. Obtenez votre devis personnalisé par simple photo de votre carte grise ou CMC.",
+  alternates: {
+    canonical: "/",
+  },
+};
 
 export default function Home() {
   return (

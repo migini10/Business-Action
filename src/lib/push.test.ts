@@ -196,7 +196,7 @@ describe('PWA Push Notifications (PWA-001)', () => {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     assert.strictEqual(manifest.name, 'Business Action');
     assert.strictEqual(manifest.short_name, 'Business Action');
-    assert.strictEqual(manifest.start_url, '/admin');
+    assert.strictEqual(manifest.start_url, '/');
     assert.strictEqual(manifest.display, 'standalone');
     assert.strictEqual(manifest.icons.some(i => i.src === '/icon-192x192.png'), true);
     assert.strictEqual(manifest.icons.some(i => i.src === '/icon-512x512.png'), true);

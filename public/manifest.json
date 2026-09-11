@@ -2,7 +2,7 @@
   "name": "Business Action",
   "short_name": "Business Action",
   "description": "Application de gestion Business Action",
-  "start_url": "/admin",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0ea5e9",

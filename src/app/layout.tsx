@@ -5,7 +5,6 @@ import Topbar from "@/components/Topbar";
 import PwaInit from "@/components/PwaInit";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -17,8 +16,37 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Business Action",
-  description: "Application de gestion Business Action",
+  metadataBase: new URL("https://businessaction.sn"),
+  title: {
+    default: "Business Action | Devis & Suivi Assurance Auto au Sénégal",
+    template: "%s | Business Action",
+  },
+  description: "Plateforme de demande de devis et de suivi d'assurance auto au Sénégal. Business Action facilite vos demandes de devis, le suivi de vos dossiers et vos démarches d'assurance automobile.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "fr_SN",
+    url: "https://businessaction.sn",
+    siteName: "Business Action",
+    title: "Business Action | Devis & Suivi Assurance Auto au Sénégal",
+    description: "Plateforme de demande de devis et de suivi d'assurance auto au Sénégal. Business Action facilite vos demandes de devis, le suivi de vos dossiers et vos démarches d'assurance automobile.",
+    images: [
+      {
+        url: "/hero-car.png",
+        width: 1024,
+        height: 1024,
+        alt: "Business Action Assurance Auto Sénégal",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Business Action | Devis & Suivi Assurance Auto au Sénégal",
+    description: "Plateforme de demande de devis et de suivi d'assurance auto au Sénégal. Business Action facilite vos demandes de devis, le suivi de vos dossiers et vos démarches d'assurance automobile.",
+    images: ["/hero-car.png"],
+  },
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.svg",
@@ -40,10 +68,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', margin: 0 }}>
+      <body style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", margin: 0 }}>
         <ToastProvider>
           <Topbar />
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
             {children}
           </div>
           <PwaInit />

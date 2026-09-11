@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import { companyConfig } from '@/lib/company-config';
+
+export const metadata: Metadata = {
+  title: "Suppression des Données Personnelles",
+  description: "Procédure et instructions pour demander la suppression de vos données personnelles auprès de Business Action.",
+  alternates: {
+    canonical: "/suppression-donnees",
+  },
+};
 
 export default function SuppressionDonneesPage() {
   return (
