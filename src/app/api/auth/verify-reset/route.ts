@@ -14,11 +14,21 @@ function hashString(data: string, secret: string): string {
   return crypto.createHmac('sha256', secret).update(data).digest('hex');
 }
 
+// Origine publique de confiance pour les redirections. Ne jamais dériver cette
+// valeur de request.url (reflète l'adresse d'écoute interne de next start derrière
+// un reverse-proxy) ni d'un header Host/X-Forwarded-Host (falsifiable par l'appelant).
+// Repli sur localhost:3000 uniquement pour le développement local sans APP_BASE_URL.
+function getTrustedBaseUrl(): string {
+  return process.env.APP_BASE_URL || 'http://localhost:3000';
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const token = searchParams.get('token');
 
-  const errorUrl = new URL('/mot-de-passe-oublie', request.url);
+  const trustedBaseUrl = getTrustedBaseUrl();
+
+  const errorUrl = new URL('/mot-de-passe-oublie', trustedBaseUrl);
   errorUrl.searchParams.set('error', 'Ce lien de réinitialisation est invalide, expiré, ou a déjà été utilisé.');
 
   if (!token) {
@@ -48,7 +58,7 @@ export async function GET(request: NextRequest) {
     // Le challenge est valide, on ne le consomme pas encore (GET est idempotent).
     // On pose simplement le cookie et on redirige pour masquer le token.
     
-    const successUrl = new URL('/mot-de-passe-oublie', request.url);
+    const successUrl = new URL('/mot-de-passe-oublie', trustedBaseUrl);
     successUrl.searchParams.set('step', '3');
 
     const response = NextResponse.redirect(successUrl);
