@@ -5,6 +5,7 @@ import {
   _verifyOTP,
   _updatePassword
 } from '../app/actions/reset-password';
+import { signResetSession } from '@/lib/password-reset-crypto';
 import crypto from 'crypto';
 
 function hashString(data: string, secret: string): string {
@@ -19,14 +20,20 @@ function createMockDeps(overrides = {}) {
     user: { findUnique: async () => null, update: async () => {} },
     passwordResetChallenge: {
       findFirst: async () => null,
-      updateMany: async () => {},
+      updateMany: async () => ({ count: 1 }),
       create: async () => ({}),
       update: async () => ({})
     },
     clientSession: {
       deleteMany: async () => {}
     },
-    $transaction: async (queries: any) => queries
+    // Supporte les deux styles Prisma $transaction :
+    // - array-form (opérations déjà en vol) : retourne le tableau tel quel
+    // - interactive (callback) : exécute la callback avec `db` lui-même comme `tx`
+    $transaction: async (arg: any) => {
+      if (typeof arg === 'function') return arg(db);
+      return arg;
+    }
   };
 
   const cookies: Record<string, any> = {};
@@ -45,7 +52,8 @@ function createMockDeps(overrides = {}) {
     getCookie: async (name: string) => cookies[name]?.value,
     deleteCookie: async (name: string) => { delete cookies[name]; },
     cookies, // For test inspection
-    sendWhatsApp: async () => ({ success: true }),
+    sendWhatsApp: async (..._args: any[]): Promise<any> => ({ success: true }),
+    whatsappTemplateName: 'password_recovery_link_dev',
     ...overrides
   };
 }
@@ -101,21 +109,73 @@ test('Business Logic: requestPasswordReset', async (t) => {
     assert.strictEqual(createQuery.data.purpose, 'PASSWORD_RESET');
   });
 
-  await t.test('WHATSAPP method: failure to send does not create challenge', async () => {
+  await t.test('WHATSAPP method: échec d\'envoi => anti-énumération préservée (succès générique, aucune erreur exposée, aucun challenge créé)', async () => {
     const deps = createMockDeps();
     deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
     deps.sendWhatsApp = async () => ({ success: false, error: 'Not approved' });
-    
+
     let createdChallenge = false;
     deps.db.passwordResetChallenge.create = async () => { createdChallenge = true; };
 
     const res = await _requestPasswordReset('221770000000', 'WHATSAPP', deps);
-    assert.strictEqual(res.success, false);
-    assert.strictEqual((res as any).error, 'Not approved');
+    assert.strictEqual(res.success, true, "Ne doit jamais révéler côté client que l'envoi WhatsApp a échoué");
+    assert.match((res as any).message as string, /Si un compte correspondant existe/);
+    assert.strictEqual((res as any).error, undefined, "Aucune erreur Meta ne doit être exposée à l'appelant");
     assert.ok(!createdChallenge, "Ne doit pas créer de challenge si l'envoi échoue");
   });
 
-  await t.test('WHATSAPP method: successful send creates challenge', async () => {
+  await t.test('WHATSAPP method: template DEV fourni explicitement => transmis à sendWhatsApp', async () => {
+    const deps = createMockDeps({ whatsappTemplateName: 'password_recovery_link_dev' });
+    deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
+    let calledTemplate: string | undefined;
+    deps.sendWhatsApp = async (phone: string, token: string, template?: string) => {
+      calledTemplate = template;
+      return { success: true };
+    };
+    const res = await _requestPasswordReset('221770000000', 'WHATSAPP', deps);
+    assert.strictEqual(res.success, true);
+    assert.strictEqual(calledTemplate, 'password_recovery_link_dev');
+  });
+
+  await t.test('WHATSAPP method: template PROD fourni explicitement => transmis à sendWhatsApp', async () => {
+    const deps = createMockDeps({ whatsappTemplateName: 'password_recovery_link' });
+    deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
+    let calledTemplate: string | undefined;
+    deps.sendWhatsApp = async (phone: string, token: string, template?: string) => {
+      calledTemplate = template;
+      return { success: true };
+    };
+    const res = await _requestPasswordReset('221770000000', 'WHATSAPP', deps);
+    assert.strictEqual(res.success, true);
+    assert.strictEqual(calledTemplate, 'password_recovery_link');
+  });
+
+  await t.test('WHATSAPP method: variable template absente => échec contrôlé, aucun appel WhatsApp, aucun challenge, aucun fallback PROD', async () => {
+    const deps = createMockDeps({ whatsappTemplateName: undefined });
+    const prevEnv = process.env.WHATSAPP_PASSWORD_RESET_TEMPLATE_NAME;
+    delete process.env.WHATSAPP_PASSWORD_RESET_TEMPLATE_NAME;
+
+    deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
+    let sendWhatsAppCalled = false;
+    deps.sendWhatsApp = async () => {
+      sendWhatsAppCalled = true;
+      return { success: true };
+    };
+    let createdChallenge = false;
+    deps.db.passwordResetChallenge.create = async () => { createdChallenge = true; };
+
+    try {
+      const res = await _requestPasswordReset('221770000000', 'WHATSAPP', deps);
+      assert.strictEqual(res.success, true, "Réponse neutre anti-énumération pour l'appelant");
+      assert.strictEqual((res as any).error, undefined, "Aucun détail d'erreur interne exposé au client");
+      assert.strictEqual(sendWhatsAppCalled, false, "sendWhatsApp ne doit JAMAIS être appelé sans template explicite");
+      assert.strictEqual(createdChallenge, false, "Aucun challenge ne doit être créé sans template valide");
+    } finally {
+      if (prevEnv !== undefined) process.env.WHATSAPP_PASSWORD_RESET_TEMPLATE_NAME = prevEnv;
+    }
+  });
+
+    await t.test('WHATSAPP method: successful send creates challenge', async () => {
     const deps = createMockDeps();
     deps.db.user.findUnique = async () => ({ id: 'user1', phone: '221770000000' });
     deps.sendWhatsApp = async () => ({ success: true });
@@ -293,15 +353,55 @@ test('Business Logic: updatePassword', async (t) => {
     });
 
     let transactionCalled = false;
-    deps.db.$transaction = async (queries: any) => {
+    const originalTransaction = deps.db.$transaction;
+    deps.db.$transaction = async (arg: any) => {
       transactionCalled = true;
-      return queries;
+      return originalTransaction(arg);
+    };
+
+    let consumedWhere: any = null;
+    deps.db.passwordResetChallenge.updateMany = async (q: any) => {
+      consumedWhere = q.where;
+      return { count: 1 };
     };
 
     const res = await _updatePassword('newpass123', deps);
     assert.strictEqual(res.success, true);
     assert.ok(transactionCalled, "Doit utiliser une transaction Prisma");
+    assert.ok(consumedWhere, "La consommation atomique du token doit avoir eu lieu");
+    assert.strictEqual(consumedWhere.usedAt, null, "La consommation doit être gardée par usedAt: null (protection TOCTOU)");
     assert.strictEqual(deps.cookies['password_reset_token'], undefined, "Le cookie doit être supprimé");
+  });
+
+  await t.test('Deux consommations concurrentes du même token => une seule réussit (protection TOCTOU)', async () => {
+    const deps = createMockDeps();
+    deps.setCookie('password_reset_token', 'my-raw-token', {});
+
+    deps.db.passwordResetChallenge.findFirst = async () => ({
+      id: 'chal1',
+      userId: 'user1',
+      resetTokenHash: hashString('my-raw-token', mockSecret),
+      resetTokenExpiresAt: new Date(MOCK_NOW + 10000)
+    });
+
+    // Simule une consommation atomique : la 1ère updateMany "gagne" (count:1),
+    // toute updateMany suivante sur le même token trouve déjà usedAt non-null (count:0).
+    let consumeCount = 0;
+    deps.db.passwordResetChallenge.updateMany = async () => {
+      consumeCount++;
+      return { count: consumeCount === 1 ? 1 : 0 };
+    };
+
+    const [res1, res2] = await Promise.all([
+      _updatePassword('newpass123', deps),
+      _updatePassword('otherpass456', deps),
+    ]);
+
+    const successes = [res1, res2].filter((r: any) => r.success);
+    const failures = [res1, res2].filter((r: any) => !r.success);
+    assert.strictEqual(successes.length, 1, "Une seule des deux tentatives concurrentes doit réussir");
+    assert.strictEqual(failures.length, 1, "L'autre tentative doit être refusée");
+    assert.match((failures[0] as any).error as string, /non valide ou déjà utilisée/);
   });
 
   await t.test('Reset OTP sur un compte mustChangePassword=true avec temp password expiré => réinitialise aussi les flags de mot de passe temporaire', async () => {
@@ -345,6 +445,125 @@ test('Business Logic: updatePassword', async (t) => {
     const res = await _updatePassword('newpass123', deps);
     assert.strictEqual(res.success, false);
     assert.match((res as any).error as string, /a expiré/);
+  });
+
+  // --- Flux WHATSAPP : session temporaire signée (jamais le token brut) ---
+
+  await t.test('Session signée valide (WhatsApp) => password update, aucun token brut requis', async () => {
+    const deps = createMockDeps();
+    const sessionValue = signResetSession({ challengeId: 'chal1', exp: MOCK_NOW + 10000 }, mockSecret);
+    deps.setCookie('password_reset_session', sessionValue, {});
+
+    let findWhere: any = null;
+    deps.db.passwordResetChallenge.findFirst = async (q: any) => {
+      findWhere = q.where;
+      return {
+        id: 'chal1',
+        userId: 'user1',
+        resetTokenExpiresAt: new Date(MOCK_NOW + 10000),
+      };
+    };
+
+    const res = await _updatePassword('newpass123', deps);
+    assert.strictEqual(res.success, true);
+    assert.strictEqual(findWhere.id, 'chal1', 'Le lookup doit se faire par id de challenge, jamais par un hash dérivé du token brut');
+    assert.strictEqual(findWhere.resetTokenHash, undefined, 'Aucun token brut ne doit intervenir dans la vérification de session WhatsApp');
+    assert.strictEqual(deps.cookies['password_reset_session'], undefined, 'Le cookie de session doit être supprimé après succès');
+  });
+
+  await t.test('Session falsifiée (signature invalide) => refusée', async () => {
+    const deps = createMockDeps();
+    const legit = signResetSession({ challengeId: 'chal1', exp: MOCK_NOW + 10000 }, mockSecret);
+    const [encoded] = legit.split('.');
+    const tampered = `${encoded}.aW52YWxpZC1zaWduYXR1cmU`; // signature bidon, même longueur base64url approx
+    deps.setCookie('password_reset_session', tampered, {});
+
+    let findFirstCalled = false;
+    deps.db.passwordResetChallenge.findFirst = async () => { findFirstCalled = true; return null; };
+
+    const res = await _updatePassword('newpass123', deps);
+    assert.strictEqual(res.success, false);
+    assert.match((res as any).error as string, /invalide ou expirée/);
+    assert.ok(!findFirstCalled, "Une session dont la signature ne vérifie pas ne doit déclencher aucune requête DB");
+  });
+
+  await t.test('Session expirée (exp dépassé) => refusée sans requête DB', async () => {
+    const deps = createMockDeps();
+    const expiredSession = signResetSession({ challengeId: 'chal1', exp: MOCK_NOW - 1000 }, mockSecret);
+    deps.setCookie('password_reset_session', expiredSession, {});
+
+    let findFirstCalled = false;
+    deps.db.passwordResetChallenge.findFirst = async () => { findFirstCalled = true; return null; };
+
+    const res = await _updatePassword('newpass123', deps);
+    assert.strictEqual(res.success, false);
+    assert.match((res as any).error as string, /invalide ou expirée/);
+    assert.ok(!findFirstCalled, "Une session expirée doit être refusée avant toute requête DB");
+  });
+
+  await t.test('Session valide mais challenge déjà consommé (usedAt non null) => refusée (replay du lien/session)', async () => {
+    const deps = createMockDeps();
+    const sessionValue = signResetSession({ challengeId: 'chal1', exp: MOCK_NOW + 10000 }, mockSecret);
+    deps.setCookie('password_reset_session', sessionValue, {});
+
+    // Simule fidèlement le filtre réel : un challenge déjà consommé ne matche plus usedAt: null
+    deps.db.passwordResetChallenge.findFirst = async (q: any) => {
+      if (q.where.usedAt === null) return null;
+      return null;
+    };
+
+    const res = await _updatePassword('newpass123', deps);
+    assert.strictEqual(res.success, false);
+    assert.match((res as any).error as string, /Demande non valide ou déjà utilisée/);
+  });
+
+  await t.test('Rejeu de la même session après consommation réussie => refusé', async () => {
+    const deps = createMockDeps();
+    const sessionValue = signResetSession({ challengeId: 'chal1', exp: MOCK_NOW + 10000 }, mockSecret);
+    deps.setCookie('password_reset_session', sessionValue, {});
+
+    let consumed = false;
+    deps.db.passwordResetChallenge.findFirst = async () => {
+      if (consumed) return null; // déjà utilisé => usedAt: null ne matche plus
+      return { id: 'chal1', userId: 'user1', resetTokenExpiresAt: new Date(MOCK_NOW + 10000) };
+    };
+    deps.db.passwordResetChallenge.updateMany = async () => { consumed = true; return { count: 1 }; };
+
+    const first = await _updatePassword('newpass123', deps);
+    assert.strictEqual(first.success, true);
+
+    // Deuxième appel avec la même session cookie (déjà supprimée en pratique, mais on
+    // prouve ici que même rejouée manuellement elle est refusée côté serveur)
+    deps.setCookie('password_reset_session', sessionValue, {});
+    const second = await _updatePassword('otherpass456', deps);
+    assert.strictEqual(second.success, false);
+    assert.match((second as any).error as string, /Demande non valide ou déjà utilisée/);
+  });
+
+  await t.test('Deux consommations concurrentes de la même session WhatsApp => une seule réussit (protection TOCTOU)', async () => {
+    const deps = createMockDeps();
+    const sessionValue = signResetSession({ challengeId: 'chal1', exp: MOCK_NOW + 10000 }, mockSecret);
+    deps.setCookie('password_reset_session', sessionValue, {});
+
+    deps.db.passwordResetChallenge.findFirst = async () => ({
+      id: 'chal1',
+      userId: 'user1',
+      resetTokenExpiresAt: new Date(MOCK_NOW + 10000),
+    });
+
+    let consumeCount = 0;
+    deps.db.passwordResetChallenge.updateMany = async () => {
+      consumeCount++;
+      return { count: consumeCount === 1 ? 1 : 0 };
+    };
+
+    const [res1, res2] = await Promise.all([
+      _updatePassword('newpass123', deps),
+      _updatePassword('otherpass456', deps),
+    ]);
+
+    const successes = [res1, res2].filter((r: any) => r.success);
+    assert.strictEqual(successes.length, 1, "Une seule des deux tentatives concurrentes sur la même session doit réussir");
   });
 });
 

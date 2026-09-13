@@ -7,22 +7,11 @@ import { Resend } from 'resend';
 import { validatePasswordPolicy } from '@/lib/password-policy';
 import bcrypt from 'bcryptjs';
 import { sendWhatsAppTemplate } from '@/lib/whatsapp/send-template';
-
-// The secret must be present for the reset process to work safely
-const getOtpSecret = (secretOverride?: string) => {
-  const secret = secretOverride || process.env.PASSWORD_RESET_OTP_SECRET;
-  if (!secret) throw new Error('PASSWORD_RESET_OTP_SECRET is missing');
-  return secret;
-};
+import { getOtpSecret, hashString, verifyResetSession } from '@/lib/password-reset-crypto';
 
 // Generates a 6-digit OTP
 function generateOTP(): string {
   return crypto.randomInt(0, 1000000).toString().padStart(6, '0');
-}
-
-// Hashes a string (OTP or Reset Token)
-function hashString(data: string, secret: string): string {
-  return crypto.createHmac('sha256', secret).update(data).digest('hex');
 }
 
 // --- Internal logic functions for testing (dependency injection) ---
@@ -91,17 +80,30 @@ export async function _requestPasswordReset(phone: string, method: 'EMAIL' | 'WH
     } 
     
     if (method === 'WHATSAPP') {
+      const templateName = deps.whatsappTemplateName !== undefined
+        ? deps.whatsappTemplateName
+        : process.env.WHATSAPP_PASSWORD_RESET_TEMPLATE_NAME;
+
+      if (!templateName) {
+        // RÈGLE : ne jamais utiliser NODE_ENV, ne jamais fallback automatiquement vers password_recovery_link.
+        // Si WHATSAPP_PASSWORD_RESET_TEMPLATE_NAME est absente : retourner une erreur contrôlée côté serveur,
+        // ne pas envoyer de message WhatsApp, ne pas exposer de détail sensible au client (anti-énumération).
+        console.error('WhatsApp password reset failed: WHATSAPP_PASSWORD_RESET_TEMPLATE_NAME is not configured');
+        return successMessage;
+      }
+
       const resetToken = crypto.randomBytes(32).toString('hex');
       const resetTokenHash = hashString(resetToken, secret);
 
       // Envoi du template WhatsApp avant de consommer les anciens challenges
-      const waSendResult = await deps.sendWhatsApp(user.phone, resetToken);
+      const waSendResult = await deps.sendWhatsApp(user.phone, resetToken, templateName);
       
       if (!waSendResult.success) {
-        // En cas d'échec (ex: template non approuvé), on ne détruit pas les anciens challenges
-        // On retourne l'erreur pour le blocage Meta du test, mais en production on pourrait retourner un faux succès.
-        // Puisque la consigne demande de marquer le test WhatsApp BLOCKED sans contournement, on renvoie l'erreur.
-        return { success: false, error: waSendResult.error };
+        // Anti-énumération : ne jamais révéler côté client que l'envoi WhatsApp a échoué
+        // (template non approuvé, numéro invalide, rate limit Meta, etc.) - même comportement
+        // que le "Silent fail" de la branche EMAIL. Seul le log serveur reste visible.
+        console.error('WhatsApp password reset send failed:', waSendResult.error);
+        return successMessage;
       }
 
       await deps.db.$transaction([
@@ -203,9 +205,43 @@ export async function _verifyOTP(phone: string, otp: string, deps: any) {
 export async function _updatePassword(newPassword: string, deps: any) {
   try {
     const secret = getOtpSecret(deps.otpSecret);
-    const tokenCookie = await deps.getCookie('password_reset_token');
 
-    if (!tokenCookie) {
+    // Deux mécanismes de session temporaire possibles, selon le flux d'origine :
+    // - EMAIL : cookie `password_reset_token` contenant le reset-token brut, généré
+    //   et posé côté serveur juste après validation de l'OTP (jamais transmis via une
+    //   URL/lien externe) -> lookup par hash. Comportement EMAIL inchangé.
+    // - WHATSAPP : cookie `password_reset_session`, enveloppe signée (HMAC) référençant
+    //   uniquement l'id du challenge + son expiration -> ne contient jamais le token
+    //   WhatsApp brut reçu dans le lien (celui-ci n'est utilisé qu'une fois, sur la route
+    //   GET de validation, puis disparaît définitivement du navigateur).
+    const tokenCookie = await deps.getCookie('password_reset_token');
+    const sessionCookie = await deps.getCookie('password_reset_session');
+
+    let findWhere: any;
+    let atomicGuard: any;
+
+    if (tokenCookie) {
+      const resetTokenHash = hashString(tokenCookie, secret);
+      findWhere = {
+        resetTokenHash,
+        purpose: 'PASSWORD_RESET',
+        usedAt: null,
+        verifiedAt: { not: null },
+      };
+      atomicGuard = { resetTokenHash };
+    } else if (sessionCookie) {
+      const session = verifyResetSession(sessionCookie, secret);
+      if (!session || session.exp < deps.now()) {
+        return { success: false, error: 'Session de réinitialisation invalide ou expirée' };
+      }
+      findWhere = {
+        id: session.challengeId,
+        purpose: 'PASSWORD_RESET',
+        usedAt: null,
+        verifiedAt: { not: null },
+      };
+      atomicGuard = {};
+    } else {
       return { success: false, error: 'Session de réinitialisation invalide ou expirée' };
     }
 
@@ -214,49 +250,58 @@ export async function _updatePassword(newPassword: string, deps: any) {
       return { success: false, error: passwordCheck.error };
     }
 
-    const resetToken = tokenCookie;
-    const resetTokenHash = hashString(resetToken, secret);
+    const result = await deps.db.$transaction(async (tx: any) => {
+      const challenge = await tx.passwordResetChallenge.findFirst({ where: findWhere });
 
-    const challenge = await deps.db.passwordResetChallenge.findFirst({
-      where: {
-        resetTokenHash,
-        purpose: 'PASSWORD_RESET',
-        usedAt: null,
-        verifiedAt: { not: null },
-      },
-      include: { user: true },
-    });
+      if (!challenge) return { success: false, error: 'Demande non valide ou déjà utilisée' };
+      if (!challenge.resetTokenExpiresAt || challenge.resetTokenExpiresAt < new Date(deps.now())) {
+        return { success: false, error: 'Le jeton de réinitialisation a expiré' };
+      }
 
-    if (!challenge) return { success: false, error: 'Demande non valide ou déjà utilisée' };
-    if (!challenge.resetTokenExpiresAt || challenge.resetTokenExpiresAt < new Date(deps.now())) {
-      return { success: false, error: 'Le jeton de réinitialisation a expiré' };
-    }
+      // Consommation conditionnelle atomique : empêche deux requêtes concurrentes
+      // (double-clic, deux onglets, deux appareils sur la même session) de consommer
+      // le même challenge deux fois.
+      const updateRes = await tx.passwordResetChallenge.updateMany({
+        where: {
+          id: challenge.id,
+          purpose: 'PASSWORD_RESET',
+          usedAt: null,
+          ...atomicGuard,
+        },
+        data: { usedAt: new Date(deps.now()) },
+      });
 
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      if (updateRes.count !== 1) {
+        return { success: false, error: 'Demande non valide ou déjà utilisée' };
+      }
 
-    await deps.db.$transaction([
-      deps.db.user.update({
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+      await tx.user.update({
         where: { id: challenge.userId },
         data: {
           password: newPasswordHash,
           mustChangePassword: false,
           temporaryPasswordExpiresAt: null
         },
-      }),
-      deps.db.passwordResetChallenge.update({
-        where: { id: challenge.id },
-        data: { usedAt: new Date(deps.now()) },
-      }),
-      deps.db.passwordResetChallenge.updateMany({
+      });
+
+      await tx.passwordResetChallenge.updateMany({
         where: { userId: challenge.userId, id: { not: challenge.id }, usedAt: null },
         data: { usedAt: new Date(deps.now()) },
-      }),
-      deps.db.clientSession.deleteMany({
+      });
+
+      await tx.clientSession.deleteMany({
         where: { userId: challenge.userId },
-      }),
-    ]);
+      });
+
+      return { success: true };
+    });
+
+    if (!result.success) return result;
 
     await deps.deleteCookie('password_reset_token');
+    await deps.deleteCookie('password_reset_session');
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Une erreur est survenue' };
@@ -300,10 +345,14 @@ export async function requestPasswordReset(phone: string, method: 'EMAIL' | 'WHA
         `
       });
     },
-    sendWhatsApp: async (phone: string, token: string) => {
-      // call Meta utility template
-      // param is just the dynamic URL token part
-      return sendWhatsAppTemplate(phone, 'password_recovery_link', token, 'fr');
+    whatsappTemplateName: process.env.WHATSAPP_PASSWORD_RESET_TEMPLATE_NAME,
+    sendWhatsApp: async (phone: string, token: string, templateName?: string) => {
+      const selectedTemplate = templateName || process.env.WHATSAPP_PASSWORD_RESET_TEMPLATE_NAME;
+      if (!selectedTemplate) {
+        console.error('WhatsApp password reset failed: WHATSAPP_PASSWORD_RESET_TEMPLATE_NAME is not configured');
+        return { success: false, error: 'WHATSAPP_PASSWORD_RESET_TEMPLATE_NAME is not configured' };
+      }
+      return sendWhatsAppTemplate(phone, selectedTemplate, token, 'fr');
     }
   });
 }
