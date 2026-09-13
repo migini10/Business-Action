@@ -545,6 +545,10 @@ export default function AdminDashboard({ initialDossiers, initialClients }: { in
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
             Territoires & GEO
           </button>
+          <Link href="/admin/monitoring" onClick={() => setIsMobileDrawerOpen(false)} style={{ ...navItemStyle, textDecoration: "none" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            Monitoring
+          </Link>
         </nav>
 
         <div className="mobile-only" style={{ padding: '1.5rem', borderTop: '1px solid #E2E8F0', flexDirection: 'column', gap: '1rem' }}>
