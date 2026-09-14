@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { requestPasswordReset, verifyOTP, updatePassword } from '../actions/reset-password';
 import Link from 'next/link';
 import { PhoneInput } from '@/components/ui/PhoneInput';
+import { siteContent } from '@/lib/content';
 
 function ForgotPasswordForm() {
   const router = useRouter();
@@ -165,7 +166,7 @@ function ForgotPasswordForm() {
             Vérifiez votre boîte de réception et vos courriers indésirables.
           </p>
           <p style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700 }}>
-            Ce code expire dans 15 minutes.
+            Ce code expire dans {siteContent.account.passwordReset.validityMinutes} minutes.
           </p>
           <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #BBF7D0', textAlign: 'center' }}>
             <button type="button" onClick={() => { setStep(1); setMethod('WHATSAPP'); }} style={{ background: 'none', border: 'none', color: '#166534', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>

@@ -18,8 +18,8 @@ export function detectIntent(text: string): CustomerIntent {
   // Adding explicit start commands to quote request as well
   const quoteKeywords = ['devis', 'quote', 'prix', 'price', 'combien', 'naata', 'cost', 'tarif', 'tarifs', 'commencer', 'start', 'tambali', 'much'];
 
-  // Status request: statut, status, suivi, where, quand, etat, track
-  const statusKeywords = ['statut', 'status', 'statu', 'staus', 'suivi', 'suivre', 'where', 'quand', 'etat', 'track'];
+  // Status request: statut, status, suivi, where, quand, etat, track, dossier, topp, toppatoo, news
+  const statusKeywords = ['statut', 'status', 'statu', 'staus', 'suivi', 'suivre', 'where', 'quand', 'etat', 'track', 'dossier', 'topp', 'toppatoo', 'news'];
 
   // Human support: humain, human, conseiller, agent, parler, help, aide, assist, assistance, personne, advisor
   const humanKeywords = ['humain', 'human', 'conseiller', 'agent', 'parler', 'help', 'aide', 'assist', 'assistance', 'personne', 'advisor'];
@@ -57,7 +57,8 @@ export function detectIntent(text: string): CustomerIntent {
 
   const statusPhrases = [
     'ou en est', 'ou en ai', 'ou en e', 'where is', 'what is the stat', 'whats the stat',
-    'famu tollu', 'fumu tollu', 'fumu toll', 'ana sama', 'famu toll'
+    'famu tollu', 'fumu tollu', 'fumu toll', 'ana sama', 'famu toll',
+    'topp sama', 'topp dossier', 'fu sama dossier tollu', 'any news'
   ];
   for (const phrase of statusPhrases) {
     if (normalizedText.includes(phrase)) statusScore += 2;
