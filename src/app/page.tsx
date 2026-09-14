@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { companyConfig } from '@/lib/company-config';
 
 export const metadata: Metadata = {
   title: "Devis & Suivi Assurance Auto au Sénégal",
@@ -226,7 +227,7 @@ export default function Home() {
                   alt="Business Action"
                   width={180}
                   height={50}
-                  style={{ width: 'auto', height: '40px', maxWidth: '100%' }}
+                  style={{ width: 'auto', height: '40px', maxWidth: '100%', filter: 'drop-shadow(0.5px 0 0 #ffffff) drop-shadow(-0.5px 0 0 #ffffff) drop-shadow(0 0.5px 0 #ffffff) drop-shadow(0 -0.5px 0 #ffffff)' }}
                 />
               </div>
               <p style={{ color: '#94A3B8', fontSize: '1rem', lineHeight: 1.6, maxWidth: '400px' }}>La plateforme SaaS de référence pour la gestion de devis d'assurance et de paiements. Rapide, sécurisée et totalement transparente.</p>
@@ -245,24 +246,24 @@ export default function Home() {
             <div>
               <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', color: '#F8FAFC' }}>Légal</h4>
               <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1rem', color: '#94A3B8' }}>
-                <li><Link href="#">Conditions générales</Link></li>
-                <li><Link href="#">Politique de confidentialité</Link></li>
-                <li><Link href="#">Mentions légales</Link></li>
+                <li><Link href="/conditions-utilisation" style={{ transition: 'color 0.2s' }}>Conditions générales</Link></li>
+                <li><Link href="/confidentialite" style={{ transition: 'color 0.2s' }}>Politique de confidentialité</Link></li>
+                <li><Link href="/mentions-legales" style={{ transition: 'color 0.2s' }}>Mentions légales</Link></li>
               </ul>
             </div>
 
             <div>
               <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', color: '#F8FAFC' }}>Contact</h4>
               <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1rem', color: '#94A3B8' }}>
-                <li>contact@afrodev.com</li>
-                <li>+221 77 123 45 67</li>
+                <li>{companyConfig.privacyEmail}</li>
+                <li>{companyConfig.phone}</li>
                 <li>Dakar, Sénégal</li>
               </ul>
             </div>
           </div>
 
           <div style={{ borderTop: '1px solid #1E293B', paddingTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', color: '#64748B', fontSize: '0.875rem' }}>
-            <p>&copy; {new Date().getFullYear()} AFRODEV SaaS. Tous droits réservés.</p>
+            <p>&copy; {new Date().getFullYear()} {companyConfig.commercialName}. Tous droits réservés.</p>
             <div style={{ display: 'flex', gap: '1.5rem' }}>
               <Link href="#" aria-label="Facebook"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg></Link>
               <Link href="#" aria-label="Twitter"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg></Link>
