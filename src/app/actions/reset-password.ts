@@ -129,6 +129,7 @@ export async function _requestPasswordReset(phone: string, method: 'EMAIL' | 'WH
 
     return successMessage;
   } catch (error) {
+    console.error('[reset-password] Request error:', error);
     return { success: false, error: 'Une erreur est survenue' };
   }
 }
