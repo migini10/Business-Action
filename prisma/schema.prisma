@@ -49,6 +49,7 @@ model User {
   transactions               Transaction[]
   passwordResetChallenges    PasswordResetChallenge[]
   clientSessions             ClientSession[]
+  insuranceContracts         InsuranceContract[]
   geoCommuneId               String?
   geoCommune                 GeoCommune?              @relation(fields: [geoCommuneId], references: [id], onDelete: Restrict)
   createdAt                  DateTime                 @default(now())
@@ -128,6 +129,7 @@ model Dossier {
 
   activeWhatsAppConversations WhatsAppConversation[] @relation("ActiveDossier")
   mediaStagings               MediaStaging[]
+  insuranceContracts          InsuranceContract[]
 }
 
 model Echeance {
@@ -428,5 +430,138 @@ model GeoCommune {
 
   @@unique([departmentId, name])
   @@index([departmentId])
+}
+
+// ==========================================
+// ASSURANCE, RAPPELS ET ATTESTATIONS SÉCURISÉES
+// ==========================================
+
+enum InsuranceContractStatus {
+  BROUILLON_OCR
+  VALIDE
+  RENOUVELE
+  ANNULE
+  EXPIRE
+}
+
+enum ContractSourceMode {
+  AUTOMATIQUE
+  MANUEL
+}
+
+enum ReminderType {
+  J_MINUS_7
+  J_MINUS_2
+}
+
+enum ReminderStatus {
+  PREVU
+  ENVOYE
+  ECHOUE
+  ANNULE
+}
+
+enum AttestationStatus {
+  EN_ATTENTE
+  VALIDE
+  REMPLACEE
+  REVOGUEE
+  ANNULEE
+}
+
+model InsuranceContract {
+  id                 String                  @id @default(cuid())
+  numeroPolice       String
+  compagnie          String
+  assureNom          String
+  immatriculation    String
+  marqueModele       String?
+  dateDebut          DateTime
+  dateExpiration     DateTime
+  statut             InsuranceContractStatus @default(VALIDE)
+  sourceMode         ContractSourceMode      @default(MANUEL)
+  clientPhone        String
+  clientEmail        String?
+  notes              String?
+
+  userId             String?
+  user               User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  dossierId          String?
+  dossier            Dossier?                @relation(fields: [dossierId], references: [id], onDelete: SetNull)
+
+  previousContractId String?
+  previousContract   InsuranceContract?      @relation("ContractRenewals", fields: [previousContractId], references: [id], onDelete: SetNull)
+  renewedContracts   InsuranceContract[]     @relation("ContractRenewals")
+
+  attestations       InsuranceAttestation[]
+  reminders          InsuranceReminder[]
+
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@index([clientPhone])
+  @@index([immatriculation])
+  @@index([dateExpiration])
+  @@index([statut])
+  @@index([userId])
+  @@index([dossierId])
+}
+
+model InsuranceAttestation {
+  id                String                   @id @default(cuid())
+  contractId        String
+  contract          InsuranceContract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  numeroAttestation String?
+  pdfStoragePath    String?
+  pngStoragePath    String?
+  dateDebut         DateTime
+  dateExpiration    DateTime
+  statut            AttestationStatus        @default(VALIDE)
+  validatedAt       DateTime?
+  validatedBy       String?
+
+  tokens            AttestationAccessToken[]
+
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([contractId])
+  @@index([statut])
+}
+
+model AttestationAccessToken {
+  id               String               @id @default(cuid())
+  attestationId    String
+  attestation      InsuranceAttestation @relation(fields: [attestationId], references: [id], onDelete: Cascade)
+  tokenHash        String               @unique
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  downloadCount    Int                  @default(0)
+  lastDownloadedAt DateTime?
+
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([attestationId])
+  @@index([expiresAt])
+}
+
+model InsuranceReminder {
+  id           String            @id @default(cuid())
+  contractId   String
+  contract     InsuranceContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  type         ReminderType
+  scheduledFor DateTime
+  statut       ReminderStatus    @default(PREVU)
+  sentAt       DateTime?
+  error        String?
+  waMessageId  String?
+
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([contractId])
+  @@index([statut, scheduledFor])
+  @@index([contractId, type, statut])
 }
 
