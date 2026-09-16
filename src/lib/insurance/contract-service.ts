@@ -275,8 +275,39 @@ export class InsuranceContractDomainService {
   }
 
   /**
+   * Révoque une attestation et tous ses jetons d'accès associés.
+   */
+  static revokeAttestation(params: {
+    attestation: AttestationData;
+    tokens?: StoredTokenData[];
+    actionDate?: Date;
+    newStatut?: 'REVOGUEE' | 'ANNULEE';
+  }): {
+    updatedAttestation: AttestationData;
+    revokedTokens: StoredTokenData[];
+  } {
+    const actionDate = params.actionDate ?? new Date();
+    const updatedAttestation: AttestationData = {
+      ...params.attestation,
+      statut: params.newStatut ?? 'REVOGUEE',
+    };
+
+    const revokedTokens = (params.tokens ?? []).map((t) => {
+      if (t.revokedAt === null || t.revokedAt === undefined) {
+        return this.revokeToken(t, actionDate);
+      }
+      return t;
+    });
+
+    return {
+      updatedAttestation,
+      revokedTokens,
+    };
+  }
+
+  /**
    * Remplacement d'une attestation :
-   * - L'ancien jeton est révoqué immédiatement.
+   * - L'ancien jeton est révoqué immédiatement (ainsi que tous les jetons actifs).
    * - L'ancienne attestation passe à REMPLACEE.
    * - La nouvelle attestation est créée.
    * - Un nouveau jeton est généré (valable jusqu'à l'expiration de la nouvelle attestation).
@@ -284,11 +315,13 @@ export class InsuranceContractDomainService {
   static replaceAttestation(params: {
     oldAttestation: AttestationData;
     oldTokenRecord?: StoredTokenData | null;
+    oldTokens?: StoredTokenData[];
     newAttestation: AttestationData;
     actionDate?: Date;
   }): {
     updatedOldAttestation: AttestationData;
     revokedOldToken: StoredTokenData | null;
+    revokedOldTokens: StoredTokenData[];
     newAttestation: AttestationData;
     newToken: { rawToken: string; record: StoredTokenData } | null;
   } {
@@ -304,6 +337,14 @@ export class InsuranceContractDomainService {
     const revokedOldToken: StoredTokenData | null = params.oldTokenRecord
       ? this.revokeToken(params.oldTokenRecord, actionDate)
       : null;
+
+    const tokensToRevoke = params.oldTokens ?? (params.oldTokenRecord ? [params.oldTokenRecord] : []);
+    const revokedOldTokens: StoredTokenData[] = tokensToRevoke.map((t) => {
+      if (t.revokedAt === null || t.revokedAt === undefined) {
+        return this.revokeToken(t, actionDate);
+      }
+      return t;
+    });
 
     // 3. Nouvelle attestation validée
     const newAttestation: AttestationData = {
@@ -332,6 +373,7 @@ export class InsuranceContractDomainService {
     return {
       updatedOldAttestation,
       revokedOldToken,
+      revokedOldTokens,
       newAttestation,
       newToken,
     };
